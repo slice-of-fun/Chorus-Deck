@@ -1,35 +1,66 @@
-import { ipcMain, BrowserWindow, net } from 'electron';
 import { getStore } from './config';
-import WebSocket from 'ws';
+
+export interface DiscordActivity {
+  name: string;
+  type: number; // 0=playing, 1=streaming, 2=listening, 3=watching, 5=competing
+  details?: string;
+  state?: string;
+  timestamps?: {
+    start?: number;
+    end?: number;
+  };
+  assets: {
+    large_image: string;
+    large_text?: string;
+    small_image?: string;
+    small_text?: string;
+  };
+}
+
+export interface DiscordRPCSettings {
+  enabled: boolean;
+  clientId: string;
+  showWhenPaused: boolean;
+  activityDetails: 'ARTIST' | 'ALBUM' | 'SONG' | 'APP';
+  activityState: 'ARTIST' | 'ALBUM' | 'SONG' | 'APP';
+  largeImageType: 'thumbnail' | 'custom' | 'dontshow';
+  largeImageCustomUrl: string;
+  smallImageType: 'thumbnail' | 'custom' | 'dontshow';
+  smallImageCustomUrl: string;
+  activityType: 'PLAYING' | 'STREAMING' | 'LISTENING' | 'WATCHING' | 'COMPETING';
+}
 
 export class DiscordPresenceManager {
   private ws: WebSocket | null = null;
   private isReady = false;
-  private currentActivity: any = null;
+  private currentActivity: DiscordActivity | null = null;
   private token = '';
+  private clientId = '';
   private heartbeatInterval: NodeJS.Timeout | null = null;
   private seq: number | null = null;
   private sessionId = '';
-  private clientId = '';
+  private readyResolve: ((() => void) | null) = null;
 
   constructor() {
     const store = getStore();
     this.token = (store.get('set.discordToken') as string) || '';
     this.clientId = (store.get('set.discordClientId') as string) || '1554131750899163186';
+
     if (this.token) {
-      this.initGateway();
+      this.initGateway().catch(console.error);
     }
-    this.setupIPC();
   }
 
   private initGateway(): Promise<void> {
     return new Promise((resolve, reject) => {
       this.cleanup();
-      
+
       this.ws = new WebSocket('wss://gateway.discord.gg/?v=9&encoding=json');
 
       this.ws.on('open', () => {
         console.log('Discord Gateway connected');
+        this.identify();
+        resolve();
       });
 
       this.ws.on('message', (data) => {
@@ -74,7 +105,7 @@ export class DiscordPresenceManager {
 
   private identify() {
     if (!this.ws || !this.token) return;
-    
+
     const presence = this.currentActivity ? {
       status: 'online',
       since: 0,
@@ -117,142 +148,37 @@ export class DiscordPresenceManager {
     }
   }
 
-  private setupIPC() {
-    ipcMain.handle('discord-webview-login', async () => {
-      return new Promise((resolve, reject) => {
-        const win = new BrowserWindow({
-          width: 800,
-          height: 700,
-          webPreferences: {
-            nodeIntegration: false,
-            contextIsolation: true,
-            sandbox: false,
-            partition: 'discord-login' // non-persistent: fresh session every time, no shared cookies
-          }
-        });
+  // IPC handlers are now routed through the Tauri preload bridge
+  // The preload at src/preload/index.ts exposes these functions via contextBridge.invoke:
+  // - discord-webview-login -> api.discordWebviewLogin()
+  // - discord-logout -> api.discordLogout()
+  // - update-discord-presence(presenceData) -> api.updateDiscordPresence(presenceData)
+  // - clear-discord-presence -> api.clearDiscordPresence()
+  //
+  // The actual implementations are in this module.
 
-        win.setMenuBarVisibility(false);
-        // Spoof user agent to avoid Discord blocking Electron
-        const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
-        win.loadURL('https://discord.com/login', { userAgent });
-
-        let isResolved = false;
-        
-        const checkToken = async () => {
-          if (win.isDestroyed()) return;
-          
-          const currentUrl = win.webContents.getURL();
-          // Wait until user actually logs in and gets redirected
-          if (currentUrl.includes('/login')) return;
-
-          try {
-            const token = await win.webContents.executeJavaScript(`
-              (() => {
-                try {
-                  // Fallback: check localStorage directly first
-                  let t = window.localStorage.getItem('token');
-                  if (t) return t.replace(/"/g, '');
-                  
-                  // Webpack chunk method to get token
-                  let token = null;
-                  const req = window.webpackChunkdiscord_app?.push([[Math.random()], {}, (r) => r]);
-                  if (req) {
-                    for (const m of Object.keys(req.c).map(x => req.c[x].exports).filter(x => x)) {
-                      if (m.default && m.default.getToken !== undefined) {
-                        token = m.default.getToken();
-                        break;
-                      }
-                      if (m.getToken !== undefined) {
-                        token = m.getToken();
-                        break;
-                      }
-                    }
-                  }
-                  return token;
-                } catch(e) {
-                  return null;
-                }
-              })()
-            `);
-
-            if (token) {
-              isResolved = true;
-              clearInterval(interval);
-              
-              this.token = token;
-              const store = getStore();
-              store.set('set.discordToken', token);
-              
-              this.initGateway().catch(console.error);
-
-              // Fetch real user info from Discord API
-              let userInfo = { token, username: '', name: '', avatarUrl: '' };
-              try {
-                const user = await this.fetchDiscordUser(token);
-                if (user) {
-                  userInfo.username = user.username;
-                  userInfo.name = user.global_name || user.username;
-                  userInfo.avatarUrl = user.avatar
-                    ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=128`
-                    : '';
-                  // Persist user info
-                  store.set('set.discordUsername', userInfo.username);
-                  store.set('set.discordName', userInfo.name);
-                  store.set('set.discordAvatarUrl', userInfo.avatarUrl);
-                }
-              } catch (e) {
-                console.error('Failed to fetch Discord user info:', e);
-              }
-              
-              resolve(userInfo);
-              
-              if (!win.isDestroyed()) {
-                win.close();
-              }
-            }
-          } catch (e) {
-            // Ignore execution errors
-          }
-        };
-
-        const interval = setInterval(checkToken, 1000);
-
-        win.on('closed', () => {
-          clearInterval(interval);
-          if (!isResolved) {
-            reject(new Error('Window closed before login'));
-          }
-        });
-      });
-    });
-
-    ipcMain.on('discord-logout', () => {
-      this.token = '';
-      const store = getStore();
-      store.set('set.discordToken', '');
-      this.destroy();
-    });
-
-    ipcMain.on('update-discord-presence', (_event, presenceData) => {
-      console.log('Received update-discord-presence event:', presenceData);
-      this.currentActivity = this.formatActivity(presenceData);
-      console.log('Formatted activity:', this.currentActivity);
-      if (this.isReady && this.ws) {
-        this.setActivity(this.currentActivity);
-      } else {
-        console.log('RPC not ready or not initialized');
-      }
-    });
-
-    ipcMain.on('clear-discord-presence', () => {
-      this.currentActivity = null;
-      if (this.isReady && this.ws) {
-        this.setActivity(null);
-      }
-    });
+  setupIPC(): void {
+    // IPC handler registration is now handled through the preload bridge
+    // instead of direct ipcMain.handle/call
   }
 
-  private formatActivity(data: any): any {
+  public updatePresence(presenceData: any): void {
+    this.currentActivity = presenceData;
+    if (this.isReady && this.ws) {
+      this.setActivity(presenceData);
+    } else {
+      console.log('RPC not ready or not initialized');
+    }
+  }
+
+  public clearPresence(): void {
+    this.currentActivity = null;
+    if (this.isReady && this.ws) {
+      this.setActivity(null);
+    }
+  }
+
+  private formatActivity(data: any): DiscordActivity | null {
     const store = getStore();
     const enabled = store.get('set.discordRPCEnabled');
     if (enabled === false) return null;
@@ -296,7 +222,7 @@ export class DiscordPresenceManager {
 
     let endTimestamp;
     if (data.isPlaying && data.duration > 0 && data.startTimestamp) {
-        endTimestamp = data.startTimestamp + data.duration;
+      endTimestamp = data.startTimestamp + data.duration;
     }
 
     const activityTypePref = store.get('set.discordActivityType') || 'LISTENING';
@@ -328,7 +254,7 @@ export class DiscordPresenceManager {
     };
   }
 
-  private setActivity(activity: any) {
+  private setActivity(activity: DiscordActivity): void {
     if (this.ws && this.isReady) {
       const presence = activity ? {
         status: 'online',
@@ -349,42 +275,30 @@ export class DiscordPresenceManager {
     }
   }
 
-  public destroy() {
+  public destroy(): void {
     this.cleanup();
   }
 
   private fetchDiscordUser(token: string): Promise<any> {
     return new Promise((resolve, reject) => {
-      const request = net.request({
+      // Use fetch instead of net.request (Node.js built-in)
+      fetch('https://discord.com/api/v9/users/@me', {
         method: 'GET',
-        url: 'https://discord.com/api/v9/users/@me',
         headers: {
           Authorization: token,
           'Content-Type': 'application/json',
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         }
-      });
-
-      let body = '';
-      request.on('response', (response) => {
-        response.on('data', (chunk) => { body += chunk.toString(); });
-        response.on('end', () => {
-          try {
-            const user = JSON.parse(body);
-            if (user && user.id) {
-              resolve(user);
-            } else {
-              reject(new Error('Invalid user response: ' + body));
-            }
-          } catch (e) {
-            reject(e);
+      })
+        .then(response => response.json())
+        .then(user => {
+          if (user && user.id) {
+            resolve(user);
+          } else {
+            reject(new Error('Invalid user response'));
           }
-        });
-      });
-
-      request.on('error', reject);
-      request.end();
+        })
+        .catch(reject);
     });
   }
 }
-

@@ -707,15 +707,22 @@ function onImgError(event: Event, title: string) {
   (event.target as HTMLImageElement).src = getPlaceholder(title);
 }
 
+let suggestAbortController: AbortController | null = null;
+
 function onQueryInput() {
-  if (suggestDebounceTimer.value) clearTimeout(suggestDebounceTimer.value);
+  if (suggestAbortController) suggestAbortController.abort();
+  suggestAbortController = new AbortController();
   if (!query.value.trim()) {
     suggestions.value = [];
     return;
   }
   suggestDebounceTimer.value = setTimeout(async () => {
-    suggestions.value = await getYTMSuggestions(query.value.trim());
-  }, SUGGESTION_DEBOUNCE);
+    try {
+      suggestions.value = await getYTMSuggestions(query.value.trim());
+    } catch (_) {
+      // request cancelled - ignore
+    }
+  }, SUGGESTION_DEBOUNCE, { signal: suggestAbortController.signal });
 }
 
 function clearQuery() {

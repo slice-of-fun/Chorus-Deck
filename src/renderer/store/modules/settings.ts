@@ -1,10 +1,11 @@
-import { cloneDeep, isArray, mergeWith } from 'lodash';
+import { isArray, mergeWith } from 'lodash';
 import { defineStore } from 'pinia';
 import { ref, watch } from 'vue';
 
 import setDataDefault from '@/../main/set.json';
 import homeRouter from '@/router/home';
 import { useMenuStore } from '@/store/modules/menu';
+import { getStore, getSharedStore } from '@/main/modules/config';
 import { isElectron } from '@/utils';
 import {
   applyTheme,
@@ -33,46 +34,84 @@ export const useSettingsStore = defineStore('settings', () => {
 
   const setData = ref<any>({});
 
-  const setSetData = (data: any) => {
+  const setSetData = async (data: any) => {
     const mergedData = {
       ...setData.value,
       ...data
     };
 
+    setData.value = mergedData;
+
     if (isElectron) {
-      window.electron.ipcRenderer.send('set-store-value', 'set', cloneDeep(mergedData));
+      // Use Tauri invoke instead of direct electron-store
+      try {
+        await window.tauri.invoke('set-store-value', 'set', mergedData);
+      } catch (error) {
+        console.error('[settings] Failed to write config via Tauri:', error);
+      }
     } else {
-      localStorage.setItem('appSettings', JSON.stringify(cloneDeep(mergedData)));
+      // localStorage fallback for non-Electron
+      const stored = localStorage.getItem('appSettings');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        // Merge incrementally, not full deep clone
+        const partial = { ...parsed, ...mergedData };
+        localStorage.setItem('appSettings', JSON.stringify(partial));
+      } else {
+        localStorage.setItem('appSettings', JSON.stringify(mergedData));
+      }
     }
-    setData.value = cloneDeep(mergedData);
   };
 
-  const getInitialSettings = () => {
-    const savedSettings = isElectron
-      ? window.electron.ipcRenderer.sendSync('get-store-value', 'set')
-      : JSON.parse(localStorage.getItem('appSettings') || '{}');
+  const getInitialSettings = async () => {
+    if (isElectron) {
+      try {
+        const sharedStore = getSharedStore();
+        const savedSettings = sharedStore.get('set') || {};
+        const customizer = (_objValue: any, srcValue: any) => {
+          if (isArray(srcValue)) {
+            return srcValue;
+          }
+          return undefined;
+        };
+        const mergedSettings = mergeWith({}, setDataDefault, savedSettings, customizer);
+        setSetData(mergedSettings);
+        return mergedSettings;
+      } catch (error) {
+        console.error('[settings] Failed to read config via Tauri:', error);
+        return getInitialSettingsFallback();
+      }
+    } else {
+      const stored = localStorage.getItem('appSettings');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        const customizer = (_objValue: any, srcValue: any) => {
+          if (isArray(srcValue)) {
+            return srcValue;
+          }
+          return undefined;
+        };
+        const mergedSettings = mergeWith({}, setDataDefault, parsed, customizer);
+        setSetData(mergedSettings);
+        return mergedSettings;
+      }
+      return getInitialSettingsFallback();
+    }
+  };
 
+  const getInitialSettingsFallback = () => {
     const customizer = (_objValue: any, srcValue: any) => {
       if (isArray(srcValue)) {
         return srcValue;
       }
       return undefined;
     };
-
-    const mergedSettings = mergeWith({}, setDataDefault, savedSettings, customizer);
-
+    const mergedSettings = mergeWith({}, setDataDefault, {}, customizer);
     setSetData(mergedSettings);
     return mergedSettings;
   };
 
   setData.value = getInitialSettings();
-
-  const setCustomApiPlugin = (plugin: { name: string; content: string }) => {
-    setSetData({
-      customApiPlugin: plugin.content,
-      customApiPluginName: plugin.name
-    });
-  };
 
   const toggleTheme = () => {
     if (setData.value.autoTheme) {
@@ -162,7 +201,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const setLanguage = (language: string) => {
     setSetData({ language });
     if (isElectron) {
-      window.electron.ipcRenderer.send('change-language', language);
+      window.tauri.invoke('change-language', language);
     }
   };
 
@@ -183,7 +222,7 @@ export const useSettingsStore = defineStore('settings', () => {
     if (systemFonts.value.length > 1) return;
 
     try {
-      const fonts = await window.api.invoke('get-system-fonts');
+      const fonts = await window.tauri.invoke('get-system-fonts');
       setSystemFonts(fonts);
     } catch (error) {
       console.error('Failed to obtain system font:', error);

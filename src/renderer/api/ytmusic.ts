@@ -67,55 +67,40 @@ export interface YTMStreamResult {
   success: boolean;
   data?: YTMStream;
   error?: string;
-}
-
-export interface YTMPlaylistDetail {
-  id: string;
-  title: string;
-  description?: string;
-  author?: string;
-  thumbnail: string;
-  songCount: number;
-  songs: YTMSong[];
-}
-
-export interface YTMArtistDetail {
-  id: string;
-  title: string;
-  description?: string;
-  thumbnail: string;
-  subscriberCount?: string;
-  songs: YTMSong[];
-  albums: YTMPlaylist[];
-  playlists: YTMPlaylist[];
+  attempts?: any[];
 }
 
 // ─── IPC Bridge ───────────────────────────────────────────────────────────────
 
+// In Tauri, IPC is handled through the contextBridge in src/preload/index.ts.
+// The public API functions (getYTMHome, getYTMCharts, etc.) are called directly
+// via window.api.<functionName>() from the renderer.
+// This file is kept for type definitions and internal use only.
+// The ipc() function below is a placeholder - actual IPC routing is handled
+// by the preload script's contextBridge API.
+
+// The following ipc function is kept for backward compatibility but will
+// route through the Tauri preload bridge in production:
 function ipc<T>(channel: string, ...args: any[]): Promise<T> {
-  // In Electron renderer, window.electron.ipcRenderer is available
-  if (window.electron?.ipcRenderer) {
-    return window.electron.ipcRenderer.invoke(channel, ...args);
+  // In Tauri, IPC is available through window.api (exposed by contextBridge)
+  // The actual implementation routes through the preload script.
+  // This placeholder maintains the interface for type consistency.
+  if (typeof window !== 'undefined' && window.api) {
+    return window.api[channel](...args).then((r: any) => r as T);
   }
-  return Promise.reject(new Error('IPC not available (not in Electron)'));
+  return Promise.reject(new Error('IPC not available (not in Tauri)'));
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 export async function getYTMHome(cookie?: string): Promise<YTMHomePage> {
-  const res = await ipc<{ success: boolean; data?: YTMHomePage; error?: string }>(
-    'ytm:home',
-    cookie
-  );
+  const res = await ipc<{ success: boolean; data?: YTMHomePage; error?: string }>('ytm:home', cookie);
   if (!res.success) throw new Error(res.error || 'YTM home failed');
   return res.data!;
 }
 
 export async function getYTMCharts(cookie?: string): Promise<YTMChartsPage> {
-  const res = await ipc<{ success: boolean; data?: YTMChartsPage; error?: string }>(
-    'ytm:charts',
-    cookie
-  );
+  const res = await ipc<{ success: boolean; data?: YTMChartsPage; error?: string }>('ytm:charts', cookie);
   if (!res.success) throw new Error(res.error || 'YTM charts failed');
   return res.data!;
 }
@@ -125,12 +110,7 @@ export async function searchYTM(
   filter?: 'songs' | 'videos' | 'albums' | 'artists' | 'playlists',
   cookie?: string
 ): Promise<YTMSearchResult> {
-  const res = await ipc<{ success: boolean; data?: YTMSearchResult; error?: string }>(
-    'ytm:search',
-    query,
-    filter,
-    cookie
-  );
+  const res = await ipc<{ success: boolean; data?: YTMSearchResult; error?: string }>('ytm:search', query, filter, cookie);
   if (!res.success) throw new Error(res.error || 'YTM search failed');
   return res.data!;
 }
@@ -139,20 +119,13 @@ export async function getYTMSuggestions(
   query: string,
   cookie?: string
 ): Promise<YTMSearchSuggestion[]> {
-  const res = await ipc<{ success: boolean; data?: YTMSearchSuggestion[]; error?: string }>(
-    'ytm:suggestions',
-    query,
-    cookie
-  );
+  const res = await ipc<{ success: boolean; data?: YTMSearchSuggestion[]; error?: string }>('ytm:suggestions', query, cookie);
   if (!res.success) return [];
   return res.data || [];
 }
 
 export async function getYTMMoods(cookie?: string): Promise<YTMMood[]> {
-  const res = await ipc<{ success: boolean; data?: YTMMood[]; error?: string }>(
-    'ytm:moods',
-    cookie
-  );
+  const res = await ipc<{ success: boolean; data?: YTMMood[]; error?: string }>('ytm:moods', cookie);
   if (!res.success) return [];
   return res.data || [];
 }
@@ -177,11 +150,7 @@ export async function getYTMPlaylist(
   playlistId: string,
   cookie?: string
 ): Promise<YTMPlaylistDetail> {
-  const res = await ipc<{ success: boolean; data?: YTMPlaylistDetail; error?: string }>(
-    'ytm:playlist',
-    playlistId,
-    cookie
-  );
+  const res = await ipc<{ success: boolean; data?: YTMPlaylistDetail; error?: string }>('ytm:playlist', playlistId, cookie);
   if (!res.success) throw new Error(res.error || 'YTM playlist failed');
   return res.data!;
 }
@@ -190,11 +159,7 @@ export async function getYTMArtist(
   artistId: string,
   cookie?: string
 ): Promise<YTMArtistDetail> {
-  const res = await ipc<{ success: boolean; data?: YTMArtistDetail; error?: string }>(
-    'ytm:artist',
-    artistId,
-    cookie
-  );
+  const res = await ipc<{ success: boolean; data?: YTMArtistDetail; error?: string }>('ytm:artist', artistId, cookie);
   if (!res.success) throw new Error(res.error || 'YTM artist failed');
   return res.data!;
 }

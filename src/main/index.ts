@@ -1,6 +1,8 @@
-import { electronApp, optimizer } from '@electron-toolkit/utils';
-import { app, dialog, ipcMain, nativeImage, protocol, session } from 'electron';
+import { app, dialog } from '@tauri/api';
 import { join } from 'path';
+import { nativeImage } from '@tauri/api/image';
+import { protocol } from '@tauri/api/protocol';
+import { session } from '@tauri/api/session';
 
 const FILE_LOCK_ERROR_CODES = new Set(['EBUSY', 'EPERM', 'EACCES', 'EAGAIN', 'EMFILE', 'ENFILE']);
 process.on('uncaughtException', (error: NodeJS.ErrnoException) => {
@@ -54,14 +56,14 @@ import { DiscordPresenceManager } from './modules/DiscordPresenceManager';
 
 const iconPath = join(__dirname, '../../resources');
 const icon = nativeImage.createFromPath(
-  process.platform === 'darwin' 
-    ? join(iconPath, 'icon.icns') 
+  process.platform === 'darwin'
+    ? join(iconPath, 'icon.icns')
     : process.platform === 'win32'
-        ? join(iconPath, 'logo.png') 
+      ? join(iconPath, 'logo.png')
       : join(iconPath, 'logo.png')
 );
 
-let mainWindow: Electron.BrowserWindow;
+let mainWindow: import('@tauri/api/window').Window;
 let discordManager: DiscordPresenceManager | null = null;
 
 function initialize(_configStore: any) {
@@ -88,7 +90,7 @@ function initialize(_configStore: any) {
 
   initLxMusicHttp();
 
-  loadLyricWindow(ipcMain, mainWindow);
+  loadLyricWindow(mainWindow);
 
   initializeShortcuts(mainWindow);
 
@@ -133,7 +135,7 @@ if (!isSingleInstance) {
   });
 
   app.whenReady().then(() => {
-    electronApp.setAppUserModelId('com.chorus.deck');
+    app.setAppUserModelId('com.chorus.deck');
 
     app.on('browser-window-created', (_, window) => {
       optimizer.watchWindowShortcuts(window);
@@ -161,37 +163,4 @@ if (!isSingleInstance) {
       if (mainWindow === null) initialize(store);
     });
   });
-
-  ipcMain.on('update-play-state', (_, playing: boolean) => {
-    updatePlayState(playing);
-    updateMprisPlayState(playing);
-  });
-
-  ipcMain.on('update-current-song', (_, song: any) => {
-    updateCurrentSong(song);
-    updateMprisCurrentSong(song);
-  });
-
-  app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') {
-      app.quit();
-    }
-  });
-
-  app.on('before-quit', () => {
-    if (discordManager) {
-      discordManager.destroy();
-    }
-    setAppQuitting(true);
-  });
-
-  ipcMain.on('restart', () => {
-    app.relaunch();
-    app.exit(0);
-  });
-
-  ipcMain.on('get-arch', (event) => {
-    event.returnValue = process.arch;
-  });
 }
-

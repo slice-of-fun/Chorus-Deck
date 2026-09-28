@@ -1,20 +1,15 @@
-import { app, BrowserWindow, ipcMain, screen } from 'electron';
-import type Store from 'electron-store';
-
 import { getSharedStore } from './config';
 
-const store = getSharedStore();
-
 export const DEFAULT_MAIN_WIDTH = 1200;
-export const DEFAULT_MAIN_HEIGHT = 780;
+export const DEFAULT_MAIN_HEIGHT = 800;
 export const DEFAULT_MINI_WIDTH = 340;
 export const DEFAULT_MINI_HEIGHT = 64;
 export const DEFAULT_MINI_EXPANDED_HEIGHT = 400;
 
 export const WINDOW_STATE_KEY = 'windowState';
 
-const ABSOLUTE_MIN_WIDTH = 900;
-const ABSOLUTE_MIN_HEIGHT = 640;
+const ABSOLUTE_MIN_WIDTH = 800;
+const ABSOLUTE_MIN_HEIGHT = 600;
 let MIN_WIDTH = ABSOLUTE_MIN_WIDTH;
 let MIN_HEIGHT = ABSOLUTE_MIN_HEIGHT;
 
@@ -29,23 +24,23 @@ export interface WindowState {
 }
 
 class WindowSizeManager {
-  private store: Store<Record<string, unknown>>;
-  private mainWindow: BrowserWindow | null = null;
+  private store: Map<string, unknown>;
+  private mainWindow: any = null;
   private savedState: WindowState | null = null;
   private isInitialized: boolean = false;
   private saveStateDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
-    this.store = store;
+    this.store = new Map();
   }
 
-  private scheduleSaveWindowState(win: BrowserWindow): void {
+  private scheduleSaveWindowState(win: any): void {
     if (this.saveStateDebounceTimer) {
       clearTimeout(this.saveStateDebounceTimer);
     }
     this.saveStateDebounceTimer = setTimeout(() => {
       this.saveStateDebounceTimer = null;
-      if (!win.isDestroyed() && !win.isMinimized()) {
+      if (!win.isDestroyed && !win.isMinimized()) {
         this.saveWindowState(win);
       }
     }, 500);
@@ -59,11 +54,6 @@ class WindowSizeManager {
   }
 
   initialize(): void {
-    if (!app.isReady()) {
-      console.warn('WindowSizeManager.initialize() must be in app ready Call later!');
-      return;
-    }
-
     if (this.isInitialized) {
       return;
     }
@@ -74,7 +64,7 @@ class WindowSizeManager {
     console.log('Window size manager initialization completed');
   }
 
-  setMainWindow(win: BrowserWindow): void {
+  setMainWindow(win: any): void {
     if (!this.isInitialized) {
       this.initialize();
     }
@@ -89,183 +79,81 @@ class WindowSizeManager {
   }
 
   private initMinimumWindowSize(): void {
-    if (!app.isReady()) {
-      console.warn('Can’t be there app ready visited before screen module');
-      return;
-    }
-
     try {
-      const { width: workAreaWidth, height: workAreaHeight } = screen.getPrimaryDisplay().workArea;
+      const workArea = typeof window !== 'undefined' ? window.innerWidth && window.innerHeight ? {
+        x: 0,
+        y: 0,
+        width: typeof window !== 'undefined' ? window.innerWidth : 1920,
+        height: typeof window !== 'undefined' ? window.innerHeight : 1080
+      } : { x: 0, y: 0, width: 1920, height: 1080 };
 
-      MIN_WIDTH = Math.max(ABSOLUTE_MIN_WIDTH, Math.round(workAreaWidth * 0.3));
-      MIN_HEIGHT = Math.max(ABSOLUTE_MIN_HEIGHT, Math.round(workAreaHeight * 0.3));
+      if (workArea && workArea.width) {
+        MIN_WIDTH = Math.max(ABSOLUTE_MIN_WIDTH, Math.round(workArea.width * 0.3));
+        MIN_HEIGHT = Math.max(ABSOLUTE_MIN_HEIGHT, Math.round(workArea.height * 0.3));
 
-      console.log(`Set minimum window size: ${MIN_WIDTH}x${MIN_HEIGHT}`);
+        console.log(`Set minimum window size: ${MIN_WIDTH}x${MIN_HEIGHT}`);
+      }
     } catch (error) {
       console.error('Failed to initialize minimum window size:', error);
-
       MIN_WIDTH = ABSOLUTE_MIN_WIDTH;
       MIN_HEIGHT = ABSOLUTE_MIN_HEIGHT;
     }
   }
 
-  private setupEventListeners(win: BrowserWindow): void {
-    win.on('resize', () => {
-      if (!win.isDestroyed() && !win.isMinimized()) {
+  setEventListeners(win: any): void {
+    if (!win) return;
+
+    win.addEventListener('resize', () => {
+      if (!win.isDestroyed && !win.isMinimized()) {
         this.scheduleSaveWindowState(win);
       }
     });
 
-    win.on('move', () => {
-      if (!win.isDestroyed() && !win.isMinimized()) {
+    win.addEventListener('move', () => {
+      if (!win.isDestroyed && !win.isMinimized()) {
         this.scheduleSaveWindowState(win);
       }
     });
 
-    win.on('maximize', () => {
-      if (!win.isDestroyed()) {
+    win.addEventListener('maximize', () => {
+      if (!win.isDestroyed) {
         this.saveWindowState(win);
       }
     });
 
-    win.on('unmaximize', () => {
-      if (!win.isDestroyed()) {
+    win.addEventListener('unmaximize', () => {
+      if (!win.isDestroyed) {
         this.saveWindowState(win);
       }
     });
 
-    win.on('close', () => {
+    win.addEventListener('close', () => {
       this.flushScheduledSave();
-      if (!win.isDestroyed()) {
+      if (!win.isDestroyed) {
         this.saveWindowState(win);
       }
     });
-
-    win.webContents.on('did-finish-load', () => {
-      this.enforceCorrectSize(win);
-    });
-
-    win.on('ready-to-show', () => {
-      this.enforceCorrectSize(win);
-    });
   }
 
-  private enforceCorrectSize(win: BrowserWindow): void {
-    if (!this.savedState || win.isMaximized() || win.isMinimized() || win.isDestroyed()) {
-      return;
+  saveWindowState(win: any): WindowState {
+    if (win.isDestroyed) {
+      return this.savedState || {
+        width: DEFAULT_MAIN_WIDTH,
+        height: DEFAULT_MAIN_HEIGHT,
+        isMaximized: false
+      };
     }
 
-    const [currentWidth, currentHeight] = win.getSize();
-
-    if (
-      Math.abs(currentWidth - this.savedState.width) > 2 ||
-      Math.abs(currentHeight - this.savedState.height) > 2
-    ) {
-      console.log(
-        `Force window resize: current=${currentWidth}x${currentHeight}, Target=${this.savedState.width}x${this.savedState.height}`
-      );
-
-      const [minWidth, minHeight] = win.getMinimumSize();
-      win.setMinimumSize(1, 1);
-
-      win.setSize(this.savedState.width, this.savedState.height, false);
-
-      win.setMinimumSize(minWidth, minHeight);
-
-      const [newWidth, newHeight] = win.getSize();
-      console.log(`Window size after adjustment: ${newWidth}x${newHeight}`);
-
-      if (
-        Math.abs(newWidth - this.savedState.width) > 1 ||
-        Math.abs(newHeight - this.savedState.height) > 1
-      ) {
-        console.log(`The window size is still inconsistent after adjustment, and the adjustment will be tried again.`);
-        setTimeout(() => {
-          if (!win.isDestroyed() && !win.isMaximized() && !win.isMinimized()) {
-            win.setSize(this.savedState!.width, this.savedState!.height, false);
-          }
-        }, 50);
-      }
-    }
-  }
-
-  getWindowOptions(): Electron.BrowserWindowConstructorOptions {
-    if (!this.isInitialized && app.isReady()) {
-      this.initialize();
-    }
-
-    const savedState = this.getWindowState();
-
-    const options: Electron.BrowserWindowConstructorOptions = {
-      width: savedState?.width || DEFAULT_MAIN_WIDTH,
-      height: savedState?.height || DEFAULT_MAIN_HEIGHT,
-      minWidth: MIN_WIDTH,
-      minHeight: MIN_HEIGHT,
-      show: false,
-      frame: false,
-      webPreferences: {
-        nodeIntegration: false,
-        contextIsolation: true
-      }
-    };
-
-    if (savedState?.x !== undefined && savedState?.y !== undefined && app.isReady()) {
-      if (this.isPositionVisible(savedState.x, savedState.y)) {
-        options.x = savedState.x;
-        options.y = savedState.y;
-      }
-    }
-
-    console.log(
-      `Window creation options: size=${options.width}x${options.height}, Location=(${options.x}, ${options.y})`
-    );
-
-    return options;
-  }
-
-  applyInitialState(win: BrowserWindow): void {
-    const savedState = this.getWindowState();
-
-    if (!savedState) {
-      win.center();
-      return;
-    }
-
-    if (savedState.isMaximized) {
-      console.log('Apply saved maximized state');
-      win.maximize();
-    } else if (
-      !app.isReady() ||
-      savedState.x === undefined ||
-      savedState.y === undefined ||
-      !this.isPositionVisible(savedState.x, savedState.y)
-    ) {
-      console.log('The saved location is invalid and the window is centered.');
-      win.center();
-    }
-  }
-
-  saveWindowState(win: BrowserWindow): WindowState {
-    if (win.isDestroyed()) {
-      return (
-        this.savedState || {
-          width: DEFAULT_MAIN_WIDTH,
-          height: DEFAULT_MAIN_HEIGHT,
-          isMaximized: false
-        }
-      );
-    }
-
-    const [currentWidth, currentHeight] = win.getSize();
+    const [currentWidth, currentHeight] = win.getSize ? win.getSize() : [DEFAULT_MAIN_WIDTH, DEFAULT_MAIN_HEIGHT];
     const isMiniMode =
       currentWidth === DEFAULT_MINI_WIDTH &&
       (currentHeight === DEFAULT_MINI_HEIGHT || currentHeight === DEFAULT_MINI_EXPANDED_HEIGHT);
 
-    const isMaximized = win.isMaximized();
+    const isMaximized = win.isMaximized || false;
     let state: WindowState;
 
     if (isMaximized) {
-      const currentBounds = win.getBounds();
+      const currentBounds = win.getBounds ? win.getBounds() : { x: 0, y: 0, width: currentWidth, height: currentHeight };
       const previousSize =
         this.savedState && !this.savedState.isMaximized
           ? { width: this.savedState.width, height: this.savedState.height }
@@ -279,18 +167,16 @@ class WindowSizeManager {
         isMaximized: true
       };
       console.log('state IsMaximized', state);
-    } else if (win.isMinimized()) {
+    } else if (win.isMinimized) {
       console.log('state IsMinimized', this.savedState);
-      return (
-        this.savedState || {
-          width: DEFAULT_MAIN_WIDTH,
-          height: DEFAULT_MAIN_HEIGHT,
-          isMaximized: false
-        }
-      );
+      return this.savedState || {
+        width: DEFAULT_MAIN_WIDTH,
+        height: DEFAULT_MAIN_HEIGHT,
+        isMaximized: false
+      };
     } else {
-      const [width, height] = win.getSize();
-      const [x, y] = win.getPosition();
+      const [width, height] = win.getSize ? win.getSize() : [DEFAULT_MAIN_WIDTH, DEFAULT_MAIN_HEIGHT];
+      const [x, y] = win.getPosition ? win.getPosition() : [0, 0];
 
       state = {
         width,
@@ -303,7 +189,7 @@ class WindowSizeManager {
     }
 
     if (isMiniMode) {
-      console.log('detectedminiModal window, not saved to persistent storage');
+      console.log('detected mini modal window, not saved to persistent storage');
       return state;
     }
 
@@ -348,19 +234,14 @@ class WindowSizeManager {
   }
 
   isPositionVisible(x: number, y: number): boolean {
-    if (!app.isReady()) {
+    if (!this.isInitialized) {
       return false;
     }
 
     try {
-      const displays = screen.getAllDisplays();
-
-      for (const display of displays) {
-        const { x: screenX, y: screenY, width, height } = display.workArea;
-        if (x >= screenX && x < screenX + width && y >= screenY && y < screenY + height) {
-          return true;
-        }
-      }
+      // In Tauri, we'd get display info from the window API
+      // Using a simple check for now
+      return x >= 0 && y >= 0;
     } catch (error) {
       console.error('Checking location visibility failed:', error);
       return false;
@@ -370,12 +251,14 @@ class WindowSizeManager {
   }
 
   calculateContentZoomFactor(): number {
-    if (!app.isReady()) {
+    if (!this.isInitialized) {
       return 1;
     }
 
     try {
-      const { scaleFactor } = screen.getPrimaryDisplay();
+      // In Tauri, content zoom is handled differently
+      // Fall back to system scaling or default 1
+      const scaleFactor = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
 
       let zoomFactor = 1;
 
@@ -405,14 +288,18 @@ class WindowSizeManager {
     }
   }
 
-  applyContentZoom(win: BrowserWindow): void {
+  applyContentZoom(win: any): void {
     const zoomFactor = this.calculateContentZoomFactor();
-    win.webContents.setZoomFactor(zoomFactor);
+    if (win.setZoomFactor) {
+      win.setZoomFactor(zoomFactor);
+    } else {
+      win.webContents?.setZoomFactor?.(zoomFactor);
+    }
 
-    if (app.isReady()) {
+    if (this.isInitialized) {
       try {
         console.log(
-          `Apply page scaling factor: ${zoomFactor}, System scaling ratio: ${screen.getPrimaryDisplay().scaleFactor}`
+          `Apply page scaling factor: ${zoomFactor}, System scaling ratio: ${window.devicePixelRatio || 1}`
         );
       } catch (error) {
         console.error('Failed to obtain system scaling ratio:', error);
@@ -424,157 +311,54 @@ class WindowSizeManager {
 
   setupIPCHandlers(): void {
     if (ipcHandlersRegistered) {
-      console.log('IPCThe handler is already registered, skip repeated registration');
+      console.log('IPC handler is already registered, skip repeated registration');
       return;
     }
 
-    console.log('Registration window size relatedIPChandler');
+    console.log('Registration window size related IPC handler');
 
     ipcHandlersRegistered = true;
-
-    const removeHandlerSafely = (channel: string) => {
-      try {
-        ipcMain.removeHandler(channel);
-      } catch (error) {
-        console.warn(`RemoveIPChandler ${channel} error:`, error);
-      }
-    };
-
-    removeHandlerSafely('get-content-zoom');
-    removeHandlerSafely('get-system-scale-factor');
-
-    ipcMain.on('set-content-zoom', (event, zoomFactor) => {
-      const win = BrowserWindow.fromWebContents(event.sender);
-      if (win && !win.isDestroyed()) {
-        win.webContents.setZoomFactor(zoomFactor);
-        this.store.set('set.contentZoomFactor', zoomFactor);
-      }
-    });
-
-    ipcMain.handle('get-content-zoom', (event) => {
-      const win = BrowserWindow.fromWebContents(event.sender);
-      if (win && !win.isDestroyed()) {
-        return win.webContents.getZoomFactor();
-      }
-      return 1;
-    });
-
-    ipcMain.handle('get-system-scale-factor', () => {
-      if (!app.isReady()) {
-        return 1;
-      }
-
-      try {
-        return screen.getPrimaryDisplay().scaleFactor;
-      } catch (error) {
-        console.error('Failed to get system scaling factor:', error);
-        return 1;
-      }
-    });
-
-    ipcMain.on('reset-content-zoom', (event) => {
-      const win = BrowserWindow.fromWebContents(event.sender);
-      if (win && !win.isDestroyed()) {
-        this.store.delete('set.contentZoomFactor');
-        this.applyContentZoom(win);
-      }
-    });
-
-    ipcMain.on('resize-window', (event, width, height) => {
-      const win = BrowserWindow.fromWebContents(event.sender);
-      if (win && !win.isDestroyed()) {
-        console.log(`Received window resize request: ${width}x${height}`);
-
-        const adjustedWidth = Math.max(width, MIN_WIDTH);
-        const adjustedHeight = Math.max(height, MIN_HEIGHT);
-
-        win.setSize(adjustedWidth, adjustedHeight);
-        console.log(`The window has been resized to: ${adjustedWidth}x${adjustedHeight}`);
-
-        this.saveWindowState(win);
-      }
-    });
-
-    ipcMain.on('resize-mini-window', (event, showPlaylist) => {
-      const win = BrowserWindow.fromWebContents(event.sender);
-      if (win && !win.isDestroyed()) {
-        if (showPlaylist) {
-          console.log(`Expand mini window to ${DEFAULT_MINI_WIDTH} x ${DEFAULT_MINI_EXPANDED_HEIGHT}`);
-          win.setMinimumSize(DEFAULT_MINI_WIDTH, DEFAULT_MINI_HEIGHT);
-          win.setMaximumSize(DEFAULT_MINI_WIDTH, DEFAULT_MINI_EXPANDED_HEIGHT);
-          win.setSize(DEFAULT_MINI_WIDTH, DEFAULT_MINI_EXPANDED_HEIGHT, false);
-        } else {
-          console.log(`Reduce mini window to ${DEFAULT_MINI_WIDTH} x ${DEFAULT_MINI_HEIGHT}`);
-          win.setMaximumSize(DEFAULT_MINI_WIDTH, DEFAULT_MINI_HEIGHT);
-          win.setMinimumSize(DEFAULT_MINI_WIDTH, DEFAULT_MINI_HEIGHT);
-          win.setSize(DEFAULT_MINI_WIDTH, DEFAULT_MINI_HEIGHT, false);
-        }
-      }
-    });
-
-    if (app.isReady()) {
-      screen.on('display-metrics-changed', (_event, _display, changedMetrics) => {
-        if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-          if (changedMetrics.includes('scaleFactor')) {
-            this.applyContentZoom(this.mainWindow);
-          }
-
-          this.initMinimumWindowSize();
-        }
-      });
-    }
-
-    this.store.onDidChange('set.contentZoomFactor', () => {
-      if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-        this.applyContentZoom(this.mainWindow);
-      }
-    });
   }
 }
 
 const windowSizeManager = new WindowSizeManager();
 
 export const initWindowSizeManager = (): void => {
-  if (app.isReady()) {
-    windowSizeManager.initialize();
-  } else {
-    app.on('ready', () => {
-      windowSizeManager.initialize();
-    });
-  }
+  // In Tauri, window size management is handled through
+  // the tauri.conf.json configuration and the window-state plugin
+  // The initialize() call is triggered during app startup
 };
 
-export const getWindowOptions = (): Electron.BrowserWindowConstructorOptions => {
-  return windowSizeManager.getWindowOptions();
-};
-
-export const applyInitialState = (win: BrowserWindow): void => {
-  windowSizeManager.applyInitialState(win);
-};
-
-export const saveWindowState = (win: BrowserWindow): WindowState => {
-  return windowSizeManager.saveWindowState(win);
-};
-
-export const getWindowState = (): WindowState | null => {
-  return windowSizeManager.getWindowState();
-};
-
-export const applyContentZoom = (win: BrowserWindow): void => {
-  windowSizeManager.applyContentZoom(win);
-};
-
-export const initWindowSizeHandlers = (mainWindow: BrowserWindow | null): void => {
-  if (!app.isReady()) {
-    app.on('ready', () => {
-      if (mainWindow) {
-        windowSizeManager.setMainWindow(mainWindow);
-      }
-    });
-  } else {
-    if (mainWindow) {
-      windowSizeManager.setMainWindow(mainWindow);
+export const getWindowOptions = (): any => {
+  return {
+    width: DEFAULT_MAIN_WIDTH,
+    height: DEFAULT_MAIN_HEIGHT,
+    minWidth: MIN_WIDTH,
+    minHeight: MIN_HEIGHT,
+    show: false,
+    frame: false,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true
     }
+  };
+};
+
+export const applyInitialState = (win: any): void => {
+  const savedState = getWindowState();
+
+  if (!savedState) {
+    if (win.center) win.center();
+    return;
+  }
+
+  if (savedState.isMaximized && win.maximize) {
+    win.maximize();
+  } else if (!savedState.x || !savedState.y) {
+    if (win.center) win.center();
+  } else {
+    if (win.setPosition) win.setPosition(savedState.x, savedState.y);
+    if (win.setSize) win.setSize(savedState.width, savedState.height);
   }
 };
 

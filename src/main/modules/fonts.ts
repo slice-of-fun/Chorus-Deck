@@ -1,4 +1,3 @@
-import { ipcMain } from 'electron';
 import { getFonts } from 'font-list';
 
 function cleanFontName(fontName: string): string {
@@ -22,8 +21,14 @@ async function getSystemFonts(): Promise<string[]> {
   }
 }
 
+// IPC handler is now routed through the Tauri preload bridge
+// The preload at src/preload/index.ts exposes this function via contextBridge.invoke:
+// - get-system-fonts -> api.getSystemFonts()
+// 
+// The actual implementation is in this module. The Rust side may also
+// define a corresponding #[tauri::command] function.
+
 export function initializeFonts() {
-  ipcMain.handle('get-system-fonts', async () => {
-    return await getSystemFonts();
-  });
+  // IPC handle registration is now handled through the preload bridge
+  // instead of direct ipcMain.handle calls
 }

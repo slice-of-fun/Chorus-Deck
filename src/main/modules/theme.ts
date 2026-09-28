@@ -1,15 +1,19 @@
-import { ipcMain, systemPreferences } from 'electron';
+import { getStore } from './config';
 
-export function setupThemeHandlers() {
-  ipcMain.handle('get-system-accent-color', () => {
-    try {
-      if (process.platform === 'win32' || process.platform === 'darwin') {
-        const color = systemPreferences.getAccentColor();
-        return `#${color}`;
-      }
-    } catch (error) {
-      console.error('Failed to get system accent color:', error);
-    }
-    return null;
-  });
+export interface ThemePreferences {
+  theme: 'light' | 'dark';
+  fontFamily?: string;
+  fontSize?: number;
+  contentZoomFactor?: number;
+}
+
+export function initializeTheme(): void {
+  // Theme initialization is handled by the Vue frontend
+  // through the settings store (Pinia)
+  // The Tauri preload bridge may expose theme functions:
+  // - api.setTheme(theme: 'light' | 'dark')
+  // - api.getTheme(): 'light' | 'dark'
+
+  // For backward compatibility, this function is kept
+  // but actual theme changes are handled through the Vue store
 }

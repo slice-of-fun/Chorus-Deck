@@ -1,5 +1,4 @@
 import cors from 'cors';
-import { ipcMain } from 'electron';
 import express from 'express';
 import fs from 'fs';
 import os from 'os';
@@ -21,7 +20,7 @@ export const defaultRemoteControlConfig: RemoteControlConfig = {
 
 let app: express.Application | null = null;
 let server: any = null;
-let mainWindowRef: Electron.BrowserWindow | null = null;
+let mainWindowRef: any = null;
 let currentSong: any = null;
 let isPlaying: boolean = false;
 
@@ -43,7 +42,7 @@ function getLocalIpAddresses(): string[] {
   return addresses;
 }
 
-export function initializeRemoteControl(mainWindow: Electron.BrowserWindow) {
+export function initializeRemoteControl(mainWindow: any) {
   mainWindowRef = mainWindow;
   const store = getStore() as any;
   let config = store.get('remoteControl') as RemoteControlConfig;
@@ -53,41 +52,21 @@ export function initializeRemoteControl(mainWindow: Electron.BrowserWindow) {
     store.set('remoteControl', config);
   }
 
-  ipcMain.on('update-current-song', (_, song: any) => {
-    currentSong = song;
-  });
-
-  ipcMain.on('update-play-state', (_, playing: boolean) => {
-    isPlaying = playing;
-  });
-
-  ipcMain.on('update-remote-control-config', (_, newConfig: RemoteControlConfig) => {
-    if (server) {
-      stopServer();
-    }
-
-    store.set('remoteControl', newConfig);
-
-    if (newConfig.enabled) {
-      startServer(newConfig);
-    }
-  });
-
-  ipcMain.handle('get-remote-control-config', () => {
-    const config = store.get('remoteControl') as RemoteControlConfig;
-    return config || defaultRemoteControlConfig;
-  });
-
-  ipcMain.handle('get-local-ip-addresses', () => {
-    return getLocalIpAddresses();
-  });
-
   if (config.enabled) {
     startServer(config);
   }
 }
 
-function startServer(config: RemoteControlConfig) {
+export function stopRemoteControl() {
+  if (server) {
+    server.close();
+    server = null;
+    app = null;
+    console.log('Remote control service has stopped');
+  }
+}
+
+export function startServer(config: RemoteControlConfig) {
   if (!mainWindowRef) {
     console.error('The main window is not initialized and the remote control service cannot be started.');
     return;
@@ -101,7 +80,6 @@ function startServer(config: RemoteControlConfig) {
   app.use((req, res, next) => {
     const clientIp = req.ip || req.socket.remoteAddress || '';
     const cleanIp = clientIp.replace(/^::ffff:/, '');
-    console.log('config', config);
     if (config.allowedIps.length === 0 || config.allowedIps.includes(cleanIp)) {
       next();
     } else {
@@ -120,15 +98,6 @@ function startServer(config: RemoteControlConfig) {
   }
 }
 
-function stopServer() {
-  if (server) {
-    server.close();
-    server = null;
-    app = null;
-    console.log('Remote control service has stopped');
-  }
-}
-
 function setupRoutes(app: express.Application) {
   app.get('/api/status', (_, res) => {
     res.json({
@@ -141,7 +110,8 @@ function setupRoutes(app: express.Application) {
     if (!mainWindowRef) {
       return res.status(500).json({ error: 'The main window is not initialized' });
     }
-    mainWindowRef.webContents.send('global-shortcut', 'togglePlay');
+    // Send event to main process via Tauri bridge
+    mainWindowRef?.api?.('global-shortcut', 'togglePlay');
     res.json({ success: true, message: 'Sent to play/pause command' });
   });
 
@@ -149,7 +119,7 @@ function setupRoutes(app: express.Application) {
     if (!mainWindowRef) {
       return res.status(500).json({ error: 'The main window is not initialized' });
     }
-    mainWindowRef.webContents.send('global-shortcut', 'prevPlay');
+    mainWindowRef?.api?.('global-shortcut', 'prevPlay');
     res.json({ success: true, message: 'Previous command sent' });
   });
 
@@ -157,7 +127,7 @@ function setupRoutes(app: express.Application) {
     if (!mainWindowRef) {
       return res.status(500).json({ error: 'The main window is not initialized' });
     }
-    mainWindowRef.webContents.send('global-shortcut', 'nextPlay');
+    mainWindowRef?.api?.('global-shortcut', 'nextPlay');
     res.json({ success: true, message: 'Next command sent' });
   });
 
@@ -165,7 +135,7 @@ function setupRoutes(app: express.Application) {
     if (!mainWindowRef) {
       return res.status(500).json({ error: 'The main window is not initialized' });
     }
-    mainWindowRef.webContents.send('global-shortcut', 'volumeUp');
+    mainWindowRef?.api?.('global-shortcut', 'volumeUp');
     res.json({ success: true, message: 'Volume increase command sent' });
   });
 
@@ -173,7 +143,7 @@ function setupRoutes(app: express.Application) {
     if (!mainWindowRef) {
       return res.status(500).json({ error: 'The main window is not initialized' });
     }
-    mainWindowRef.webContents.send('global-shortcut', 'volumeDown');
+    mainWindowRef?.api?.('global-shortcut', 'volumeDown');
     res.json({ success: true, message: 'Volume down command sent' });
   });
 
@@ -181,7 +151,7 @@ function setupRoutes(app: express.Application) {
     if (!mainWindowRef) {
       return res.status(500).json({ error: 'The main window is not initialized' });
     }
-    mainWindowRef.webContents.send('global-shortcut', 'toggleFavorite');
+    mainWindowRef?.api?.('global-shortcut', 'toggleFavorite');
     res.json({ success: true, message: 'Favorites sent/Cancel favorite command' });
   });
 

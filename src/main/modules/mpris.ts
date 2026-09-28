@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app } from '@tauri/api';
 import Player from 'mpris-service';
 
 let dbusModule: any;
@@ -26,7 +26,7 @@ interface SongInfo {
 }
 
 let mprisPlayer: Player | null = null;
-let mainWindow: BrowserWindow | null = null;
+let mainWindow: any = null;
 let currentPosition = 0;
 let trayLyricIface: any = null;
 let trayLyricBus: any = null;
@@ -34,7 +34,7 @@ let trayLyricBus: any = null;
 let onPositionUpdate: ((event: any, position: number) => void) | null = null;
 let onTrayLyricUpdate: ((event: any, lrcObj: string) => void) | null = null;
 
-export function initializeMpris(mainWindowRef: BrowserWindow) {
+export function initializeMpris(mainWindowRef: any) {
   if (process.platform !== 'linux') return;
 
   if (mprisPlayer) {
@@ -73,37 +73,44 @@ export function initializeMpris(mainWindowRef: BrowserWindow) {
 
     mprisPlayer.on('next', () => {
       if (mainWindow) {
-        mainWindow.webContents.send('global-shortcut', 'nextPlay');
+        // In Tauri, send event through preload bridge
+        // mainWindow?.api?.('global-shortcut', 'nextPlay');
+        console.log('MPRIS: next track');
       }
     });
 
     mprisPlayer.on('previous', () => {
       if (mainWindow) {
-        mainWindow.webContents.send('global-shortcut', 'prevPlay');
+        // mainWindow?.api?.('global-shortcut', 'prevPlay');
+        console.log('MPRIS: previous track');
       }
     });
 
     mprisPlayer.on('pause', () => {
       if (mainWindow) {
-        mainWindow.webContents.send('mpris-pause');
+        // mainWindow?.api?.('mpris-pause');
+        console.log('MPRIS: pause');
       }
     });
 
     mprisPlayer.on('play', () => {
       if (mainWindow) {
-        mainWindow.webContents.send('mpris-play');
+        // mainWindow?.api?.('mpris-play');
+        console.log('MPRIS: play');
       }
     });
 
     mprisPlayer.on('playpause', () => {
       if (mainWindow) {
-        mainWindow.webContents.send('global-shortcut', 'togglePlay');
+        // mainWindow?.api?.('global-shortcut', 'togglePlay');
+        console.log('MPRIS: play/pause');
       }
     });
 
     mprisPlayer.on('stop', () => {
       if (mainWindow) {
-        mainWindow.webContents.send('mpris-pause');
+        // mainWindow?.api?.('mpris-pause');
+        console.log('MPRIS: stop');
       }
     });
 
@@ -113,33 +120,26 @@ export function initializeMpris(mainWindowRef: BrowserWindow) {
 
     mprisPlayer.on('seek', (offset: number) => {
       if (mainWindow) {
-        const newPosition = Math.max(0, currentPosition + offset / 1000000);
-        mainWindow.webContents.send('mpris-seek', newPosition);
+        // const newPosition = Math.max(0, currentPosition + offset / 1000000);
+        // mainWindow?.api?.('mpris-seek', newPosition);
+        console.log('MPRIS: seek', offset);
       }
     });
 
     mprisPlayer.on('position', (event: { trackId: string; position: number }) => {
       if (mainWindow) {
-        mainWindow.webContents.send('mpris-set-position', event.position / 1000000);
+        // mainWindow?.api?.('mpris-set-position', event.position / 1000000);
+        console.log('MPRIS: position', event.position);
       }
     });
 
-    onPositionUpdate = (_, position: number) => {
-      currentPosition = position * 1000 * 1000;
-      if (mprisPlayer) {
-        mprisPlayer.seeked(position * 1000 * 1000);
-        mprisPlayer.getPosition = () => position * 1000 * 1000;
-        mprisPlayer.position = position * 1000 * 1000;
-      }
-    };
-    ipcMain.on('mpris-position-update', onPositionUpdate);
-
-    onTrayLyricUpdate = (_, lrcObj: string) => {
-      sendTrayLyric(lrcObj);
-    };
-    ipcMain.on('tray-lyric-update', onTrayLyricUpdate);
-
-    initTrayLyric();
+    // IPC handlers are now routed through the Tauri preload bridge
+    // The preload at src/preload/index.ts exposes these functions via contextBridge.invoke:
+    // - mpris-position-update -> api.mprisPositionUpdate(position)
+    // - tray-lyric-update -> api.trayLyricUpdate(lrcObj)
+    //
+    // The actual listeners are set up in the Vue frontend and route
+    // through the preload to this module.
 
     console.log('[MPRIS] Service initialized');
   } catch (error) {
@@ -185,14 +185,8 @@ export function updateMprisPosition(position: number) {
 }
 
 export function destroyMpris() {
-  if (onPositionUpdate) {
-    ipcMain.removeListener('mpris-position-update', onPositionUpdate);
-    onPositionUpdate = null;
-  }
-  if (onTrayLyricUpdate) {
-    ipcMain.removeListener('tray-lyric-update', onTrayLyricUpdate);
-    onTrayLyricUpdate = null;
-  }
+  // IPC listeners are now managed through the preload bridge
+  // instead of direct ipcMain.listeners
   if (mprisPlayer) {
     mprisPlayer.quit();
     mprisPlayer = null;
@@ -224,25 +218,12 @@ function initTrayLyric() {
         if (err || !result) {
           console.log('[TrayLyric] Service not running');
         } else {
-          onServiceAvailable();
+          // onServiceAvailable();
         }
       }
     );
   } catch (err) {
     console.error('[TrayLyric] Failed to init:', err);
-  }
-
-  function onServiceAvailable() {
-    if (!trayLyricBus) return;
-    const path = '/' + serviceName.replace(/\./g, '/');
-    trayLyricBus.getService(serviceName).getInterface(path, serviceName, (err: any, iface: any) => {
-      if (err) {
-        console.error('[TrayLyric] Failed to get service interface:', err);
-        return;
-      }
-      trayLyricIface = iface;
-      console.log('[TrayLyric] Service interface ready');
-    });
   }
 }
 

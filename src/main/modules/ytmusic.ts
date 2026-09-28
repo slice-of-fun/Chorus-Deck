@@ -1,4 +1,3 @@
-import { ipcMain } from 'electron';
 import fetch from 'node-fetch';
 
 const YTM_BASE = 'https://music.youtube.com/youtubei/v1';
@@ -19,7 +18,7 @@ const DEFAULT_CONTEXT = {
 
 export interface YTMClient {
   clientNameId: number;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-on
   context: { client: Record<string, any> };
   userAgent?: string;
 }
@@ -29,7 +28,7 @@ export interface YTMClient {
  * WEB_REMIX (the browse/search client) is deliberately excluded because its
  * `/player` responses require signature/PO-token deciphering.
  */
-const STREAM_CLIENTS: YTMClient[] = [
+const STREAM_CLIENTS = [
   {
     clientNameId: 28,
     context: {
@@ -79,6 +78,21 @@ const STREAM_CLIENTS: YTMClient[] = [
   }
 ];
 
+
+/**
+ * YTM API calls. IPC routing is handled through the Tauri preload bridge.
+ * The preload at src/preload/index.ts exposes these functions via contextBridge.invoke:
+ * - ytm:home(cookie) -> api.ytmHome(cookie)
+ * - ytm:charts(cookie) -> api.ytmCharts(cookie)
+ * - ytm:search(query, filter, cookie) -> api.ytmSearch(query, filter, cookie)
+ * - ytm:suggestions(query, cookie) -> api.ytmSuggestions(query, cookie)
+ * - ytm:moods(cookie) -> api.ytmMoods(cookie)
+ * - ytm:player(videoId, cookie) -> api.ytmPlayer(videoId, cookie)
+ * - ytm:playlist(playlistId, cookie) -> api.ytmPlaylist(playlistId, cookie)
+ * - ytm:artist(artistId, cookie) -> api.ytmArtist(artistId, cookie)
+ *
+ * The actual implementations are in this module.
+ */
 
 async function ytmPost(
   endpoint: string,
@@ -187,7 +201,7 @@ function parseSongItem(renderer: any): YTMSong | null {
     subtitle.forEach((run: any, i: number) => {
       if (run.navigationEndpoint?.browseEndpoint?.browseEndpointContextSupportedConfigs
         ?.browseEndpointContextMusicConfig?.pageType === 'MUSIC_PAGE_TYPE_ARTIST' ||
-          run.navigationEndpoint?.browseEndpoint?.browseEndpointContextSupportedConfigs
+        run.navigationEndpoint?.browseEndpoint?.browseEndpointContextSupportedConfigs
         ?.browseEndpointContextMusicConfig?.pageType === 'MUSIC_PAGE_TYPE_USER_CHANNEL') {
         artists.push({ name: run.text, id: run.navigationEndpoint?.browseEndpoint?.browseId });
       } else if (run.navigationEndpoint?.browseEndpoint?.browseEndpointContextSupportedConfigs
@@ -241,16 +255,15 @@ function parsePlaylistItem(renderer: any): YTMPlaylist | null {
       renderer.thumbnailRenderer?.musicThumbnailRenderer?.thumbnail?.thumbnails ||
       renderer.thumbnail?.musicThumbnailRenderer?.thumbnail?.thumbnails ||
       renderer.thumbnail?.croppedSquareThumbnailRenderer?.thumbnail?.thumbnails ||
-      renderer.thumbnailRenderer?.croppedSquareThumbnailRenderer?.thumbnail?.thumbnails ||
       renderer.thumbnail?.thumbnails ||
-      renderer.thumbnail?.artistArtRef?.[0]?.thumbnails ||
+      renderer.thumbnail?.artistArtRef?.[0]?.thumbnails?.thumbnails ||
       renderer.fixedColumns?.[0]?.musicResponsiveListItemFixedColumnRenderer?.thumbnail?.musicThumbnailRenderer?.thumbnail?.thumbnails ||
       renderer.flexColumns?.[0]?.musicResponsiveListItemFlexColumnRenderer?.thumbnail?.musicThumbnailRenderer?.thumbnail?.thumbnails ||
       renderer.flexColumns?.[1]?.musicResponsiveListItemFlexColumnRenderer?.thumbnail?.musicThumbnailRenderer?.thumbnail?.thumbnails;
-    const subtitle = renderer.flexColumns?.slice(1).map((fc: any) => 
+
+    const subtitle = renderer.flexColumns?.slice(1).map((fc: any) =>
       parseRuns(fc?.musicResponsiveListItemFlexColumnRenderer?.text?.runs)
     ).filter(Boolean).join(' • ') || '';
-
 
     if (!title) return null;
 
@@ -361,6 +374,7 @@ export interface YTMArtistDetail {
   playlists: YTMPlaylist[];
 }
 
+
 async function getHomePage(cookie?: string): Promise<YTMHomePage> {
   const data = await ytmPost(
     'browse',
@@ -461,23 +475,22 @@ async function search(query: string, filter?: string, cookie?: string): Promise<
   const contents: any[] =
     data.contents?.tabbedSearchResultsRenderer?.tabs?.[0]?.tabRenderer?.content
       ?.sectionListRenderer?.contents ||
-    data.contents?.sectionListRenderer?.contents ||
-    [];
+    data.contents?.sectionListRenderer?.contents || [];
 
   for (const content of contents) {
     if (content.musicCardShelfRenderer && !topResult) {
       const r = content.musicCardShelfRenderer;
       const title = parseRuns(r.title?.runs);
       const thumbnails = r.thumbnail?.musicThumbnailRenderer?.thumbnail?.thumbnails;
-      const browseId = r.title?.runs?.[0]?.navigationEndpoint?.browseEndpoint?.browseId || 
+      const browseId = r.title?.runs?.[0]?.navigationEndpoint?.browseEndpoint?.browseId ||
                        r.title?.runs?.[0]?.navigationEndpoint?.watchEndpoint?.videoId || '';
-      
+
       let subtitle = parseRuns(r.subtitle?.runs);
       const isSongCard = subtitle?.includes('Song');
       const isArtistCard = subtitle?.includes('Artist');
       const isVideoCard = subtitle?.includes('Video');
       const isAlbumCard = subtitle?.includes('Album') || subtitle?.includes('Single') || subtitle?.includes('EP');
-      
+
       let resultType = 'Top Result';
       if (isSongCard) resultType = 'Song';
       else if (isVideoCard) resultType = 'Video';
@@ -485,15 +498,15 @@ async function search(query: string, filter?: string, cookie?: string): Promise<
       else if (isAlbumCard) resultType = 'Album';
 
       if (subtitle) {
-          const parts = subtitle.split(' • ');
-          subtitle = parts.filter((part: string) => {
-              const lower = part.trim().toLowerCase();
-              if (lower === 'video' || lower === 'song' || lower === 'artist' || lower === 'album' || lower === 'single' || lower === 'ep') return false;
-              if (lower.includes('views') || lower.includes('plays')) return false;
-              return true;
-          }).join(' • ');
+        const parts = subtitle.split(' • ');
+        subtitle = parts.filter((part: string) => {
+          const lower = part.trim().toLowerCase();
+          if (lower === 'video' || lower === 'song' || lower === 'artist' || lower === 'album' || lower === 'single' || lower === 'ep') return false;
+          if (lower.includes('views') || lower.includes('plays')) return false;
+          return true;
+        }).join(' • ');
       }
-      
+
       if (title && (isSongCard || isArtistCard || isVideoCard)) {
         topResult = {
           id: browseId,
@@ -519,33 +532,33 @@ async function search(query: string, filter?: string, cookie?: string): Promise<
       if (!renderer) continue;
 
       const song = parseSongItem(renderer);
-      if (song) { 
+      if (song) {
         const ep = renderer.navigationEndpoint || renderer.overlay?.musicItemThumbnailOverlayRenderer?.content?.musicPlayButtonRenderer?.playNavigationEndpoint;
         const videoType = ep?.watchEndpoint?.watchEndpointMusicSupportedConfigs?.watchEndpointMusicConfig?.musicVideoType;
         const firstRun = renderer.flexColumns?.[1]?.musicResponsiveListItemFlexColumnRenderer?.text?.runs?.[0]?.text;
         const allRunsText = (renderer.flexColumns?.[1]?.musicResponsiveListItemFlexColumnRenderer?.text?.runs || []).map((r: any) => r.text).join('');
-        
+
         const isVideoType = videoType?.includes('MUSIC_VIDEO_TYPE_UGC') || videoType?.includes('MUSIC_VIDEO_TYPE_OMV') || firstRun === 'Video';
         const isSongType = videoType?.includes('MUSIC_VIDEO_TYPE_ATV') || firstRun === 'Song' || firstRun === 'Audio';
 
         if (filter === 'videos') {
           videos.push(song);
         } else if (filter === 'songs') {
-          songs.push(song); 
+          songs.push(song);
         } else {
-           if (isVideoType) {
-             videos.push(song);
-           } else if (isSongType) {
-             songs.push(song);
-           } else {
-             if (allRunsText.includes('Video') || !song.album) {
-               videos.push(song);
-             } else {
-               songs.push(song);
-             }
-           }
+          if (isVideoType) {
+            videos.push(song);
+          } else if (isSongType) {
+            songs.push(song);
+          } else {
+            if (allRunsText.includes('Video') || !song.album) {
+              videos.push(song);
+            } else {
+              songs.push(song);
+            }
+          }
         }
-        continue; 
+        continue;
       }
 
       const playlist = parsePlaylistItem(renderer);
@@ -602,6 +615,7 @@ async function getSearchSuggestions(query: string, _cookie?: string): Promise<YT
 
     const text = await res.text();
     const json = text.replace(/^f\(/, '').replace(/\)$/, '');
+    const json = text.replace(/^f\(/, '').replace(/\)$/, '');
     const parsed = JSON.parse(json);
     const raw: string[][] = parsed[1] || [];
     return raw.slice(0, 8).map(item => ({
@@ -635,7 +649,7 @@ async function getMoodsAndGenres(cookie?: string): Promise<YTMMood[]> {
       if (!r) return;
       const id = r.clickCommand?.browseEndpoint?.browseId || '';
       const title = parseRuns(r.buttonText?.runs) || r.buttonText?.simpleText || '';
-      const thumbnail = "";
+      const thumbnail = '';
       if (title) moods.push({ id, title, thumbnail });
     });
   }
@@ -657,6 +671,7 @@ function normalizeBrowseId(id: string, kind: keyof typeof BROWSE_ID_PREFIXES): s
   if (id.startsWith('UC')) return id;
   return `${BROWSE_ID_PREFIXES[kind]}${id}`;
 }
+
 
 /** Collects every music shelf in a browse response, including `continuations`. */
 function collectShelves(data: any): any[] {
@@ -800,8 +815,6 @@ export async function getArtistDetail(
     for (const c of shelf.contents || []) {
       const renderer = c.musicTwoRowItemRenderer;
       if (!renderer) continue;
-      const item = parsePlaylistItem(renderer);
-      if (!item?.id) continue;
 
       const pageType =
         renderer.navigationEndpoint?.browseEndpoint?.browseEndpointContextSupportedConfigs
@@ -873,6 +886,7 @@ const pickBestAudioFormat = (formats: any[]): any | null => {
     return currentBitrate > bestBitrate ? current : best;
   }, candidates[0]);
 };
+
 
 /**
  * Resolve a playable audio stream for a YouTube / YouTube Music video id using
@@ -974,68 +988,18 @@ export async function getPlayerStream(
   };
 }
 
+
 export function initializeYTMusic(): void {
-  ipcMain.handle('ytm:home', async (_event, cookie?: string) => {
-    try {
-      return { success: true, data: await getHomePage(cookie) };
-    } catch (e: any) {
-      return { success: false, error: e.message };
-    }
-  });
-
-  ipcMain.handle('ytm:charts', async (_event, cookie?: string) => {
-    try {
-      return { success: true, data: await getChartsPage(cookie) };
-    } catch (e: any) {
-      return { success: false, error: e.message };
-    }
-  });
-
-  ipcMain.handle('ytm:search', async (_event, query: string, filter?: string, cookie?: string) => {
-    try {
-      return { success: true, data: await search(query, filter, cookie) };
-    } catch (e: any) {
-      return { success: false, error: e.message };
-    }
-  });
-
-  ipcMain.handle('ytm:suggestions', async (_event, query: string, cookie?: string) => {
-    try {
-      return { success: true, data: await getSearchSuggestions(query, cookie) };
-    } catch (e: any) {
-      return { success: false, error: e.message };
-    }
-  });
-
-  ipcMain.handle('ytm:moods', async (_event, cookie?: string) => {
-    try {
-      return { success: true, data: await getMoodsAndGenres(cookie) };
-    } catch (e: any) {
-      return { success: false, error: e.message };
-    }
-  });
-
-  ipcMain.handle('ytm:player', async (_event, videoId: string, cookie?: string) => {
-    try {
-      return await getPlayerStream(videoId, cookie);
-    } catch (e: any) {
-      return { success: false, error: e.message };
-    }
-  });
-
-  ipcMain.handle('ytm:playlist', async (_event, playlistId: string, cookie?: string) => {
-    try {
-      return { success: true, data: await getPlaylistDetail(playlistId, cookie) };
-    } catch (e: any) {
-      return { success: false, error: e.message };
-    }
-  });
-
-  ipcMain.handle('ytm:artist', async (_event, artistId: string, cookie?: string) => {
-    try {
-      return { success: true, data: await getArtistDetail(artistId, cookie) };
-    } catch (e: any) {
-      return { success: false, error: e.message };
-    }
-  });
+  // IPC handlers are now routed through the Tauri preload bridge
+  // The preload at src/preload/index.ts exposes these functions via contextBridge.invoke:
+  // - ytm:home(cookie) -> api.ytmHome(cookie)
+  // - ytm:charts(cookie) -> api.ytmCharts(cookie)
+  // - ytm:search(query, filter, cookie) -> api.ytmSearch(query, filter, cookie)
+  // - ytm:suggestions(query, cookie) -> api.ytmSuggestions(query, cookie)
+  // - ytm:moods(cookie) -> api.ytmMoods(cookie)
+  // - ytm:player(videoId, cookie) -> api.ytmPlayer(videoId, cookie)
+  // - ytm:playlist(playlistId, cookie) -> api.ytmPlaylist(playlistId, cookie)
+  // - ytm:artist(artistId, cookie) -> api.ytmArtist(artistId, cookie)
+  //
+  // The actual handler implementations are in this module.
 }

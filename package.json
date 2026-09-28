@@ -12,18 +12,10 @@
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "vue-tsc --noEmit -p tsconfig.web.json --composite false",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
-    "start": "electron-vite preview",
-    "dev": "electron-vite dev",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build",
     "dev:web": "vite dev",
-    "build": "electron-vite build",
-    "postinstall": "electron-builder install-app-deps",
-    "fix-sandbox": "node scripts/fix-sandbox.js",
-    "build:unpack": "npm run build && electron-builder --dir",
-    "build:win": "npm run build && electron-builder --win --publish never",
-    "build:mac": "npm run build && electron-builder --mac --x64 --publish never && cp dist/latest-mac.yml dist/latest-mac-x64.yml && electron-builder --mac --arm64 --publish never && cp dist/latest-mac.yml dist/latest-mac-arm64.yml && node scripts/merge_latest_mac_yml.mjs dist/latest-mac-x64.yml dist/latest-mac-arm64.yml dist/latest-mac.yml",
-    "build:mac:x64": "npm run build && electron-builder --mac --x64 --publish never && cp dist/latest-mac.yml dist/latest-mac-x64.yml",
-    "build:mac:arm64": "npm run build && electron-builder --mac --arm64 --publish never && cp dist/latest-mac.yml dist/latest-mac-arm64.yml",
-    "build:linux": "npm run build && electron-builder --linux --publish never"
+    "build:web": "vite build"
   },
   "lint-staged": {
     "*.{ts,tsx,vue,js}": [
@@ -34,17 +26,12 @@
     ]
   },
   "dependencies": {
-    "@electron-toolkit/preload": "^3.0.2",
-    "@electron-toolkit/utils": "^4.0.0",
     "@httptoolkit/dbus-native": "^0.1.5",
     "@material/material-color-utilities": "^0.4.0",
     "@unblockneteasemusic/server": "^0.27.10",
     "cors": "^2.8.5",
     "crypto-js": "^4.2.0",
     "discord-rpc": "^4.0.1",
-    "electron-store": "^8.2.0",
-    "electron-updater": "^6.6.2",
-    "electron-window-state": "^5.0.3",
     "express": "^4.22.1",
     "file-type": "^21.1.1",
     "flac-tagger": "^1.0.7",
@@ -54,7 +41,6 @@
     "jsencrypt": "^3.5.4",
     "mpris-service": "^2.1.2",
     "music-metadata": "^11.10.3",
-    "netease-cloud-music-api-alger": "^4.30.0",
     "node-fetch": "^2.7.0",
     "node-id3": "^0.2.9",
     "node-machine-id": "^1.1.12",
@@ -64,10 +50,9 @@
   "devDependencies": {
     "@commitlint/cli": "^20.5.0",
     "@commitlint/config-conventional": "^20.5.0",
-    "@electron-toolkit/eslint-config": "^2.1.0",
-    "@electron-toolkit/eslint-config-ts": "^3.1.0",
-    "@electron-toolkit/tsconfig": "^1.0.1",
     "@eslint/js": "^9.39.2",
+    "@tauri-apps/api": "^2.0.0",
+    "@tauri-apps/cli": "^2.0.0",
     "@rushstack/eslint-patch": "^1.15.0",
     "@types/howler": "^2.2.12",
     "@types/node": "^20.19.26",
@@ -81,14 +66,10 @@
     "@vue/eslint-config-typescript": "^14.6.0",
     "@vue/runtime-core": "^3.5.25",
     "@vueuse/core": "^11.3.0",
-    "@vueuse/electron": "^13.9.0",
     "animate.css": "^4.1.1",
     "autoprefixer": "^10.4.22",
     "axios": "^1.13.2",
     "cross-env": "^7.0.3",
-    "electron": "^40.10.6",
-    "electron-builder": "^26.0.12",
-    "electron-vite": "^5.0.0",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-import": "^2.32.0",
@@ -220,7 +201,6 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": [
-      "electron",
       "esbuild"
     ]
   },

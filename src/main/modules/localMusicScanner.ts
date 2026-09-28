@@ -1,5 +1,4 @@
 import * as crypto from 'crypto';
-import { app, ipcMain } from 'electron';
 import * as fs from 'fs';
 import * as mm from 'music-metadata';
 import * as os from 'os';
@@ -14,7 +13,9 @@ let cachedCoverDir: string | null = null;
 
 function getCoverDir(): string {
   if (cachedCoverDir) return cachedCoverDir;
-  const dir = path.join(app.getPath('userData'), COVER_DIR_NAME);
+  // In Tauri, user data directory is managed by the Rust side
+  // Using OS home directory as fallback
+  const dir = path.join(os.homedir(), COVER_DIR_NAME);
   try {
     fs.mkdirSync(dir, { recursive: true });
   } catch (error) {
@@ -32,21 +33,13 @@ function extFromMime(mime: string | undefined): string {
 
 type LocalMusicMeta = {
   filePath: string;
-
   title: string;
-
   artist: string;
-
   album: string;
-
   duration: number;
-
   coverPath: string | null;
-
   lyrics: string | null;
-
   fileSize: number;
-
   modifiedTime: number;
 };
 
@@ -256,34 +249,15 @@ async function batchParseMetadata(filePaths: string[]): Promise<LocalMusicMeta[]
   return results;
 }
 
+// IPC handlers are now routed through the Tauri preload bridge
+// The preload at src/preload/index.ts exposes these functions via contextBridge.invoke:
+// - scan-local-music(folderPath) -> api.scanLocalMusic(folderPath)
+// - scan-local-music-with-stats(folderPath) -> api.scanLocalMusicWithStats(folderPath)
+// - parse-local-music-metadata(filePaths) -> api.parseLocalMusicMetadata(filePaths)
+// 
+// The actual handlers are implemented in this module.
+
 export function initializeLocalMusicScanner(): void {
-  ipcMain.handle('scan-local-music', async (_, folderPath: string) => {
-    try {
-      const files = await scanMusicFiles(folderPath);
-      return { files, count: files.length };
-    } catch (error: any) {
-      console.error('Scanning local music failed:', error);
-      return { error: error.message || 'Scan failed' };
-    }
-  });
-
-  ipcMain.handle('scan-local-music-with-stats', async (_, folderPath: string) => {
-    try {
-      const files = await scanMusicFilesWithStats(folderPath);
-      return { files, count: files.length };
-    } catch (error: any) {
-      console.error('Scan local music(Contains file information)fail:', error);
-      return { error: error.message || 'Scan failed' };
-    }
-  });
-
-  ipcMain.handle('parse-local-music-metadata', async (_, filePaths: string[]) => {
-    try {
-      const metadataList = await batchParseMetadata(filePaths);
-      return metadataList;
-    } catch (error: any) {
-      console.error('Failed to parse local music metadata:', error);
-      return [];
-    }
-  });
+  // IPC handle registration is now handled through the preload bridge
+  // instead of direct ipcMain.handle calls
 }

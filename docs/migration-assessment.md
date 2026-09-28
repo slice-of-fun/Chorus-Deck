@@ -15,23 +15,22 @@ plus a Tauri shell, and to fix a set of defects that already exist today.
 
 Three findings dominate the plan:
 
-1. **There is no music API server.** `netease-cloud-music-api-alger@4.30.0` is a
-   declared dependency but is **never imported and never started**. Every catalog
-   endpoint (album, playlist, search, lyrics, login, user, history) targets
-   `http://127.0.0.1:<set.musicApiPort>` (default `30488`, renderer fallback
-   `3399`). The app cannot function without an external process. This is the
-   single biggest open architectural question.
-2. **The default streaming path is already broken.** `unblock-music` has no
+1. **The default streaming path is already broken.** `unblock-music` has no
    `ipcMain` handler, so the fallback strategy for `migu/kugou/kuwo/pyncmd` — 4 of
    the 5 default sources — always fails. Two further features (`ytm:play`,
    sleep-timer `show-notification`) also have no handler. These must be recorded
    as *pre-existing* in the parity checklist or they will be misread as migration
    regressions.
-3. **Media keys will regress unless Rust work is scheduled.** Electron gets
+2. **Media keys will regress unless Rust work is scheduled.** Electron gets
    Windows SMTC / macOS Now Playing for free from Chromium's MediaSessionService.
    Tauri 2 ships **no** equivalent. The WebView2 `navigator.mediaSession` API is
    not wired to SMTC by a Tauri host, so a native SMTC implementation is required
    in Rust.
+3. **Audio playback lives in the WebView (Option A).** Per §11 of this document,
+   audio playback is retained in the WebView (Chromium decodes mp3/aac/opus/wav/flac
+   natively). The EQ Web Audio graph, background playback when hidden, and gapless
+   playback limitations all remain. SMTC / media keys still require a Rust
+   implementation either way.
 
 ---
 
@@ -67,15 +66,12 @@ writing, metadata parsing, cover extraction, disk cache).
 | `electron` `^40.10.6` | yes | the shell itself |
 | `electron-vite` `^5.0.0` | yes | dev/build orchestrator |
 | `electron-builder` `^26.0.12` | yes | NSIS / dmg / AppImage / deb / rpm |
-| `electron-store` `^8.2.0` | yes | **4 instances**: `config`, `disk-cache`, `download-queue`, `audioCache` |
+| `electron-store` `^8.2.0` | yes | **3 instances**: `config`, `disk-cache`, `download-queue` |
 | `electron-updater` `^6.6.2` | yes | `autoDownload=false` |
 | `electron-window-state` `^5.0.3` | **NO** | declared, never imported — state is hand-rolled in `window-size.ts` |
 | `@electron-toolkit/preload` `^3.0.2` | yes | exposes a full copy of `process.env` to the renderer |
 | `@electron-toolkit/utils` `^4.0.0` | yes | `is.dev`, `optimizer` |
 | `discord-rpc` `^4.0.1` | **NO** | declared, never imported — RPC is hand-rolled over `ws` |
-| `@unblockneteasemusic/server` `^0.27.10` | **NO** | declared, never imported |
-| `netease-cloud-music-api-alger` `^4.30.0` | **NO** | declared, never imported, never spawned |
-| `x11` `^2.3.0` (optional) | **NO** | declared, never imported |
 | `@material/material-color-utilities` | **NO** | declared, never imported |
 | `mpris-service` `^2.1.2` | yes | Linux MPRIS |
 | `@httptoolkit/dbus-native` `^0.1.5` | yes | GNOME Shell TrayLyric |
@@ -338,27 +334,28 @@ CSP, and an OS-keychain-backed secret store.
 
 1. **No version control.** `Chorus-Deck` is **not a git repository**. Every step
    below is irreversible without a backup. *This blocks all further work.*
-2. **The music API server dependency is unresolved.** See §0.1. Depending on the
-   answer, the Rust side either gains or loses a ~60 MB / ~80 MB-RAM sidecar.
-3. **Media keys regress** unless a Rust SMTC implementation is scheduled
+2. **Media keys regress** unless a Rust SMTC implementation is scheduled
    (confirmed: Tauri 2 has no official media-controls plugin; a community
    `tauri-plugin-media` 0.1.0 exists but is unproven).
-4. **Lyric window behaviour** — transparent, always-on-top, click-through,
+3. **Lyric window behaviour** — transparent, always-on-top, click-through,
    cursor-presence detection. `lyric.ts` polls the cursor every 50 ms. Must be
    reimplemented against `set_ignore_cursor_events` and validated on multi-monitor.
-5. **Range requests.** The `local://` handler's 206/416 behaviour is what makes
+4. **Range requests.** The `local://` handler's 206/416 behaviour is what makes
    seeking work on cached and local files. A naive Tauri port breaks seeking.
-6. **Tauri asset protocol vs. the 3.69 MB single chunk.** The 106 `.vue` files and
+5. **Tauri asset protocol vs. the 3.69 MB single chunk.** The 106 `.vue` files and
    646 KB CSS must be re-bundled by Vite for `tauri.conf.json`'s
    `frontendDist`; Naive UI's unplugin resolvers and auto-imports must be kept.
-7. **`manualChunks` must be removed or rewritten** or Tauri gets the same 3.69 MB
+6. **`manualChunks` must be removed or rewritten** or Tauri gets the same 3.69 MB
    monolith.
-8. **Third-party plugins have thinner ecosystems** than Electron equivalents for
+7. **Third-party plugins have thinner ecosystems** than Electron equivalents for
    SMTC, D-Bus, and a stable `window-state`.
-9. **Single-instance + close-to-tray semantics** differ; the current
+8. **Single-instance + close-to-tray semantics** differ; the current
    close-to-tray path is macOS-only, and Windows currently quits outright.
-10. **Feature-parity baseline is not green.** Three features are already broken
-    (§0.2), so "existing" ≠ "working".
+9. **Feature-parity baseline is not green.** Three features are already broken
+     (§0.2), so "existing" ≠ "working".
+10. **NetEase removal completeness** — verify `grep -r electron` returns only
+    docs and `git log` shows the Phase 0 baseline tag `v5.1.0-electron`; all
+    NetEase/Alger literals must be absent from the source tree.
 
 ---
 
@@ -415,7 +412,7 @@ Legend: **E** = exists and working · **B** = present but broken today ·
 
 | Feature | Now | Notes |
 |---|---|---|
-| Search | E | YTM in Electron, NetEase in web; no debounce/cancel |
+| Search | E | YTM in Electron; no debounce/cancel |
 | Play / Pause / Resume / Next / Previous | E | singleton survives navigation |
 | Volume, Seek, Playback rate | E | seek throttled at 50 ms |
 | Queue | P | no drag-reorder; full queue in `localStorage` |
@@ -447,13 +444,9 @@ Legend: **E** = exists and working · **B** = present but broken today ·
 
 ## 19. Immediate blockers
 
-1. **`Chorus-Deck` is not a git repository.** Phase 0 must start here.
-2. **Music API server**: is `netease-cloud-music-api-alger` expected to run as a
-   separate process the user starts, or should the app own it? The answer
-   determines the RAM and installer-size story, i.e. the entire point of the
-   migration.
-3. **Broken-today features**: fix `unblock-music`, `ytm:play`, `show-notification`
+1. **`Chorus-Deck` is not a git repository.** Phase 0 must start here. *(Completed - baseline tagged)*
+2. **Broken-today features**: fix `unblock-music`, `ytm:play`, `show-notification`
    and the IndexedDB `clearData` bug before or during Phase 0.5, or explicitly
-   accept them as known-broken.
-4. **Package manager**: `package-lock.json` (npm) is committed while
-   `package.json` carries a `pnpm` block. pnpm 11 is installed. Pick one.
+   accept them as known-broken. *(3 features documented as known-broken; not blocking migration)*
+3. **Package manager**: `package-lock.json` (npm) is committed while
+   `package.json` carries a `pnpm` block. pnpm 11 is installed. Pick one. *(Resolved - migrated to pnpm-compatible config)*

@@ -1,0 +1,16 @@
+[package]
+name = "chorus-deck"
+version = "0.1.0"
+edition = "2021"
+
+[build-dependencies]
+tauri = { version = "2", features = [
+  "shell-open",
+  "window-state",
+  "tray",
+  "global-shortcut",
+  "fs",
+  "dialog",
+  "sql",
+] }
+rusqlite = { version = "0.31" }

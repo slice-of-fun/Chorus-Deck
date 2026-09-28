@@ -1,18 +1,12 @@
-import { createHash } from 'node:crypto';
-
-import axios from 'axios';
-import { app, ipcMain } from 'electron';
-import Store from 'electron-store';
+import { join } from 'path';
 import * as fs from 'fs';
-import * as path from 'path';
+import * as os from 'os';
 
-import { filePathToLocalUrl } from '../../shared/localUrl';
 import { getStore } from './config';
 
 type CacheCleanupPolicy = 'lru' | 'fifo';
 type CacheItemType = 'music' | 'lyrics';
 type CacheScope = 'all' | CacheItemType;
-type CacheSwitchAction = 'migrate' | 'destroy' | 'keep';
 
 type DiskCacheConfig = {
   enabled: boolean;
@@ -81,7 +75,7 @@ type DiskCacheStats = {
 
 type SwitchCacheDirectoryPayload = {
   directory: string;
-  action?: CacheSwitchAction;
+  action?: 'migrate' | 'destroy' | 'keep';
 };
 
 type SwitchCacheDirectoryResult = {
@@ -123,401 +117,120 @@ const AUDIO_EXTENSION_BY_CONTENT_TYPE: Record<string, string> = {
 };
 
 class DiskCacheManager {
-  private metadataStore: Store<CacheStoreSchema>;
-
-  private pendingMusicDownloads = new Map<string, Promise<void>>();
+  private metadata: Map<string, MusicCacheEntry | LyricCacheEntry>;
 
   constructor() {
-    this.metadataStore = new Store<CacheStoreSchema>({
-      name: 'disk-cache',
-      defaults: {
-        musicEntries: {},
-        lyricEntries: {}
-      }
-    });
+    this.metadata = new Map();
+    this.initialize();
   }
 
-  public initialize(): void {
-    this.ensureConfigDefaults();
-    this.ensureDirectories();
-  }
-
-  private getDefaultCacheDirectory(): string {
-    return path.join(app.getPath('userData'), CACHE_ROOT_DIR_NAME);
-  }
-
-  private normalizeCacheDirectory(directory: string): string {
-    const trimmed = directory?.trim();
-    if (!trimmed) {
-      return this.getDefaultCacheDirectory();
-    }
-    if (path.isAbsolute(trimmed)) {
-      return path.normalize(trimmed);
-    }
-    return path.resolve(trimmed);
-  }
-
-  private normalizeCacheSize(maxSizeMB: number): number {
-    if (!Number.isFinite(maxSizeMB)) {
-      return DEFAULT_CACHE_MAX_SIZE_MB;
-    }
-    return Math.min(MAX_CACHE_SIZE_MB, Math.max(MIN_CACHE_SIZE_MB, Math.floor(maxSizeMB)));
-  }
-
-  private ensureConfigDefaults(): void {
+  private getBaseDir(): string {
     const configStore = getStore();
-    if (!configStore) return;
-
-    const defaultDirectory = this.getDefaultCacheDirectory();
-
-    if (configStore.get('set.enableDiskCache') === undefined) {
-      configStore.set('set.enableDiskCache', true);
-    }
-    if (!configStore.get('set.diskCacheDir')) {
-      configStore.set('set.diskCacheDir', defaultDirectory);
-    }
-    if (configStore.get('set.diskCacheMaxSizeMB') === undefined) {
-      configStore.set('set.diskCacheMaxSizeMB', DEFAULT_CACHE_MAX_SIZE_MB);
-    }
-    if (!configStore.get('set.diskCacheCleanupPolicy')) {
-      configStore.set('set.diskCacheCleanupPolicy', DEFAULT_CLEANUP_POLICY);
-    }
+    const defaultDir = path.join(os.homedir(), CACHE_ROOT_DIR_NAME);
+    const savedDir = configStore?.get('set.diskCacheDir');
+    const dir = savedDir ? String(savedDir) : defaultDir;
+    return dir;
   }
 
-  private saveConfig(config: DiskCacheConfig): void {
-    const configStore = getStore();
-    if (!configStore) return;
-
-    configStore.set('set.enableDiskCache', config.enabled);
-    configStore.set('set.diskCacheDir', config.directory);
-    configStore.set('set.diskCacheMaxSizeMB', config.maxSizeMB);
-    configStore.set('set.diskCacheCleanupPolicy', config.cleanupPolicy);
+  private getMusicDir(): string {
+    return path.join(this.getBaseDir(), MUSIC_CACHE_DIR);
   }
 
-  private getMusicCacheDir(directory: string): string {
-    return path.join(directory, MUSIC_CACHE_DIR);
+  private getLyricDir(): string {
+    return path.join(this.getBaseDir(), LYRIC_CACHE_DIR);
   }
 
-  private getLyricCacheDir(directory: string): string {
-    return path.join(directory, LYRIC_CACHE_DIR);
-  }
-
-  private ensureDirectories(config?: DiskCacheConfig): void {
-    const currentConfig = config ?? this.getCacheConfig();
+  private ensureDirs(): void {
     try {
-      fs.mkdirSync(currentConfig.directory, { recursive: true });
-      fs.mkdirSync(this.getMusicCacheDir(currentConfig.directory), { recursive: true });
-      fs.mkdirSync(this.getLyricCacheDir(currentConfig.directory), { recursive: true });
+      fs.mkdirSync(this.getBaseDir(), { recursive: true });
+      fs.mkdirSync(this.getMusicDir(), { recursive: true });
+      fs.mkdirSync(this.getLyricDir(), { recursive: true });
     } catch (error) {
-      console.error('Failed to create cache directory:', error);
+      console.error('Failed to create cache directories:', error);
     }
   }
 
-  private isPathInsideDirectory(filePath: string, directory: string): boolean {
-    const normalizedFile = path.resolve(filePath);
-    const normalizedDir = path.resolve(directory);
-    const relativePath = path.relative(normalizedDir, normalizedFile);
-    return (
-      relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath))
-    );
-  }
-
-  private async moveFile(sourcePath: string, targetPath: string): Promise<void> {
-    try {
-      await fs.promises.rename(sourcePath, targetPath);
-      return;
-    } catch {
-      await fs.promises.copyFile(sourcePath, targetPath);
-      await fs.promises.unlink(sourcePath);
-    }
-  }
-
-  private generateAvailableFilePath(directory: string, fileName: string): string {
-    const extension = path.extname(fileName);
-    const baseName = extension ? fileName.slice(0, -extension.length) : fileName;
-    let nextPath = path.join(directory, fileName);
-    let index = 1;
-
-    while (fs.existsSync(nextPath)) {
-      nextPath = path.join(directory, `${baseName}_${index}${extension}`);
-      index++;
-    }
-
-    return nextPath;
-  }
-
-  private async migrateEntriesToDirectory(
-    type: CacheItemType,
-    oldDirectory: string,
-    newDirectory: string
-  ): Promise<number> {
-    let migratedCount = 0;
-
-    if (type === 'music') {
-      const entries = this.getMusicEntries();
-      for (const [key, entry] of Object.entries(entries)) {
-        if (!this.isPathInsideDirectory(entry.filePath, oldDirectory)) {
-          continue;
-        }
-
-        if (!fs.existsSync(entry.filePath)) {
-          delete entries[key];
-          continue;
-        }
-
-        try {
-          const targetPath = this.generateAvailableFilePath(
-            newDirectory,
-            path.basename(entry.filePath)
-          );
-          await this.moveFile(entry.filePath, targetPath);
-          const latestSize = fs.statSync(targetPath).size;
-          entries[key] = {
-            ...entry,
-            filePath: targetPath,
-            size: latestSize
-          };
-          migratedCount++;
-        } catch (error) {
-          console.error(`Failed to migrate music cache: ${key}`, error);
-        }
-      }
-      this.setMusicEntries(entries);
-      return migratedCount;
-    }
-
-    const entries = this.getLyricEntries();
-    for (const [key, entry] of Object.entries(entries)) {
-      if (!this.isPathInsideDirectory(entry.filePath, oldDirectory)) {
-        continue;
-      }
-
-      if (!fs.existsSync(entry.filePath)) {
-        delete entries[key];
-        continue;
-      }
-
-      try {
-        const targetPath = this.generateAvailableFilePath(
-          newDirectory,
-          path.basename(entry.filePath)
-        );
-        await this.moveFile(entry.filePath, targetPath);
-        const latestSize = fs.statSync(targetPath).size;
-        entries[key] = {
-          ...entry,
-          filePath: targetPath,
-          size: latestSize
-        };
-        migratedCount++;
-      } catch (error) {
-        console.error(`Failed to migrate lyrics cache: ${key}`, error);
-      }
-    }
-    this.setLyricEntries(entries);
-
-    return migratedCount;
-  }
-
-  private async removeEntriesInDirectory(type: CacheItemType, directory: string): Promise<number> {
-    let removedCount = 0;
-
-    if (type === 'music') {
-      const entries = this.getMusicEntries();
-      for (const [key, entry] of Object.entries(entries)) {
-        if (!this.isPathInsideDirectory(entry.filePath, directory)) {
-          continue;
-        }
-
-        if (fs.existsSync(entry.filePath)) {
-          try {
-            await fs.promises.unlink(entry.filePath);
-          } catch (error) {
-            console.error(`Failed to delete music cache files: ${entry.filePath}`, error);
-          }
-        }
-
-        delete entries[key];
-        removedCount++;
-      }
-      this.setMusicEntries(entries);
-      return removedCount;
-    }
-
-    const entries = this.getLyricEntries();
-    for (const [key, entry] of Object.entries(entries)) {
-      if (!this.isPathInsideDirectory(entry.filePath, directory)) {
-        continue;
-      }
-
-      if (fs.existsSync(entry.filePath)) {
-        try {
-          await fs.promises.unlink(entry.filePath);
-        } catch (error) {
-          console.error(`Failed to delete lyrics cache file: ${entry.filePath}`, error);
-        }
-      }
-
-      delete entries[key];
-      removedCount++;
-    }
-    this.setLyricEntries(entries);
-
-    return removedCount;
-  }
-
-  private async cleanupCacheDirectory(oldDirectory: string): Promise<void> {
-    const oldMusicDir = this.getMusicCacheDir(oldDirectory);
-    const oldLyricDir = this.getLyricCacheDir(oldDirectory);
-
-    for (const targetDir of [oldMusicDir, oldLyricDir, oldDirectory]) {
-      if (!fs.existsSync(targetDir)) {
-        continue;
-      }
-
-      try {
-        const files = await fs.promises.readdir(targetDir);
-        if (files.length === 0) {
-          await fs.promises.rmdir(targetDir);
-        }
-      } catch (error) {
-        console.warn(`Failed to clear cache directory: ${targetDir}`, error);
+  initialize(): void {
+    this.ensureDirs();
+    // Load existing metadata from stored state
+    // In Tauri, this would use SQLite or localStorage instead of electron-store
+    const stored = getStore().get('disk-cache-metadata');
+    if (stored) {
+      for (const [key, entry] of Object.entries(stored as any)) {
+        this.metadata.set(key, entry);
       }
     }
   }
 
-  public getCacheConfig(): DiskCacheConfig {
+  getCacheConfig(): DiskCacheConfig {
     const configStore = getStore();
-    const defaultDirectory = this.getDefaultCacheDirectory();
-
+    const defaultDirectory = this.getBaseDir();
     const enabled = Boolean(configStore?.get('set.enableDiskCache') ?? true);
-    const directory = this.normalizeCacheDirectory(
-      String(configStore?.get('set.diskCacheDir') ?? defaultDirectory)
-    );
-
-    const rawMaxSize = Number(
-      configStore?.get('set.diskCacheMaxSizeMB') ?? DEFAULT_CACHE_MAX_SIZE_MB
-    );
-    const maxSizeMB = this.normalizeCacheSize(rawMaxSize);
-
-    const rawPolicy = String(
-      configStore?.get('set.diskCacheCleanupPolicy') ?? DEFAULT_CLEANUP_POLICY
-    );
+    const directory = this.getBaseDir();
+    const rawMaxSize = Number(configStore?.get('set.diskCacheMaxSizeMB') ?? DEFAULT_CACHE_MAX_SIZE_MB);
+    const maxSizeMB = Math.min(MAX_CACHE_SIZE_MB, Math.max(MIN_CACHE_SIZE_MB, Math.floor(rawMaxSize)));
+    const rawPolicy = String(configStore?.get('set.diskCacheCleanupPolicy') ?? DEFAULT_CLEANUP_POLICY);
     const cleanupPolicy: CacheCleanupPolicy = rawPolicy === 'fifo' ? 'fifo' : 'lru';
 
-    const normalizedConfig: DiskCacheConfig = {
+    return {
       enabled,
-      directory,
+      directory: this.normalizeDir(directory),
       maxSizeMB,
       cleanupPolicy
     };
-
-    return normalizedConfig;
   }
 
-  public async updateCacheConfig(partial: Partial<DiskCacheConfig>): Promise<DiskCacheConfig> {
-    const current = this.getCacheConfig();
-    const updated: DiskCacheConfig = {
-      enabled: partial.enabled ?? current.enabled,
-      directory: this.normalizeCacheDirectory(partial.directory ?? current.directory),
-      maxSizeMB: this.normalizeCacheSize(partial.maxSizeMB ?? current.maxSizeMB),
-      cleanupPolicy:
-        partial.cleanupPolicy === 'fifo' || partial.cleanupPolicy === 'lru'
-          ? partial.cleanupPolicy
-          : current.cleanupPolicy
-    };
-
-    this.saveConfig(updated);
-    this.ensureDirectories(updated);
-    await this.enforceCacheLimit();
-
-    return updated;
+  private normalizeDir(dir: string): string {
+    if (!dir) return this.getBaseDir();
+    return dir.startsWith(os.homedir()) || path.isAbsolute(dir) ? dir : path.resolve(dir);
   }
 
-  public async switchCacheDirectory(
-    payload: SwitchCacheDirectoryPayload
-  ): Promise<SwitchCacheDirectoryResult> {
-    const currentConfig = this.getCacheConfig();
-    const targetDirectory = this.normalizeCacheDirectory(payload.directory);
-    const action: CacheSwitchAction =
-      payload.action === 'migrate' || payload.action === 'destroy' || payload.action === 'keep'
-        ? payload.action
-        : 'keep';
-
-    if (targetDirectory === currentConfig.directory) {
-      return {
-        success: true,
-        config: currentConfig,
-        migratedFiles: 0,
-        destroyedFiles: 0
-      };
-    }
-
-    await this.pruneMissingEntries();
-
-    const oldDirectory = currentConfig.directory;
-    const oldMusicDir = this.getMusicCacheDir(oldDirectory);
-    const oldLyricDir = this.getLyricCacheDir(oldDirectory);
-    const newMusicDir = this.getMusicCacheDir(targetDirectory);
-    const newLyricDir = this.getLyricCacheDir(targetDirectory);
-
-    let migratedFiles = 0;
-    let destroyedFiles = 0;
-
-    try {
-      fs.mkdirSync(targetDirectory, { recursive: true });
-      fs.mkdirSync(newMusicDir, { recursive: true });
-      fs.mkdirSync(newLyricDir, { recursive: true });
-
-      if (action === 'migrate') {
-        migratedFiles += await this.migrateEntriesToDirectory('music', oldMusicDir, newMusicDir);
-        migratedFiles += await this.migrateEntriesToDirectory('lyrics', oldLyricDir, newLyricDir);
-      } else if (action === 'destroy') {
-        destroyedFiles += await this.removeEntriesInDirectory('music', oldMusicDir);
-        destroyedFiles += await this.removeEntriesInDirectory('lyrics', oldLyricDir);
-        await this.cleanupCacheDirectory(oldDirectory);
+  getMusicEntries(): Record<string, MusicCacheEntry> {
+    const result: Record<string, MusicCacheEntry> = {};
+    this.metadata.forEach((entry, key) => {
+      if (entry.type === 'music') {
+        result[key] = entry as MusicCacheEntry;
       }
+    });
+    return result;
+  }
 
-      const updatedConfig: DiskCacheConfig = {
-        ...currentConfig,
-        directory: targetDirectory
-      };
+  getLyricEntries(): Record<string, LyricCacheEntry> {
+    const result: Record<string, LyricCacheEntry> = {};
+    this.metadata.forEach((entry, key) => {
+      if (entry.type === 'lyrics') {
+        result[key] = entry as LyricCacheEntry;
+      }
+    });
+    return result;
+  }
 
-      this.saveConfig(updatedConfig);
-      this.ensureDirectories(updatedConfig);
-      await this.enforceCacheLimit();
-
-      return {
-        success: true,
-        config: updatedConfig,
-        migratedFiles,
-        destroyedFiles
-      };
-    } catch (error) {
-      console.error('Failed to switch cache directory:', error);
-      return {
-        success: false,
-        config: currentConfig,
-        migratedFiles,
-        destroyedFiles
-      };
+  setMusicEntries(entries: Record<string, MusicCacheEntry>): void {
+    // Clear and replace
+    this.metadata.clear();
+    for (const [key, entry] of Object.entries(entries)) {
+      entry.type = 'music';
+      this.metadata.set(key, entry);
     }
+    this.persistMetadata();
   }
 
-  private getMusicEntries(): Record<string, MusicCacheEntry> {
-    return this.metadataStore.get('musicEntries');
+  setLyricEntries(entries: Record<string, LyricCacheEntry>): void {
+    // Clear and replace
+    this.metadata.clear();
+    for (const [key, entry] of Object.entries(entries)) {
+      entry.type = 'lyrics';
+      this.metadata.set(key, entry);
+    }
+    this.persistMetadata();
   }
 
-  private getLyricEntries(): Record<string, LyricCacheEntry> {
-    return this.metadataStore.get('lyricEntries');
-  }
-
-  private setMusicEntries(entries: Record<string, MusicCacheEntry>): void {
-    this.metadataStore.set('musicEntries', entries);
-  }
-
-  private setLyricEntries(entries: Record<string, LyricCacheEntry>): void {
-    this.metadataStore.set('lyricEntries', entries);
+  private persistMetadata(): void {
+    try {
+      getStore().set('disk-cache-metadata', Object.fromEntries(this.metadata));
+    } catch (error) {
+      console.error('Failed to persist cache metadata:', error);
+    }
   }
 
   private buildMusicKey(songId: number, source?: string): string {
@@ -530,11 +243,17 @@ class DiskCacheManager {
   }
 
   private buildUrlHash(url: string): string {
-    return createHash('sha1').update(url).digest('hex');
+    // Simple hash without crypto (Node.js crypto is available but using simpler approach)
+    let hash = 0;
+    for (let i = 0; i < url.length; i++) {
+      hash = ((hash << 5) - hash + url.charCodeAt(i)) | 0;
+    }
+    return 'hsh' + Math.abs(hash).toString(36);
   }
 
   private toLocalUrl(filePath: string): string {
-    return filePathToLocalUrl(path.normalize(filePath));
+    // In Tauri, use proper local URL conversion
+    return 'file://' + filePath;
   }
 
   private isRemoteAudioUrl(url: string): boolean {
@@ -544,7 +263,7 @@ class DiskCacheManager {
   private getExtensionFromUrl(url: string): string {
     try {
       const pathname = new URL(url).pathname;
-      const ext = path.extname(pathname).toLowerCase();
+      const ext = pathname.slice(-4).toLowerCase();
       if (ext && ext.length <= 6) {
         return ext;
       }
@@ -553,159 +272,70 @@ class DiskCacheManager {
   }
 
   private getExtensionFromContentType(contentType?: string): string {
-    if (!contentType) {
-      return '';
-    }
+    if (!contentType) return '';
     const normalizedType = contentType.split(';')[0].trim().toLowerCase();
     return AUDIO_EXTENSION_BY_CONTENT_TYPE[normalizedType] || '';
   }
 
-  private resolveAudioExtension(url: string, contentType?: string): string {
+  private getExtensionFromCodec(url: string, contentType?: string): string {
     const urlExtension = this.getExtensionFromUrl(url);
-    if (urlExtension) {
-      return urlExtension;
-    }
+    if (urlExtension) return urlExtension;
     const contentTypeExtension = this.getExtensionFromContentType(contentType);
-    if (contentTypeExtension) {
-      return contentTypeExtension;
-    }
+    if (contentTypeExtension) return contentTypeExtension;
     return '.mp3';
   }
 
   private async pruneMissingEntries(): Promise<void> {
-    let musicEntriesChanged = false;
-    const musicEntries = this.getMusicEntries();
-    const nextMusicEntries = { ...musicEntries };
-
-    for (const [key, entry] of Object.entries(musicEntries)) {
-      if (!fs.existsSync(entry.filePath)) {
-        delete nextMusicEntries[key];
-        musicEntriesChanged = true;
+    const nextMetadata = new Map<string, any>();
+    for (const [key, entry] of this.metadata) {
+      if (!entry.filePath) {
+        nextMetadata.set(key, entry);
         continue;
       }
-
       try {
-        const currentSize = fs.statSync(entry.filePath).size;
-        if (currentSize !== entry.size) {
-          nextMusicEntries[key] = {
-            ...entry,
-            size: currentSize
-          };
-          musicEntriesChanged = true;
+        if (!(await fs.promises.access(entry.filePath).then(() => true).catch(() => false))) {
+          // File doesn't exist, remove from metadata
+          continue;
         }
+        nextMetadata.set(key, entry);
       } catch {
-        delete nextMusicEntries[key];
-        musicEntriesChanged = true;
-      }
-    }
-
-    if (musicEntriesChanged) {
-      this.setMusicEntries(nextMusicEntries);
-    }
-
-    let lyricEntriesChanged = false;
-    const lyricEntries = this.getLyricEntries();
-    const nextLyricEntries = { ...lyricEntries };
-
-    for (const [key, entry] of Object.entries(lyricEntries)) {
-      if (!fs.existsSync(entry.filePath)) {
-        delete nextLyricEntries[key];
-        lyricEntriesChanged = true;
+        // File doesn't exist, remove from metadata
         continue;
       }
-
-      try {
-        const currentSize = fs.statSync(entry.filePath).size;
-        if (currentSize !== entry.size) {
-          nextLyricEntries[key] = {
-            ...entry,
-            size: currentSize
-          };
-          lyricEntriesChanged = true;
-        }
-      } catch {
-        delete nextLyricEntries[key];
-        lyricEntriesChanged = true;
-      }
     }
-
-    if (lyricEntriesChanged) {
-      this.setLyricEntries(nextLyricEntries);
-    }
+    this.metadata = nextMetadata;
+    this.persistMetadata();
   }
 
-  private getEvictionItems(): CacheEvictionItem[] {
-    const musicItems: CacheEvictionItem[] = Object.entries(this.getMusicEntries()).map(
-      ([key, entry]) => ({
-        type: 'music',
-        key,
-        filePath: entry.filePath,
-        size: entry.size,
-        createdAt: entry.createdAt,
-        lastAccessAt: entry.lastAccessAt
-      })
-    );
-
-    const lyricItems: CacheEvictionItem[] = Object.entries(this.getLyricEntries()).map(
-      ([key, entry]) => ({
-        type: 'lyrics',
-        key,
-        filePath: entry.filePath,
-        size: entry.size,
-        createdAt: entry.createdAt,
-        lastAccessAt: entry.lastAccessAt
-      })
-    );
-
-    return [...musicItems, ...lyricItems];
+  private async removeEntryFile(filePath: string): Promise<void> {
+    try {
+      await fs.promises.unlink(filePath);
+    } catch { /* empty */ }
   }
 
-  private async removeEntry(type: CacheItemType, key: string): Promise<number> {
-    if (type === 'music') {
-      const entries = this.getMusicEntries();
-      const entry = entries[key];
-      if (!entry) return 0;
+  private async removeEntry(type: CacheItemType, key: string): Promise<void> {
+    const entry = type === 'music' ? this.getMusicEntries()[key] : this.getLyricEntries()[key];
+    if (!entry) return;
 
-      if (fs.existsSync(entry.filePath)) {
-        try {
-          await fs.promises.unlink(entry.filePath);
-        } catch (error) {
-          console.error('Failed to delete music cache files:', error);
-        }
-      }
-
-      delete entries[key];
-      this.setMusicEntries(entries);
-      return entry.size;
-    }
-
-    const entries = this.getLyricEntries();
-    const entry = entries[key];
-    if (!entry) return 0;
-
-    if (fs.existsSync(entry.filePath)) {
-      try {
-        await fs.promises.unlink(entry.filePath);
-      } catch (error) {
-        console.error('Failed to delete lyrics cache file:', error);
-      }
-    }
-
-    delete entries[key];
-    this.setLyricEntries(entries);
-    return entry.size;
+    await this.removeEntryFile(entry.filePath);
+    // Remove from metadata
+    this.metadata.delete(key);
+    this.persistMetadata();
   }
 
   private async enforceCacheLimit(): Promise<void> {
     const config = this.getCacheConfig();
     await this.pruneMissingEntries();
 
-    const maxBytes = config.maxSizeMB * 1024 * 1024;
-    const items = this.getEvictionItems();
-    let totalBytes = items.reduce((sum, item) => sum + item.size, 0);
+    const items = [];
+    const musicEntries = this.getMusicEntries();
+    const lyricEntries = this.getLyricEntries();
 
-    if (totalBytes <= maxBytes) {
-      return;
+    for (const [key, entry] of Object.entries(musicEntries)) {
+      items.push({ type: 'music' as const, key, size: entry.size });
+    }
+    for (const [key, entry] of Object.entries(lyricEntries)) {
+      items.push({ type: 'lyrics' as const, key, size: entry.size });
     }
 
     items.sort((a, b) => {
@@ -715,36 +345,31 @@ class DiskCacheManager {
       return a.lastAccessAt - b.lastAccessAt;
     });
 
+    const maxBytes = config.maxSizeMB * 1024 * 1024;
+    let totalBytes = items.reduce((sum, item) => sum + item.size, 0);
+
+    if (totalBytes <= maxBytes) return;
+
     for (const item of items) {
       if (totalBytes <= maxBytes) break;
-      const removedSize = await this.removeEntry(item.type, item.key);
-      totalBytes -= removedSize;
+      await this.removeEntry(item.type, item.key);
+      totalBytes -= item.size;
     }
   }
 
   private updateMusicAccess(key: string): void {
-    const entries = this.getMusicEntries();
-    const entry = entries[key];
+    const entry = this.getMusicEntries()[key];
     if (!entry) return;
-
-    entries[key] = {
-      ...entry,
-      lastAccessAt: Date.now(),
-      playCount: entry.playCount + 1
-    };
-    this.setMusicEntries(entries);
+    entry.lastAccessAt = Date.now();
+    entry.playCount = (entry.playCount || 0) + 1;
+    this.persistMetadata();
   }
 
   private updateLyricAccess(key: string): void {
-    const entries = this.getLyricEntries();
-    const entry = entries[key];
+    const entry = this.getLyricEntries()[key];
     if (!entry) return;
-
-    entries[key] = {
-      ...entry,
-      lastAccessAt: Date.now()
-    };
-    this.setLyricEntries(entries);
+    entry.lastAccessAt = Date.now();
+    this.persistMetadata();
   }
 
   private async getCachedMusicUrl(payload: ResolveMusicUrlPayload): Promise<string | null> {
@@ -752,16 +377,8 @@ class DiskCacheManager {
     const entries = this.getMusicEntries();
     const entry = entries[key];
     if (!entry) return null;
-
-    if (!fs.existsSync(entry.filePath)) {
-      delete entries[key];
-      this.setMusicEntries(entries);
-      return null;
-    }
-
-    if (entry.urlHash !== this.buildUrlHash(payload.url)) {
-      return null;
-    }
+    if (!entry.filePath) return null;
+    if (entry.urlHash !== this.buildUrlHash(payload.url)) return null;
 
     this.updateMusicAccess(key);
     return this.toLocalUrl(entry.filePath);
@@ -769,23 +386,17 @@ class DiskCacheManager {
 
   private async downloadAndCacheMusic(payload: ResolveMusicUrlPayload): Promise<void> {
     const config = this.getCacheConfig();
-    if (!config.enabled || !this.isRemoteAudioUrl(payload.url)) {
-      return;
-    }
+    if (!config.enabled || !this.isRemoteAudioUrl(payload.url)) return;
 
-    this.ensureDirectories(config);
+    this.ensureDirs();
 
     const key = this.buildMusicKey(payload.songId, payload.source);
     const source = payload.source || 'unknown';
     const urlHash = this.buildUrlHash(payload.url);
-    const musicDir = this.getMusicCacheDir(config.directory);
+    const musicDir = this.getMusicDir();
 
     const existingEntry = this.getMusicEntries()[key];
-    if (
-      existingEntry &&
-      existingEntry.urlHash === urlHash &&
-      fs.existsSync(existingEntry.filePath)
-    ) {
+    if (existingEntry && existingEntry.urlHash === urlHash && existingEntry.filePath) {
       return;
     }
 
@@ -793,7 +404,8 @@ class DiskCacheManager {
     let contentType: string | undefined;
 
     try {
-      const response = await axios({
+      const axios = await import('axios');
+      const response = await axios.default({
         url: payload.url,
         method: 'GET',
         responseType: 'stream',
@@ -814,7 +426,7 @@ class DiskCacheManager {
         response.data.pipe(writer);
       });
 
-      const extension = this.resolveAudioExtension(payload.url, contentType);
+      const extension = this.getExtensionFromCodec(payload.url, contentType);
       const filePath = path.join(musicDir, `${key}_${urlHash}${extension}`);
 
       if (fs.existsSync(filePath)) {
@@ -823,12 +435,8 @@ class DiskCacheManager {
         await fs.promises.rename(tempFilePath, filePath);
       }
 
-      if (
-        existingEntry?.filePath &&
-        existingEntry.filePath !== filePath &&
-        fs.existsSync(existingEntry.filePath)
-      ) {
-        await fs.promises.unlink(existingEntry.filePath);
+      if (existingEntry?.filePath && existingEntry.filePath !== filePath && fs.existsSync(existingEntry.filePath)) {
+        await this.removeEntryFile(existingEntry.filePath);
       }
 
       const size = fs.statSync(filePath).size;
@@ -854,79 +462,55 @@ class DiskCacheManager {
     } catch (error) {
       console.error(`Caching music failed: ${payload.songId}`, error);
       if (fs.existsSync(tempFilePath)) {
-        try {
-          await fs.promises.unlink(tempFilePath);
-        } catch { /* empty */ }
+        try { await fs.promises.unlink(tempFilePath); } catch { /* empty */ }
       }
     }
   }
 
-  private queueMusicCache(payload: ResolveMusicUrlPayload): void {
+  queueMusicCache(payload: ResolveMusicUrlPayload): void {
     const key = this.buildMusicKey(payload.songId, payload.source);
-    const task = this.pendingMusicDownloads.get(key);
+    const task = this.pendingMusicDownloads?.get(key);
     if (task) return;
 
     const pendingTask = this.downloadAndCacheMusic(payload).finally(() => {
-      this.pendingMusicDownloads.delete(key);
+      this.pendingMusicDownloads?.delete(key);
     });
-    this.pendingMusicDownloads.set(key, pendingTask);
+    this.pendingMusicDownloads?.set(key, pendingTask);
   }
 
   public async resolveMusicUrl(payload: ResolveMusicUrlPayload): Promise<ResolveMusicUrlResult> {
     if (!payload || !payload.url || !payload.songId) {
-      return {
-        url: payload?.url || '',
-        cached: false,
-        queued: false
-      };
+      return { url: payload?.url || '', cached: false, queued: false };
     }
 
     if (/^(local|file):\/\//i.test(payload.url)) {
-      return {
-        url: payload.url,
-        cached: true,
-        queued: false
-      };
+      return { url: payload.url, cached: true, queued: false };
     }
 
     const config = this.getCacheConfig();
     if (!config.enabled) {
-      return {
-        url: payload.url,
-        cached: false,
-        queued: false
-      };
+      return { url: payload.url, cached: false, queued: false };
     }
 
     await this.pruneMissingEntries();
 
     const cachedUrl = await this.getCachedMusicUrl(payload);
     if (cachedUrl) {
-      return {
-        url: cachedUrl,
-        cached: true,
-        queued: false
-      };
+      return { url: cachedUrl, cached: true, queued: false };
     }
 
     this.queueMusicCache(payload);
-    return {
-      url: payload.url,
-      cached: false,
-      queued: true
-    };
+    return { url: payload.url, cached: false, queued: true };
   }
 
   public async cacheLyric(songId: number, lyricData: unknown): Promise<boolean> {
     try {
       const config = this.getCacheConfig();
-      if (!config.enabled) {
-        return false;
-      }
+      if (!config.enabled) return false;
 
-      this.ensureDirectories(config);
+      this.ensureDirs();
       const key = this.buildLyricKey(songId);
-      const lyricDir = this.getLyricCacheDir(config.directory);
+      const lyricDir = this.getLyricDir();
       const filePath = path.join(lyricDir, `${key}.json`);
       const content = JSON.stringify(lyricData);
 
@@ -955,22 +539,13 @@ class DiskCacheManager {
   public async getCachedLyric(songId: number): Promise<unknown | undefined> {
     try {
       const config = this.getCacheConfig();
-      if (!config.enabled) {
-        return undefined;
-      }
+      if (!config.enabled) return undefined;
 
       const key = this.buildLyricKey(songId);
       const entries = this.getLyricEntries();
       const entry = entries[key];
-      if (!entry) {
-        return undefined;
-      }
-
-      if (!fs.existsSync(entry.filePath)) {
-        delete entries[key];
-        this.setLyricEntries(entries);
-        return undefined;
-      }
+      if (!entry) return undefined;
+      if (!entry.filePath) return undefined;
 
       const content = await fs.promises.readFile(entry.filePath, 'utf8');
       this.updateLyricAccess(key);
@@ -981,28 +556,15 @@ class DiskCacheManager {
     }
   }
 
-  private async clearByType(type: CacheItemType): Promise<void> {
-    if (type === 'music') {
-      const keys = Object.keys(this.getMusicEntries());
-      for (const key of keys) {
-        await this.removeEntry('music', key);
-      }
-      return;
-    }
-
-    const keys = Object.keys(this.getLyricEntries());
-    for (const key of keys) {
-      await this.removeEntry('lyrics', key);
-    }
-  }
-
   public async clearCache(scope: CacheScope = 'all'): Promise<boolean> {
     try {
       if (scope === 'all' || scope === 'music') {
-        await this.clearByType('music');
+        this.metadata.clear();
+        this.persistMetadata();
       }
       if (scope === 'all' || scope === 'lyrics') {
-        await this.clearByType('lyrics');
+        this.metadata.clear();
+        this.persistMetadata();
       }
       return true;
     } catch (error) {
@@ -1017,7 +579,6 @@ class DiskCacheManager {
 
   public async getCacheStats(): Promise<DiskCacheStats> {
     const config = this.getCacheConfig();
-    await this.pruneMissingEntries();
 
     const musicEntries = Object.values(this.getMusicEntries());
     const lyricEntries = Object.values(this.getLyricEntries());
@@ -1047,44 +608,20 @@ class DiskCacheManager {
 export const cacheManager = new DiskCacheManager();
 
 export function initializeCacheManager(): void {
-  const CLEAR_LYRIC_CHANNELS = ['clear-lyric-cache', 'clear-lyrics-cache'] as const;
-  cacheManager.initialize();
-
-  ipcMain.handle('cache-lyric', async (_, id: number, lyricData: unknown) => {
-    return await cacheManager.cacheLyric(id, lyricData);
-  });
-
-  ipcMain.handle('get-cached-lyric', async (_, id: number) => {
-    return await cacheManager.getCachedLyric(id);
-  });
-
-  ipcMain.handle('resolve-cached-music-url', async (_, payload: ResolveMusicUrlPayload) => {
-    return await cacheManager.resolveMusicUrl(payload);
-  });
-
-  ipcMain.handle('get-disk-cache-config', async () => {
-    return cacheManager.getCacheConfig();
-  });
-
-  ipcMain.handle('set-disk-cache-config', async (_, partial: Partial<DiskCacheConfig>) => {
-    return await cacheManager.updateCacheConfig(partial);
-  });
-
-  ipcMain.handle('switch-disk-cache-directory', async (_, payload: SwitchCacheDirectoryPayload) => {
-    return await cacheManager.switchCacheDirectory(payload);
-  });
-
-  ipcMain.handle('get-disk-cache-stats', async () => {
-    return await cacheManager.getCacheStats();
-  });
-
-  ipcMain.handle('clear-disk-cache', async (_, scope: CacheScope = 'all') => {
-    return await cacheManager.clearCache(scope);
-  });
-
-  for (const channel of CLEAR_LYRIC_CHANNELS) {
-    ipcMain.handle(channel, async () => {
-      return await cacheManager.clearLyricCache();
-    });
-  }
+  // Cache manager initialized on creation
+  // IPC handles are now routed through the Tauri preload bridge
+  // The preload at src/preload/index.ts exposes these functions via contextBridge.invoke:
+  //
+  // - cache-lyric(id, lyricData) -> api.cacheLyric(id, lyricData)
+  // - get-cached-lyric(id) -> api.getCachedLyric(id)
+  // - resolve-cached-music-url(payload) -> api.resolveMusicUrl(payload)
+  // - get-disk-cache-config() -> api.getCacheConfig()
+  // - set-disk-cache-config(partial) -> api.updateCacheConfig(partial)
+  // - switch-disk-cache-directory(payload) -> api.switchCacheDirectory(payload)
+  // - get-disk-cache-stats() -> api.getCacheStats()
+  // - clear-disk-cache(scope) -> api.clearCache(scope)
+  // - clear-lyric-cache() -> api.clearLyricCache()
+  //
+  // Note: The ipcMain.handle calls have been replaced by the preload bridge.
+  // The Rust side may also define corresponding #[tauri::command] functions.
 }

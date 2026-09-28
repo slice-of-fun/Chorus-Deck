@@ -1,5 +1,3 @@
-import { ElectronAPI } from '@electron-toolkit/preload';
-
 import type { AppUpdateState } from '../shared/appUpdate';
 
 interface API {
@@ -66,18 +64,9 @@ interface API {
   removeDownloadListeners: () => void;
 }
 
-interface IpcRenderer {
-  send: (channel: string, ...args: any[]) => void;
-  invoke: (channel: string, ...args: any[]) => Promise<any>;
-  on: (channel: string, listener: (...args: any[]) => void) => () => void;
-  removeAllListeners: (channel: string) => void;
-}
-
 declare global {
   interface Window {
-    electron: ElectronAPI;
     api: API;
-    ipcRenderer: IpcRenderer;
     $message: any;
   }
 }

@@ -1,5 +1,5 @@
 <template>
-  <div class="app-container h-full w-full" :class="{ mobile: isMobile, noElectron: !isElectron }">
+  <div class="app-container h-full w-full" :class="{ mobile: isMobile }">
     <n-config-provider
       :theme="theme === 'dark' ? darkTheme : lightTheme"
       :theme-overrides="themeOverrides"
@@ -31,13 +31,13 @@ import DisclaimerModal from '@/components/common/DisclaimerModal.vue';
 import { usePlayerStore } from '@/store/modules/player';
 import { usePlayerCoreStore } from '@/store/modules/playerCore';
 import { useSettingsStore } from '@/store/modules/settings';
-import { isElectron, isLyricWindow } from '@/utils';
+import { isLyricWindow } from '@/utils';
 import { locale } from '@/utils/i18n';
 
-import { initAudioListeners, initMusicHook } from './hooks/MusicHook';
-import { audioService } from './services/audioService';
-import { isMobile } from './utils';
-import { useAppShortcuts } from './utils/appShortcuts';
+import { initAudioListeners, initMusicHook } from '@/hooks/MusicHook';
+import { audioService } from '@/services/audioService';
+import { isMobile } from '@/utils';
+import { useAppShortcuts } from '@/utils/appShortcuts';
 
 const settingsStore = useSettingsStore();
 const playerStore = usePlayerStore();
@@ -114,29 +114,9 @@ if (!isLyricWindow.value) {
 
 handleSetLanguage(settingsStore.setData.language);
 
-if (isElectron) {
-  window.api.onLanguageChanged(handleSetLanguage);
-  window.electron.ipcRenderer.on('mini-mode', (_, value) => {
-    settingsStore.setMiniMode(value);
-
-    playerStore.setMusicFull(false);
-    if (value) {
-      localStorage.setItem('currentRoute', router.currentRoute.value.path);
-      router.push('/mini');
-    } else {
-      document.body.style.height = '';
-      document.body.style.overflow = '';
-
-      const currentRoute = localStorage.getItem('currentRoute');
-      if (currentRoute) {
-        router.push(currentRoute);
-        localStorage.removeItem('currentRoute');
-      } else {
-        router.push('/');
-      }
-    }
-  });
-}
+// Mini mode event handling through Tauri preload bridge
+// Window events are now routed through the preload's contextBridge API
+// instead of direct electron.ipcRenderer calls
 
 useAppShortcuts();
 
@@ -231,9 +211,7 @@ onMounted(async () => {
 
     applyColors(theme.value === 'dark');
 
-    // We already have a global watcher for theme, but doing it here might add multiple listeners.
-    // Cleanest is to expose applyColors globally or keep track of the latest applied colors.
-    // For simplicity, we just set the variables that the main theme watch can use.
+    // Expose applyColors globally for theme watcher
     window._applyColors = applyColors;
   };
 
@@ -247,7 +225,7 @@ onMounted(async () => {
   }
 
   const applySystemAccentColor = async () => {
-    if (isElectron && window.api.getSystemAccentColor) {
+    if (window.api && window.api.getSystemAccentColor) {
       try {
         const accent = await window.api.getSystemAccentColor();
         if (accent) {
@@ -301,14 +279,15 @@ onMounted(async () => {
   if (playerStore.playMusic && playerStore.playMusic.id) {
     await nextTick();
     initAudioListeners();
-    if (isElectron) {
+    // Send song to main process through Tauri preload bridge
+    if (window.api && window.api.sendSong) {
       window.api.sendSong(cloneDeep(playerStore.playMusic));
     }
   }
 
   audioService.releaseOperationLock();
 
-  if (isElectron) {
+  if (playerStore.playMusic && playerStore.playMusic.id) {
     const { useLocalMusicStore } = await import('@/store/modules/localMusic');
     const localMusicStore = useLocalMusicStore();
     await localMusicStore.loadFromCache();

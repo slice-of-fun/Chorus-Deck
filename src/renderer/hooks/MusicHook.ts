@@ -95,7 +95,7 @@ const parseLyricsString = async (
 
   try {
     const parseResult = parseLyrics(lyricsStr);
-    console.log('parseResult', parseResult);
+    ;
 
     if (!parseResult.success) {
       console.error('Lyrics parsing failed:', parseResult.error.message);
@@ -299,8 +299,9 @@ const setupAudioListeners = () => {
           currentLrcProgress.value = Math.min(Math.max(progress, 0), 100);
         }
 
-        lyricThrottleCounter++;
-        if (isElectron && isLyricWindowOpen.value && lyricThrottleCounter % 4 === 0) {
+        let lyricLastSend = 0;
+        const now = Date.now();
+        if (isElectron && isLyricWindowOpen.value && now - lyricLastSend >= 50) {
           try {
             window.api.sendLyric(
               JSON.stringify({
@@ -310,6 +311,7 @@ const setupAudioListeners = () => {
                 isPlay: getPlayerStore().play
               })
             );
+            lyricLastSend = now;
           } catch { /* empty */ }
         }
 

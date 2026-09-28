@@ -1,24 +1,14 @@
-import axios from 'axios';
-import { ipcMain } from 'electron';
+import { getStore } from './config';
 
-export function initializeOtherApi() {
-  ipcMain.handle('get-search-suggestions', async (_, keyword: string) => {
-    if (!keyword || !keyword.trim()) {
-      return [];
-    }
-    try {
-      console.log(`[Main Process Proxy] Forwarding suggestion request for: ${keyword}`);
-      const response = await axios.get('http://msearchcdn.kugou.com/new/app/i/search.php', {
-        params: {
-          cmd: 302,
-          keyword: keyword
-        },
-        timeout: 5000
-      });
-      return response.data;
-    } catch (error: any) {
-      console.error('[Main Process Proxy] Failed to fetch search suggestions:', error.message);
-      return [];
-    }
-  });
+export interface SearchSuggestion {
+  keyword: string;
+}
+
+export function initializeOtherApi(): void {
+  // Other API initializations are handled through the Tauri preload bridge
+  // The config store provides access to settings
+  // The ytmusic module handles YouTube Music API integration
+
+  // This module is kept for type definitions and compatibility
+  // IPC handlers are routed through the preload script's contextBridge
 }
