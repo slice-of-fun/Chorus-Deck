@@ -1,0 +1,971 @@
+import { cloneDeep } from 'lodash';
+import { computed, type ComputedRef, nextTick, onUnmounted, ref, watch } from 'vue';
+
+import useIndexedDB from '@/hooks/IndexDBHook';
+import { audioService } from '@/services/audioService';
+import type { usePlayerStore } from '@/store';
+import type { Artist, ILyricText, SongResult } from '@/types/music';
+import { isElectron } from '@/utils';
+import { getTextColors } from '@/utils/linearColor';
+import { parseLyrics } from '@/utils/yrcParser';
+
+const windowData = window as any;
+
+let playerStore: ReturnType<typeof usePlayerStore> | null = null;
+
+export const initMusicHook = (store: ReturnType<typeof usePlayerStore>) => {
+  playerStore = store;
+
+  playMusic = computed(() => getPlayerStore().playMusic as SongResult);
+  artistList = computed(
+    () => (getPlayerStore().playMusic.ar || getPlayerStore().playMusic?.artists) as Artist[]
+  );
+
+  setupKeyboardListeners();
+  setupMusicWatchers();
+  setupCorrectionTimeWatcher();
+  setupPlayStateWatcher();
+};
+
+const getPlayerStore = () => {
+  if (!playerStore) {
+    throw new Error('MusicHook not initialized. Call initMusicHook first.');
+  }
+  return playerStore;
+};
+export const lrcArray = ref<ILyricText[]>([]);
+export const lrcTimeArray = ref<number[]>([]);
+export const nowTime = ref(0);
+export const allTime = ref(0);
+export const nowIndex = ref(0);
+export const currentLrcProgress = ref(0);
+export const sound = ref<HTMLAudioElement | null>(audioService.getCurrentSound());
+export const isLyricWindowOpen = ref(false);
+export const textColors = ref<any>(getTextColors());
+
+export let playMusic: ComputedRef<SongResult>;
+export let artistList: ComputedRef<Artist[]>;
+
+let lastIndex = -1;
+
+const cachedPlatform = isElectron ? window.electron.ipcRenderer.sendSync('get-platform') : 'web';
+
+export const musicDB = await useIndexedDB(
+  'musicDB',
+  [
+    { name: 'music', keyPath: 'id' },
+    { name: 'music_lyric', keyPath: 'id' },
+    { name: 'api_cache', keyPath: 'id' },
+    { name: 'music_url_cache', keyPath: 'id' },
+    { name: 'music_failed_cache', keyPath: 'id' }
+  ],
+  3
+);
+
+const handleKeyUp = (e: KeyboardEvent) => {
+  const target = e.target as HTMLElement;
+  if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+    return;
+  }
+
+  const store = getPlayerStore();
+  switch (e.code) {
+    case 'Space':
+      if (store.playMusic?.id) {
+        void store.setPlay({ ...store.playMusic });
+      }
+      break;
+    default:
+  }
+};
+
+const setupKeyboardListeners = () => {
+  document.removeEventListener('keyup', handleKeyUp);
+  document.addEventListener('keyup', handleKeyUp);
+};
+
+let audioListenersInitialized = false;
+
+const parseLyricsString = async (
+  lyricsStr: string
+): Promise<{ lrcArray: ILyricText[]; lrcTimeArray: number[]; hasWordByWord: boolean }> => {
+  if (!lyricsStr || typeof lyricsStr !== 'string') {
+    return { lrcArray: [], lrcTimeArray: [], hasWordByWord: false };
+  }
+
+  try {
+    const parseResult = parseLyrics(lyricsStr);
+    console.log('parseResult', parseResult);
+
+    if (!parseResult.success) {
+      console.error('Lyrics parsing failed:', parseResult.error.message);
+      return { lrcArray: [], lrcTimeArray: [], hasWordByWord: false };
+    }
+
+    const { lyrics } = parseResult.data;
+    const lrcArray: ILyricText[] = [];
+    const lrcTimeArray: number[] = [];
+    let hasWordByWord = false;
+
+    for (const line of lyrics) {
+      const hasWords = line.words && line.words.length > 0;
+      if (hasWords) {
+        hasWordByWord = true;
+      }
+
+      lrcArray.push({
+        text: line.fullText,
+        trText: '',
+        words: hasWords
+          ? line.words.map((word) => ({
+              ...word
+            }))
+          : undefined,
+        hasWordByWord: hasWords,
+        startTime: line.startTime,
+        duration: line.duration
+      });
+
+      lrcTimeArray.push(line.startTime / 1000);
+    }
+    return { lrcArray, lrcTimeArray, hasWordByWord };
+  } catch (error) {
+    console.error('An error occurred while parsing lyrics:', error);
+    return { lrcArray: [], lrcTimeArray: [], hasWordByWord: false };
+  }
+};
+
+const ensureLyricsLoaded = async (force = false) => {
+  const songId = playMusic.value?.id;
+  if (!songId) {
+    lrcArray.value = [];
+    lrcTimeArray.value = [];
+    nowIndex.value = 0;
+    return;
+  }
+  if (!force && lrcArray.value.length > 0) return;
+
+  await nextTick();
+
+  const lyricData = playMusic.value.lyric;
+  if (lyricData && typeof lyricData === 'string') {
+    const {
+      lrcArray: parsedLrcArray,
+      lrcTimeArray: parsedTimeArray,
+      hasWordByWord
+    } = await parseLyricsString(lyricData);
+    lrcArray.value = parsedLrcArray;
+    lrcTimeArray.value = parsedTimeArray;
+
+    if (playMusic.value.lyric && typeof playMusic.value.lyric === 'object') {
+      playMusic.value.lyric.hasWordByWord = hasWordByWord;
+    }
+  } else if (lyricData && typeof lyricData === 'object' && lyricData.lrcArray?.length > 0) {
+    const rawLrc = lyricData.lrcArray || [];
+    lrcTimeArray.value = lyricData.lrcTimeArray || [];
+
+    try {
+      const { translateLyrics } = await import('@/services/lyricTranslation');
+      lrcArray.value = await translateLyrics(rawLrc as any);
+    } catch (e) {
+      console.error('Failed to translate lyrics, use original lyrics:', e);
+      lrcArray.value = rawLrc as any;
+    }
+  } else if (isElectron && playMusic.value.playMusicUrl?.startsWith('local://')) {
+    try {
+      let filePath = decodeURIComponent(playMusic.value.playMusicUrl.replace('local://', ''));
+
+      if (/^\/[a-zA-Z]:\//.test(filePath)) {
+        filePath = filePath.slice(1);
+      }
+      const embeddedLyrics = await window.api.getEmbeddedLyrics(filePath);
+      if (embeddedLyrics) {
+        const {
+          lrcArray: parsedLrcArray,
+          lrcTimeArray: parsedTimeArray,
+          hasWordByWord
+        } = await parseLyricsString(embeddedLyrics);
+        lrcArray.value = parsedLrcArray;
+        lrcTimeArray.value = parsedTimeArray;
+        if (playMusic.value.lyric && typeof playMusic.value.lyric === 'object') {
+          (playMusic.value.lyric as any).hasWordByWord = hasWordByWord;
+        }
+      }
+    } catch (err) {
+      console.error('Failed to extract embedded lyrics:', err);
+    }
+  }
+
+  if (isElectron && isLyricWindowOpen.value) {
+    sendLyricToWin();
+    setTimeout(() => sendLyricToWin(), 500);
+  }
+};
+
+const setupMusicWatchers = () => {
+  const store = getPlayerStore();
+
+  watch(
+    () => store.playMusic.id,
+    async (newId, oldId) => {
+      if (newId !== oldId) nowIndex.value = 0;
+      await ensureLyricsLoaded(true);
+      sendDiscordPresence();
+    },
+    { immediate: true }
+  );
+
+  watch(
+    () => playMusic.value?.lyric,
+    (newLyric) => {
+      if (!playMusic.value?.id) return;
+
+      const isRichLyric =
+        !!newLyric && typeof newLyric === 'object' && (newLyric.lrcArray?.length ?? 0) > 0;
+      if (lrcArray.value.length === 0 || isRichLyric) {
+        ensureLyricsLoaded(isRichLyric);
+      }
+    }
+  );
+};
+
+const setupAudioListeners = () => {
+  if (audioListenersInitialized) {
+    return () => {};
+  }
+  audioListenersInitialized = true;
+
+  let interval: number | null = null;
+
+  let recoveryTimer: number | null = null;
+  let lyricThrottleCounter = 0;
+  let lastSavedProgress = 0;
+
+  const clearInterval = () => {
+    if (interval) {
+      window.clearInterval(interval);
+      interval = null;
+    }
+  };
+
+  const stopRecovery = () => {
+    if (recoveryTimer) {
+      window.clearInterval(recoveryTimer);
+      recoveryTimer = null;
+    }
+  };
+
+  const startProgressInterval = () => {
+    clearInterval();
+    interval = window.setInterval(() => {
+      try {
+        const currentSound = audioService.getCurrentSound();
+        if (!currentSound) {
+          return;
+        }
+
+        const currentTime = currentSound.currentTime;
+        if (typeof currentTime !== 'number' || Number.isNaN(currentTime)) {
+          return;
+        }
+
+        if (sound.value !== currentSound) {
+          sound.value = currentSound;
+        }
+
+        nowTime.value = currentTime;
+        allTime.value = currentSound.duration;
+
+        const newIndex = getLrcIndex(nowTime.value);
+        if (newIndex !== nowIndex.value) {
+          nowIndex.value = newIndex;
+          currentLrcProgress.value = 0;
+          if (isElectron && isLyricWindowOpen.value) {
+            sendLyricToWin();
+          }
+        }
+        if (isElectron && lrcArray.value[nowIndex.value]) {
+          if (lastIndex !== nowIndex.value) {
+            sendTrayLyric(nowIndex.value);
+            lastIndex = nowIndex.value;
+          }
+        }
+
+        const { start, end } = currentLrcTiming.value;
+        if (typeof start === 'number' && typeof end === 'number' && start !== end) {
+          const elapsed = currentTime - start;
+          const duration = end - start;
+          const progress = (elapsed / duration) * 100;
+          currentLrcProgress.value = Math.min(Math.max(progress, 0), 100);
+        }
+
+        lyricThrottleCounter++;
+        if (isElectron && isLyricWindowOpen.value && lyricThrottleCounter % 4 === 0) {
+          try {
+            window.api.sendLyric(
+              JSON.stringify({
+                type: 'update',
+                nowIndex: nowIndex.value,
+                nowTime: nowTime.value,
+                isPlay: getPlayerStore().play
+              })
+            );
+          } catch { /* empty */ }
+        }
+
+        if (
+          Math.floor(currentTime) % 2 === 0 &&
+          Math.floor(currentTime) !== Math.floor(lastSavedProgress)
+        ) {
+          lastSavedProgress = currentTime;
+          if (getPlayerStore().playMusic?.id) {
+            localStorage.setItem(
+              'playProgress',
+              JSON.stringify({
+                songId: getPlayerStore().playMusic.id,
+                progress: currentTime
+              })
+            );
+          }
+        }
+
+        if (isElectron && lyricThrottleCounter % 20 === 0) {
+          try {
+            window.electron.ipcRenderer.send('mpris-position-update', currentTime);
+          } catch { /* empty */ }
+        }
+      } catch (error) {
+        console.error('progress update interval Error:', error);
+      }
+    }, 50);
+  };
+
+  const startRecoveryMonitor = () => {
+    stopRecovery();
+    recoveryTimer = window.setInterval(() => {
+      try {
+        const store = getPlayerStore();
+        if (store.play && !interval) {
+          const currentSound = audioService.getCurrentSound();
+          if (currentSound && !currentSound.paused) {
+            console.warn('[MusicHook] Playing detected but interval Lost, automatically restored');
+            startProgressInterval();
+          }
+        }
+      } catch { /* empty */ }
+    }, 500);
+  };
+
+  startRecoveryMonitor();
+
+  audioService.on('seek_start', (time) => {
+    nowTime.value = time;
+  });
+
+  audioService.on('seek', () => {
+    try {
+      const currentSound = audioService.getCurrentSound();
+      if (currentSound) {
+        const currentTime = currentSound.currentTime;
+        if (typeof currentTime === 'number' && !Number.isNaN(currentTime)) {
+          nowTime.value = currentTime;
+
+          if (isElectron) {
+            window.electron.ipcRenderer.send('mpris-position-update', currentTime);
+          }
+
+          const newIndex = getLrcIndex(nowTime.value);
+          if (newIndex !== nowIndex.value) {
+            nowIndex.value = newIndex;
+            if (isElectron && isLyricWindowOpen.value) {
+              sendLyricToWin();
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('deal withseekEvent error:', error);
+    }
+  });
+
+  const updateCurrentTimeAndDuration = () => {
+    const currentSound = audioService.getCurrentSound();
+    if (currentSound) {
+      try {
+        const currentTime = currentSound.currentTime;
+        if (typeof currentTime === 'number' && !Number.isNaN(currentTime)) {
+          nowTime.value = currentTime;
+          allTime.value = currentSound.duration;
+        }
+      } catch (error) {
+        console.error('Initialization time and progress failed:', error);
+      }
+    }
+  };
+
+  updateCurrentTimeAndDuration();
+
+  audioService.on('play', () => {
+    getPlayerStore().setPlayMusic(true);
+    if (isElectron) {
+      window.api.sendSong(cloneDeep(getPlayerStore().playMusic));
+    }
+
+    if (lrcArray.value.length === 0 && playMusic.value?.id) {
+      ensureLyricsLoaded();
+    }
+    startProgressInterval();
+  });
+
+  audioService.on('pause', () => {
+    console.log('Audio pause event triggered');
+    getPlayerStore().setPlayMusic(false);
+    clearInterval();
+    if (isElectron && isLyricWindowOpen.value) {
+      sendLyricToWin();
+    }
+  });
+
+  const replayMusic = async (retryCount = 0) => {
+    const MAX_REPLAY_RETRIES = 3;
+    try {
+      if (getPlayerStore().playMusicUrl && playMusic.value) {
+        await audioService.play(getPlayerStore().playMusicUrl, playMusic.value);
+        sound.value = audioService.getCurrentSound();
+        setupAudioListeners();
+      } else {
+        console.error('Single loop: None available URL or song data');
+        const { usePlaylistStore } = await import('@/store/modules/playlist');
+        usePlaylistStore().nextPlayOnEnd();
+      }
+    } catch (error) {
+      console.error('Single loop replay failed:', error);
+      if (retryCount < MAX_REPLAY_RETRIES) {
+        setTimeout(() => replayMusic(retryCount + 1), 1000 * (retryCount + 1));
+      } else {
+        const { usePlaylistStore } = await import('@/store/modules/playlist');
+        usePlaylistStore().nextPlayOnEnd();
+      }
+    }
+  };
+
+  audioService.on('end', async () => {
+    console.log('Audio playback end event triggered');
+    clearInterval();
+
+    if (getPlayerStore().playMode === 1) {
+      replayMusic();
+      return;
+    }
+
+    const { usePlaylistStore } = await import('@/store/modules/playlist');
+    usePlaylistStore().nextPlayOnEnd();
+  });
+
+  audioService.on('previoustrack', () => {
+    getPlayerStore().prevPlay();
+  });
+
+  audioService.on('nexttrack', () => {
+    getPlayerStore().nextPlay();
+  });
+
+  return () => {
+    clearInterval();
+    stopRecovery();
+  };
+};
+
+export const play = () => {
+  const currentSound = audioService.getCurrentSound();
+  if (currentSound) {
+    currentSound.play();
+  }
+};
+
+export const pause = () => {
+  const currentSound = audioService.getCurrentSound();
+  if (currentSound) {
+    try {
+      const currentTime = currentSound.currentTime;
+      if (getPlayerStore().playMusic && getPlayerStore().playMusic.id) {
+        localStorage.setItem(
+          'playProgress',
+          JSON.stringify({
+            songId: getPlayerStore().playMusic.id,
+            progress: currentTime
+          })
+        );
+      }
+
+      audioService.pause();
+    } catch (error) {
+      console.error('Pause playback error:', error);
+    }
+  }
+};
+
+const CORRECTION_KEY = 'lyric-correction-map';
+const correctionTimeMap = ref<Record<string, number>>({});
+
+const loadCorrectionMap = () => {
+  try {
+    const raw = localStorage.getItem(CORRECTION_KEY);
+    correctionTimeMap.value = raw ? JSON.parse(raw) : {};
+  } catch {
+    correctionTimeMap.value = {};
+  }
+};
+const saveCorrectionMap = () => {
+  localStorage.setItem(CORRECTION_KEY, JSON.stringify(correctionTimeMap.value));
+};
+
+loadCorrectionMap();
+
+export const correctionTime = ref(0);
+
+const setupCorrectionTimeWatcher = () => {
+  watch(
+    () => playMusic.value?.id,
+    (id) => {
+      if (!id) return;
+      correctionTime.value = correctionTimeMap.value[id] ?? 0;
+    },
+    { immediate: true }
+  );
+};
+
+export const adjustCorrectionTime = (delta: number) => {
+  const id = playMusic.value?.id;
+  if (!id) return;
+  const newVal = Math.max(-10, Math.min(10, (correctionTime.value ?? 0) + delta));
+  correctionTime.value = newVal;
+  correctionTimeMap.value[id] = newVal;
+  saveCorrectionMap();
+};
+
+export const isCurrentLrc = (index: number, time: number): boolean => {
+  const currentTime = lrcTimeArray.value[index];
+
+  if (index === lrcTimeArray.value.length - 1) {
+    const correctedTime = time + correctionTime.value;
+    return correctedTime >= currentTime;
+  }
+
+  const nextTime = lrcTimeArray.value[index + 1];
+  const correctedTime = time + correctionTime.value;
+  return correctedTime >= currentTime && correctedTime < nextTime;
+};
+
+export const getLrcIndex = (time: number): number => {
+  const correctedTime = time + correctionTime.value;
+
+  if (lrcTimeArray.value.length === 0) {
+    return nowIndex.value;
+  }
+
+  const lastIndex = lrcTimeArray.value.length - 1;
+  if (correctedTime >= lrcTimeArray.value[lastIndex]) {
+    nowIndex.value = lastIndex;
+    return lastIndex;
+  }
+
+  for (let i = 0; i < lrcTimeArray.value.length - 1; i++) {
+    const currentTime = lrcTimeArray.value[i];
+    const nextTime = lrcTimeArray.value[i + 1];
+
+    if (correctedTime >= currentTime && correctedTime < nextTime) {
+      nowIndex.value = i;
+      return i;
+    }
+  }
+
+  return nowIndex.value;
+};
+
+const currentLrcTiming = computed(() => {
+  const start = lrcTimeArray.value[nowIndex.value] || 0;
+  const end = lrcTimeArray.value[nowIndex.value + 1] || start + 1;
+  return { start, end };
+});
+
+export const getLrcStyle = (index: number) => {
+  const currentTime = nowTime.value + correctionTime.value;
+  const start = lrcTimeArray.value[index];
+  const end = lrcTimeArray.value[index + 1] ?? start + 1;
+
+  if (currentTime >= start && currentTime < end) {
+    const progress = ((currentTime - start) / (end - start)) * 100;
+    return {
+      backgroundImage: `linear-gradient(to right, #ffffff ${progress}%, #ffffff8a ${progress}%)`,
+      backgroundClip: 'text',
+      WebkitBackgroundClip: 'text',
+      color: 'transparent',
+      transition: 'background-image 0.1s linear'
+    };
+  }
+
+  return {};
+};
+
+export const useLyricProgress = () => {
+  return {
+    getLrcStyle
+  };
+};
+
+export const setAudioTime = (index: number) => {
+  const currentSound = sound.value;
+  if (!currentSound) return;
+
+  audioService.seek(lrcTimeArray.value[index]);
+  currentSound.play();
+};
+
+export const getCurrentLrc = () => {
+  const index = getLrcIndex(nowTime.value);
+  return {
+    currentLrc: lrcArray.value[index],
+    nextLrc: lrcArray.value[index + 1]
+  };
+};
+
+export const getLrcTimeRange = (index: number) => ({
+  currentTime: lrcTimeArray.value[index],
+  nextTime: lrcTimeArray.value[index + 1]
+});
+
+watch(
+  () => lrcArray.value,
+  (newLrcArray) => {
+    if (newLrcArray.length > 0 && isElectron && isLyricWindowOpen.value) {
+      sendLyricToWin();
+    }
+  }
+);
+
+export const sendLyricToWin = () => {
+  if (!isElectron || !isLyricWindowOpen.value) {
+    return;
+  }
+
+  if (!playMusic.value || !playMusic.value.id) {
+    return;
+  }
+
+  try {
+    if (lrcArray.value && lrcArray.value.length > 0) {
+      const nowIndex = getLrcIndex(nowTime.value);
+
+      const updateData = {
+        type: 'full',
+        nowIndex,
+        nowTime: nowTime.value,
+        startCurrentTime: lrcTimeArray.value[nowIndex] || 0,
+        nextTime: lrcTimeArray.value[nowIndex + 1] || 0,
+        isPlay: getPlayerStore().play,
+        lrcArray: lrcArray.value,
+        lrcTimeArray: lrcTimeArray.value,
+        allTime: allTime.value,
+        playMusic: playMusic.value
+      };
+
+      window.api.sendLyric(JSON.stringify(updateData));
+    } else {
+      console.log('No lyric data available, sending empty lyric message');
+
+      const emptyLyricData = {
+        type: 'empty',
+        nowIndex: 0,
+        nowTime: nowTime.value,
+        startCurrentTime: 0,
+        nextTime: 0,
+        isPlay: getPlayerStore().play,
+        lrcArray: [{ text: 'The current song has no lyrics yet', trText: '' }],
+        lrcTimeArray: [0],
+        allTime: allTime.value,
+        playMusic: playMusic.value
+      };
+      window.api.sendLyric(JSON.stringify(emptyLyricData));
+    }
+  } catch (error) {
+    console.error('Error sending lyric update:', error);
+  }
+};
+
+const sendTrayLyric = (index: number) => {
+  if (!isElectron || cachedPlatform !== 'linux') return;
+
+  try {
+    const lyric = lrcArray.value[index];
+    if (!lyric) return;
+
+    const currentTime = lrcTimeArray.value[index] || 0;
+    const nextTime = lrcTimeArray.value[index + 1] || currentTime + 3;
+    const duration = nextTime - currentTime;
+
+    const lrcObj = JSON.stringify({
+      content: lyric.text || '',
+      time: duration.toFixed(1),
+      sender: 'ChorusDeck'
+    });
+
+    window.electron.ipcRenderer.send('tray-lyric-update', lrcObj);
+  } catch (error) {
+    console.error('[TrayLyric] Failed to send:', error);
+  }
+};
+
+let lyricSyncInterval: any = null;
+
+const startLyricSync = () => {
+  if (lyricSyncInterval) {
+    clearInterval(lyricSyncInterval);
+  }
+
+  lyricSyncInterval = setInterval(() => {
+    if (isElectron && isLyricWindowOpen.value && getPlayerStore().play && playMusic.value?.id) {
+      try {
+        const updateData = {
+          type: 'update',
+          nowIndex: getLrcIndex(nowTime.value),
+          nowTime: nowTime.value,
+          isPlay: getPlayerStore().play
+        };
+        window.api.sendLyric(JSON.stringify(updateData));
+      } catch (error) {
+        console.error('Failed to send lyrics progress update:', error);
+      }
+    }
+  }, 1000);
+};
+
+const stopLyricSync = () => {
+  if (lyricSyncInterval) {
+    clearInterval(lyricSyncInterval);
+    lyricSyncInterval = null;
+  }
+};
+
+export const openLyric = async () => {
+  if (!isElectron) return;
+
+  if (!playMusic.value || !playMusic.value.id) {
+    console.log('There is no song playing and the lyrics window cannot be opened');
+    return;
+  }
+
+  isLyricWindowOpen.value = !isLyricWindowOpen.value;
+  if (isLyricWindowOpen.value) {
+    window.api.openLyric();
+
+    if (!lrcArray.value || lrcArray.value.length === 0) {
+      const emptyLyricData = {
+        type: 'empty',
+        nowIndex: 0,
+        nowTime: nowTime.value,
+        startCurrentTime: 0,
+        nextTime: 0,
+        isPlay: getPlayerStore().play,
+        lrcArray: [{ text: 'Loading lyrics...', trText: '' }],
+        lrcTimeArray: [0],
+        allTime: allTime.value,
+        playMusic: playMusic.value
+      };
+      window.api.sendLyric(JSON.stringify(emptyLyricData));
+
+      await ensureLyricsLoaded(true);
+    } else {
+      sendLyricToWin();
+    }
+
+    setTimeout(() => {
+      if (isLyricWindowOpen.value) {
+        sendLyricToWin();
+      }
+    }, 500);
+
+    startLyricSync();
+  } else {
+    closeLyric();
+
+    stopLyricSync();
+  }
+};
+
+export const closeLyric = () => {
+  if (!isElectron) return;
+  isLyricWindowOpen.value = false;
+  windowData.electron.ipcRenderer.send('close-lyric');
+
+  stopLyricSync();
+};
+
+const sendDiscordPresence = () => {
+  if (!isElectron) return;
+  const store = getPlayerStore();
+  const music = store.playMusic;
+  if (!music || !music.id) return;
+
+  const isPlaying = store.play;
+  const artistName = music.ar?.map(a => a.name).join(', ') || 'Unknown Artist';
+  const title = music.name || 'Unknown Title';
+  const albumName = music.al?.name || '';
+  const albumArt = music.al?.picUrl || 'chorus_logo';
+  const songId = music.id || '';
+  const artistId = music.ar?.[0]?.id || '';
+  const albumId = music.al?.id || '';
+  
+  try {
+    const currentSound = audioService.getCurrentSound();
+    let currentPlaybackTimeMillis = 0;
+    let duration = 0;
+    if (currentSound) {
+      currentPlaybackTimeMillis = (currentSound.currentTime || 0) * 1000;
+      duration = (currentSound.duration || 0) * 1000;
+    }
+    
+    windowData.electron.ipcRenderer.send('update-discord-presence', {
+      title,
+      artist: artistName,
+      album: albumName,
+      albumArt,
+      songId,
+      artistId,
+      albumId,
+      duration,
+      isPlaying,
+      startTimestamp: isPlaying ? Date.now() - currentPlaybackTimeMillis : undefined
+    });
+  } catch (err) {
+    console.error('Failed to send discord presence', err);
+  }
+};
+
+const setupPlayStateWatcher = () => {
+  watch(
+    () => getPlayerStore().play,
+    (isPlaying) => {
+      sendDiscordPresence();
+      if (isElectron && isLyricWindowOpen.value) {
+        if (isPlaying) {
+          startLyricSync();
+        } else {
+          const pauseData = {
+            type: 'update',
+            isPlay: false
+          };
+          window.api.sendLyric(JSON.stringify(pauseData));
+        }
+      }
+    }
+  );
+};
+
+onUnmounted(() => {
+  stopLyricSync();
+});
+
+export { parseLyricsString };
+
+if (isElectron) {
+  windowData.electron.ipcRenderer.on('lyric-control-back', (_, command: string) => {
+    switch (command) {
+      case 'playpause':
+        if (getPlayerStore().playMusic?.id) {
+          void getPlayerStore().setPlay({ ...getPlayerStore().playMusic });
+        }
+        break;
+      case 'prev':
+        getPlayerStore().prevPlay();
+        break;
+      case 'next':
+        getPlayerStore().nextPlay();
+        break;
+      case 'close':
+        isLyricWindowOpen.value = false;
+        break;
+      default:
+        console.log('Unknown command:', command);
+        break;
+    }
+  });
+}
+
+export const initAudioListeners = async () => {
+  try {
+    if (!getPlayerStore().playMusic || !getPlayerStore().playMusic.id) {
+      console.log('No music playing, skipping audio listener initialization');
+      return;
+    }
+
+    const initialSound = audioService.getCurrentSound();
+    if (!initialSound) {
+      console.log('No audio instance, waiting for audio to load...');
+
+      await new Promise<void>((resolve) => {
+        const checkInterval = setInterval(() => {
+          const sound = audioService.getCurrentSound();
+          if (sound) {
+            clearInterval(checkInterval);
+            resolve();
+          }
+        }, 100);
+
+        setTimeout(() => {
+          clearInterval(checkInterval);
+          console.log('Timeout waiting for audio to load');
+          resolve();
+        }, 5000);
+      });
+    }
+
+    setupAudioListeners();
+
+    if (isElectron) {
+      window.api.onLyricWindowClosed(() => {
+        isLyricWindowOpen.value = false;
+      });
+      window.api.onLyricWindowReady(async () => {
+        if (!isLyricWindowOpen.value) return;
+
+        if (lrcArray.value.length === 0 && playMusic.value?.id) {
+          await ensureLyricsLoaded(true);
+        }
+        sendLyricToWin();
+      });
+    }
+
+    const finalSound = audioService.getCurrentSound();
+    if (finalSound) {
+      sound.value = finalSound;
+    } else {
+      console.warn('Unable to obtain audio instance, skipping progress update initialization');
+    }
+  } catch (error) {
+    console.error('Failed to initialize audio listener:', error);
+  }
+};
+
+const handleAudioReady = ((event: CustomEvent) => {
+  try {
+    const { sound: newSound } = event.detail;
+    if (newSound) {
+      sound.value = audioService.getCurrentSound();
+      setupAudioListeners();
+
+      const currentSound = audioService.getCurrentSound();
+      if (currentSound) {
+        const currentPosition = currentSound.currentTime;
+        if (typeof currentPosition === 'number' && !Number.isNaN(currentPosition)) {
+          nowTime.value = currentPosition;
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error handling audio ready event:', error);
+  }
+}) as EventListener;
+
+window.removeEventListener('audio-ready', handleAudioReady);
+window.addEventListener('audio-ready', handleAudioReady);
