@@ -35,7 +35,6 @@ const layoutRouter: RouteRecordRaw[] = [
     component: () => import('@/views/toplist/index.vue')
   },
 
-
   {
     path: '/history',
     name: 'history',

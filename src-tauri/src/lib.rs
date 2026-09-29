@@ -5,6 +5,7 @@ pub mod downloads;
 pub mod smtc;
 
 use commands::AppState;
+use commands::audio::AudioState;
 use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -26,6 +27,26 @@ pub fn run() {
             let state = AppState::new(&handle)
                 .map_err(|e| format!("failed to initialise application state: {e}"))?;
             app.manage(state);
+            app.manage(AudioState(std::sync::Mutex::new(None)));
+
+            let progress_handle = handle.clone();
+            std::thread::spawn(move || {
+                use tauri::Emitter;
+                loop {
+                    std::thread::sleep(std::time::Duration::from_millis(200));
+                    {
+                        let state = progress_handle.state::<AudioState>();
+                        if let Ok(guard) = state.0.lock() {
+                            if let Some(player) = guard.as_ref() {
+                                if !player.sink.is_paused() && !player.sink.empty() {
+                                    let pos = player.sink.get_pos().as_secs_f32();
+                                    let _ = progress_handle.emit("playback-progress", pos);
+                                }
+                            }
+                        };
+                    }
+                }
+            });
 
             smtc::windows_smtc::init_smtc(&handle);
 
@@ -134,6 +155,10 @@ pub fn run() {
             commands::db::remove_track_from_playlist,
             commands::db::get_tracks_in_playlist,
             commands::db::get_all_playlists,
+            commands::db::save_local_music,
+            commands::db::get_all_local_music,
+            commands::db::delete_local_music,
+            commands::db::clear_local_music,
             commands::media::get_downloads_path,
             commands::media::download_get_queue,
             commands::media::download_get_completed,
@@ -159,24 +184,27 @@ pub fn run() {
             commands::system::change_language,
             commands::system::get_system_accent_color,
             commands::system::get_system_fonts,
-            commands::system::update_discord_presence,
-            commands::system::clear_discord_presence,
-            commands::system::discord_logout,
             commands::integrations::app_update_get_state,
             commands::integrations::app_update_check,
             commands::integrations::app_update_download,
             commands::integrations::app_update_quit_and_install,
             commands::integrations::app_update_open_release_page,
-            commands::integrations::ytm_home,
-            commands::integrations::ytm_charts,
-            commands::integrations::ytm_search,
-            commands::integrations::ytm_suggestions,
-            commands::integrations::ytm_moods,
-            commands::integrations::ytm_player,
-            commands::integrations::ytm_playlist,
-            commands::integrations::ytm_artist,
-            commands::integrations::ytm_search_keyword,
-            commands::integrations::ytm_hot_search,
+            commands::integrations::ytm_request,
+            commands::discord::update_discord_presence,
+            commands::discord::clear_discord_presence,
+            commands::discord::discord_logout,
+            commands::discord::discord_webview_login,
+            commands::audio::audio_play,
+            commands::audio::audio_pause,
+            commands::audio::audio_resume,
+            commands::audio::audio_stop,
+            commands::audio::audio_set_volume,
+            commands::audio::audio_seek,
+            commands::audio::audio_get_time,
+            commands::audio::audio_get_duration,
+            commands::audio::audio_set_eq_bypass,
+            commands::audio::audio_set_eq_band,
+            commands::audio::audio_clear_cache,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Chorus Deck");

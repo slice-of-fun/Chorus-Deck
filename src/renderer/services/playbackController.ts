@@ -75,7 +75,7 @@ const loadAndPlayAudio = async (song: SongResult, shouldPlay: boolean): Promise<
 
   window.dispatchEvent(
     new CustomEvent('audio-ready', {
-      detail: { sound: audioService.getCurrentSound(), shouldPlay }
+      detail: { shouldPlay }
     })
   );
 
@@ -95,7 +95,10 @@ const triggerPreload = async (song: SongResult): Promise<void> => {
       }
     }
   } catch (e) {
-    console.warn('Preloading trigger failed (maybe dependency not loaded or circular dependency), ignored:', e);
+    console.warn(
+      'Preloading trigger failed (maybe dependency not loaded or circular dependency), ignored:',
+      e
+    );
   }
 };
 
@@ -164,7 +167,7 @@ export const playTrack = async (
 
   try {
     const playHistoryStore = await getPlayHistoryStore();
-      playHistoryStore.addMusic(music);
+    playHistoryStore.addMusic(music);
   } catch (e) {
     console.warn('[playbackController] Failed to add playback history:', e);
   }
@@ -174,7 +177,9 @@ export const playTrack = async (
     const updatedPlayMusic = await getSongDetail(originalMusic, requestId);
 
     if (gen !== generation) {
-      console.log(`[playbackController] gen=${gen} Expired (after obtaining details), currently gen=${generation}`);
+      console.log(
+        `[playbackController] gen=${gen} Expired (after obtaining details), currently gen=${generation}`
+      );
       return false;
     }
 
@@ -198,7 +203,9 @@ export const playTrack = async (
     const success = await loadAndPlayAudio(playerCore.playMusic, shouldPlay);
 
     if (gen !== generation) {
-      console.log(`[playbackController] gen=${gen} Expired (after playing audio), currently gen=${generation}`);
+      console.log(
+        `[playbackController] gen=${gen} Expired (after playing audio), currently gen=${generation}`
+      );
       audioService.stop();
       return false;
     }
@@ -258,17 +265,24 @@ export const setupUrlExpiredHandler = (): void => {
   audioService.on('url_expired', async (expiredTrack: SongResult) => {
     if (!expiredTrack) return;
 
-    console.log('[playbackController] detectedURLExpired events, ready to be reacquiredURL', expiredTrack.name);
+    console.log(
+      '[playbackController] detectedURLExpired events, ready to be reacquiredURL',
+      expiredTrack.name
+    );
 
     const playerCore = await getPlayerCoreStore();
 
     if (!playerCore.userPlayIntent && !playerCore.play) {
-      console.log('[playbackController] The user has no intention to play and skipsURLExpiration processing');
+      console.log(
+        '[playbackController] The user has no intention to play and skipsURLExpiration processing'
+      );
       return;
     }
 
     if (playerCore.playMusic?.id !== expiredTrack.id) {
-      console.log('[playbackController] The current song has been changed and skippedURLExpiration processing');
+      console.log(
+        '[playbackController] The current song has been changed and skippedURLExpiration processing'
+      );
       return;
     }
 
@@ -279,9 +293,10 @@ export const setupUrlExpiredHandler = (): void => {
       urlExpiredRetryCount = 1;
     }
 
-
     if (urlExpiredRetryCount > MAX_URL_EXPIRED_RETRIES) {
-      console.warn(`[playbackController] ${expiredTrack.name} Recovery retry failed, switch to next song`);
+      console.warn(
+        `[playbackController] ${expiredTrack.name} Recovery retry failed, switch to next song`
+      );
       resetUrlExpiredRetry();
       try {
         const playlistStore = await getPlaylistStore();
@@ -297,18 +312,17 @@ export const setupUrlExpiredHandler = (): void => {
       return;
     }
 
-    const currentSound = audioService.getCurrentSound();
     let seekPosition = 0;
-    if (currentSound) {
-      try {
-        seekPosition = currentSound.currentTime;
-        const duration = currentSound.duration;
-        if (duration > 0 && seekPosition > 0 && duration - seekPosition < 5) {
-          console.log('[playbackController] The song is nearing the end, skipURLExpiration processing');
-          return;
-        }
-      } catch { /* empty */ }
-    }
+    try {
+      seekPosition = await window.api.audioGetTime();
+      const duration = audioService.getDuration();
+      if (duration > 0 && seekPosition > 0 && duration - seekPosition < 5) {
+        console.log(
+          '[playbackController] The song is nearing the end, skipURLExpiration processing'
+        );
+        return;
+      }
+    } catch {}
 
     try {
       const trackToPlay: SongResult = {
@@ -372,7 +386,8 @@ export const setupYTMusicPlayHandler = (): void => {
   window.addEventListener('ytm:play', handler as EventListener);
 };
 
-export const initializePlayState = async (): Promise<void> => {  const playerCore = await getPlayerCoreStore();
+export const initializePlayState = async (): Promise<void> => {
+  const playerCore = await getPlayerCoreStore();
   const settingsStore = await getSettingsStore();
 
   if (!playerCore.playMusic || Object.keys(playerCore.playMusic).length === 0) {

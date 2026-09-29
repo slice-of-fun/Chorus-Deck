@@ -20,14 +20,14 @@ export interface LyricLine {
 
 export interface MetaData {
   readonly time?: number;
-
+  readonly key?: string;
   readonly content: string;
 }
 
 export interface ParsedLyrics {
   readonly metadata: readonly MetaData[];
-
   readonly lyrics: readonly LyricLine[];
+  readonly offset: number;
 }
 
 export class LyricParseError extends Error {
@@ -45,8 +45,9 @@ export type ParseResult<T> =
 
 const METADATA_PATTERN = /^\{("t":|"c":)/;
 const LINE_TIME_PATTERN = /^\[(\d+),(\d+)\](.+)$/;
-const LRC_TIME_PATTERN = /^\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)$/;
-const WORD_PATTERN = /\((\d+),(\d+),\d+\)([^(]*?)(?=\(|$)/g;
+const LRC_TIME_PATTERN = /^\[(\d{2,}):(\d{2})(?:\.(\d{2,3}))?\](.*)$/;
+const LRC_META_PATTERN = /^\[(ti|ar|al|by|offset|length|re|ve):(.*)\]$/i;
+const WORD_PATTERN = /\((\d+),(\d+)(?:,\d+)?\)([^(]*?)(?=\(|$)/g;
 
 export const formatTime = (ms: number): string => {
   const minutes = Math.floor(ms / 60000);
@@ -108,13 +109,16 @@ const parseLrcLine = (line: string): ParseResult<LyricLine> => {
   if (!lrcMatch) {
     return {
       success: false,
-      error: new LyricParseError('LRCInvalid lyric line format: Unable to match time information', line)
+      error: new LyricParseError(
+        'LRCInvalid lyric line format: Unable to match time information',
+        line
+      )
     };
   }
 
   const minutes = parseInt(lrcMatch[1], 10);
   const seconds = parseInt(lrcMatch[2], 10);
-  const milliseconds = parseInt(lrcMatch[3].padEnd(3, '0'), 10);
+  const milliseconds = lrcMatch[3] ? parseInt(lrcMatch[3].padEnd(3, '0'), 10) : 0;
   const text = lrcMatch[4].trim();
 
   if (
@@ -150,7 +154,10 @@ const parseWordByWordLine = (line: string): ParseResult<LyricLine> => {
   if (!lineTimeMatch) {
     return {
       success: false,
-      error: new LyricParseError('Invalid verbatim lyric line format: Unable to match time information', line)
+      error: new LyricParseError(
+        'Invalid verbatim lyric line format: Unable to match time information',
+        line
+      )
     };
   }
 
@@ -305,19 +312,30 @@ export const parseLyrics = (lyricsStr: string): ParseResult<ParsedLyrics> => {
     const metadata: MetaData[] = [];
     const lyrics: LyricLine[] = [];
     const errors: LyricParseError[] = [];
+    let offset = 0;
 
     for (let i = 0; i < lines.length; i++) {
       const trimmedLine = lines[i].trim();
       if (!trimmedLine) continue;
 
-      if (METADATA_PATTERN.test(trimmedLine)) {
+      if (LRC_META_PATTERN.test(trimmedLine)) {
+        const match = trimmedLine.match(LRC_META_PATTERN);
+        if (match) {
+          const key = match[1].toLowerCase();
+          const value = match[2].trim();
+          if (key === 'offset') {
+            offset = parseInt(value, 10) || 0;
+          }
+          metadata.push({ key, content: value });
+        }
+      } else if (METADATA_PATTERN.test(trimmedLine)) {
         const result = parseMetadata(trimmedLine);
         if (result.success) {
           metadata.push(result.data);
         } else {
           errors.push(result.error);
         }
-      } else if (trimmedLine.startsWith('[')) {
+      } else if (LINE_TIME_PATTERN.test(trimmedLine) || LRC_TIME_PATTERN.test(trimmedLine)) {
         const result = parseLyricLine(trimmedLine);
         if (result.success) {
           lyrics.push(result.data);
@@ -350,13 +368,22 @@ export const parseLyrics = (lyricsStr: string): ParseResult<ParsedLyrics> => {
       return a.startTime - b.startTime;
     });
 
-    const finalLyrics = calculateLrcDurations(lyrics);
+    const finalLyrics = calculateLrcDurations(lyrics).map(line => {
+      if (line.startTime === -1) return line;
+      let newStartTime = Math.max(0, line.startTime - offset);
+      let newWords = line.words.map(w => ({
+        ...w,
+        startTime: Math.max(0, w.startTime - offset)
+      }));
+      return { ...line, startTime: newStartTime, words: newWords };
+    });
 
     return {
       success: true,
       data: {
         metadata,
-        lyrics: finalLyrics
+        lyrics: finalLyrics,
+        offset
       }
     };
   } catch (error) {

@@ -28,9 +28,7 @@ export interface ResolvedYTMStream {
  * Throws when the track has no usable YouTube id or the stream cannot be
  * resolved (unplayable, region locked, or login required).
  */
-export const resolveYTMusicStream = async (
-  song: SongResult
-): Promise<ResolvedYTMStream> => {
+export const resolveYTMusicStream = async (song: SongResult): Promise<ResolvedYTMStream> => {
   const videoId = getYTMVideoId(song);
 
   if (!videoId) {

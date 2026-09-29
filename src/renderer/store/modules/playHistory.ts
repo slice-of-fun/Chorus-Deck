@@ -12,13 +12,7 @@ import {
 
 export type { MusicHistoryItem };
 
-const LEGACY_KEYS = [
-  'albumHistory',
-
-  'playHistory-migrated',
-
-  'playMode'
-];
+const LEGACY_KEYS = ['albumHistory', 'playHistory-migrated', 'playMode'];
 
 export const cleanupLegacyPlayHistoryStorage = (): void => {
   if (localStorage.getItem('playHistory-cleaned-v1')) return;
@@ -53,8 +47,6 @@ export type AlbumHistoryItem = {
   count?: number;
   lastPlayTime?: number;
 };
-
-
 
 const MAX_HISTORY_SIZE = 500;
 
@@ -120,7 +112,6 @@ export const usePlayHistoryStore = defineStore(
       }
     };
 
-
     const addPlaylist = (playlist: PlaylistHistoryItem): void => {
       const index = playlistHistory.value.findIndex((item) => item.id === playlist.id);
       const now = Date.now();
@@ -169,7 +160,6 @@ export const usePlayHistoryStore = defineStore(
         albumHistory.value.splice(index, 1);
       }
     };
-
 
     const clearMusicHistory = (): void => {
       musicHistory.value = [];
@@ -228,11 +218,7 @@ export const usePlayHistoryStore = defineStore(
       key: PERSIST_KEY,
 
       storage: debouncedLocalStorage,
-      pick: [
-        'musicHistory',
-        'playlistHistory',
-        'albumHistory'
-      ],
+      pick: ['musicHistory', 'playlistHistory', 'albumHistory'],
 
       serializer: {
         serialize: serializePlayHistoryState,

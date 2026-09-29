@@ -26,13 +26,9 @@
   },
   "dependencies": {
     "@material/material-color-utilities": "^0.4.0",
-    "cors": "^2.8.5",
     "crypto-js": "^4.2.0",
-    "flac-tagger": "^1.0.7",
-    "font-list": "^1.6.0",
     "husky": "^9.1.7",
     "jsencrypt": "^3.5.4",
-    "node-machine-id": "^1.1.12",
     "pinia-plugin-persistedstate": "^4.7.1"
   },
   "devDependencies": {

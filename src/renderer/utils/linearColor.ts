@@ -115,7 +115,7 @@ const getAverageColor = (data: Uint8ClampedArray): number[] => {
     b += data[i + 2];
     count++;
   }
-  
+
   if (count === 0) {
     return [128, 128, 128];
   }
@@ -126,7 +126,6 @@ const generateGradientBackground = (color: string): string => {
   const tc = tinycolor(color);
   const hsl = tc.toHsl();
 
-  
   const lightColor = tinycolor({ h: hsl.h, s: hsl.s * 0.8, l: Math.min(hsl.l + 0.2, 0.95) });
   const midColor = tinycolor({ h: hsl.h, s: hsl.s, l: hsl.l });
   const darkColor = tinycolor({
@@ -141,7 +140,6 @@ const generateGradientBackground = (color: string): string => {
 export const parseGradient = (gradientStr: string) => {
   if (!gradientStr) return [];
 
-  
   if (!gradientStr.startsWith('linear-gradient')) {
     const color = tinycolor(gradientStr);
     if (color.isValid()) {
@@ -151,7 +149,6 @@ export const parseGradient = (gradientStr: string) => {
     return [];
   }
 
-  
   const colorMatches = gradientStr.match(/(?:(?:rgb|rgba)\([^)]+\)|#[0-9a-fA-F]{3,8})/g) || [];
   return colorMatches.map((color) => {
     const tc = tinycolor(color);
@@ -174,7 +171,7 @@ export const getTextColors = (gradient: string = ''): ITextColors => {
 
   const mainColor = colors.length === 1 ? colors[0] : colors[1] || colors[0];
   const tc = tinycolor(mainColor);
-  const isDark = tc.getBrightness() > 155; 
+  const isDark = tc.getBrightness() > 155;
 
   return {
     primary: isDark ? 'rgba(0, 0, 0, 0.54)' : 'rgba(255, 255, 255, 0.54)',
@@ -214,22 +211,18 @@ export const animateGradient = (() => {
     onUpdate: (gradient: string) => void,
     duration = 300
   ) => {
-    
     if (oldGradient === newGradient) {
       return null;
     }
 
-    
     if (currentAnimation !== null) {
       cancelAnimationFrame(currentAnimation);
       currentAnimation = null;
     }
 
-    
     const startColors = parseGradient(oldGradient);
     const endColors = parseGradient(newGradient);
 
-    
     if (
       !startColors.length ||
       !endColors.length ||
@@ -237,11 +230,10 @@ export const animateGradient = (() => {
       !validateColors(endColors)
     ) {
       console.warn('Invalid color values detected');
-      onUpdate(newGradient); 
+      onUpdate(newGradient);
       return null;
     }
 
-    
     if (startColors.length !== endColors.length) {
       onUpdate(newGradient);
       return null;
@@ -255,11 +247,10 @@ export const animateGradient = (() => {
 
       const elapsed = currentTime - startTime;
       const rawProgress = Math.min(elapsed / duration, 1);
-      
+
       const progress = easeInOutCubic(rawProgress);
 
       try {
-        
         const effectiveProgress = lastProgress + (progress - lastProgress) * 0.6;
         lastProgress = effectiveProgress;
 
@@ -282,7 +273,7 @@ export const animateGradient = (() => {
           currentAnimation = requestAnimationFrame(animateFrame);
           return currentAnimation;
         }
-        
+
         onUpdate(newGradient);
         isAnimating = false;
         currentAnimation = null;
@@ -302,7 +293,6 @@ export const animateGradient = (() => {
     return currentAnimation;
   };
 
-  
   return useDebounceFn(animate, 50);
 })();
 
@@ -313,20 +303,16 @@ export const createGradientString = (
   const count = colors.length;
   return `linear-gradient(to bottom, ${colors
     .map((color, i) => {
-      
       const percent = percentages[i] ?? (count > 1 ? Math.round((i / (count - 1)) * 100) : 0);
       return `rgb(${color.r}, ${color.g}, ${color.b}) ${percent}%`;
     })
     .join(', ')})`;
 };
 
-
-
-
 const PRESET_LYRIC_COLORS: LyricThemeColor[] = [
   {
     id: 'spotify-green',
-    name: 'Spotify Green', 
+    name: 'Spotify Green',
     light: '#1db954',
     dark: '#1ed760'
   },
@@ -362,22 +348,19 @@ const PRESET_LYRIC_COLORS: LyricThemeColor[] = [
   }
 ];
 
-
 export const validateColor = (color: string): boolean => {
   if (!color || typeof color !== 'string') return false;
   const tc = tinycolor(color);
   return tc.isValid() && tc.getAlpha() > 0;
 };
 
-
 export const validateColorContrast = (color: string, theme: 'light' | 'dark'): boolean => {
   if (!validateColor(color)) return false;
 
   const backgroundColor = theme === 'dark' ? '#000000' : '#ffffff';
   const contrast = tinycolor.readability(color, backgroundColor);
-  return contrast >= 4.5; 
+  return contrast >= 4.5;
 };
-
 
 export const optimizeColorForTheme = (color: string, theme: 'light' | 'dark'): string => {
   if (!validateColor(color)) {
@@ -388,14 +371,12 @@ export const optimizeColorForTheme = (color: string, theme: 'light' | 'dark'): s
   const hsl = tc.toHsl();
 
   if (theme === 'dark') {
-    
     const optimized = tinycolor({
       h: hsl.h,
       s: Math.min(hsl.s * 1.1, 1),
-      l: Math.max(hsl.l, 0.4) 
+      l: Math.max(hsl.l, 0.4)
     });
 
-    
     if (!validateColorContrast(optimized.toHexString(), theme)) {
       return tinycolor({
         h: hsl.h,
@@ -406,14 +387,12 @@ export const optimizeColorForTheme = (color: string, theme: 'light' | 'dark'): s
 
     return optimized.toHexString();
   } else {
-    
     const optimized = tinycolor({
       h: hsl.h,
       s: Math.min(hsl.s * 1.05, 1),
-      l: Math.min(hsl.l, 0.6) 
+      l: Math.min(hsl.l, 0.6)
     });
 
-    
     if (!validateColorContrast(optimized.toHexString(), theme)) {
       return tinycolor({
         h: hsl.h,
@@ -426,18 +405,15 @@ export const optimizeColorForTheme = (color: string, theme: 'light' | 'dark'): s
   }
 };
 
-
 export const getDefaultHighlightColor = (theme?: 'light' | 'dark'): string => {
-  const defaultColor = PRESET_LYRIC_COLORS[0]; 
+  const defaultColor = PRESET_LYRIC_COLORS[0];
   if (!theme) return defaultColor.light;
   return theme === 'dark' ? defaultColor.dark : defaultColor.light;
 };
 
-
 export const getLyricThemeColors = (): LyricThemeColor[] => {
   return [...PRESET_LYRIC_COLORS];
 };
-
 
 export const getPresetColorValue = (colorId: string, theme: 'light' | 'dark'): string => {
   const color = PRESET_LYRIC_COLORS.find((c) => c.id === colorId);
@@ -445,14 +421,12 @@ export const getPresetColorValue = (colorId: string, theme: 'light' | 'dark'): s
   return theme === 'dark' ? color.dark : color.light;
 };
 
-
 const safeLoadLyricSettings = (): LyricSettings => {
   try {
     const stored = localStorage.getItem('lyricData');
     if (stored) {
       const parsed = JSON.parse(stored) as LyricSettings;
 
-      
       if (parsed.highlightColor && !validateColor(parsed.highlightColor)) {
         console.warn('Invalid stored highlight color, removing it');
         delete parsed.highlightColor;
@@ -464,14 +438,12 @@ const safeLoadLyricSettings = (): LyricSettings => {
     console.error('Failed to load lyric settings:', error);
   }
 
-  
   return {
     isTop: false,
     theme: 'dark',
     isLock: false
   };
 };
-
 
 const safeSaveLyricSettings = (settings: LyricSettings): void => {
   try {
@@ -480,7 +452,6 @@ const safeSaveLyricSettings = (settings: LyricSettings): void => {
     console.error('Failed to save lyric settings:', error);
   }
 };
-
 
 export const saveLyricThemeColor = (color: string): void => {
   if (!validateColor(color)) {
@@ -493,7 +464,6 @@ export const saveLyricThemeColor = (color: string): void => {
   safeSaveLyricSettings(settings);
 };
 
-
 export const loadLyricThemeColor = (): string => {
   const settings = safeLoadLyricSettings();
 
@@ -501,17 +471,14 @@ export const loadLyricThemeColor = (): string => {
     return settings.highlightColor;
   }
 
-  
   return getDefaultHighlightColor(settings.theme);
 };
-
 
 export const resetLyricThemeColor = (): void => {
   const settings = safeLoadLyricSettings();
   delete settings.highlightColor;
   safeSaveLyricSettings(settings);
 };
-
 
 export const getCurrentLyricThemeColor = (theme: 'light' | 'dark'): string => {
   const savedColor = loadLyricThemeColor();

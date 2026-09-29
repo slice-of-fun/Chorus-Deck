@@ -59,6 +59,10 @@
           <span>Focus Current Lyric</span>
           <input type="checkbox" v-model="config.focusCurrentLyric" class="toggle-switch" />
         </div>
+        <div class="setting-item">
+          <span>Feather Lyric Edge</span>
+          <input type="checkbox" v-model="config.featherEdge" class="toggle-switch" />
+        </div>
       </div>
 
       <div v-show="activeTab === 'interface'" class="space-y-4 pt-3">

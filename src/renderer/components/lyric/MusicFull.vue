@@ -574,41 +574,52 @@ const getWordStyle = (lineIndex: number, _wordIndex: number, word: any) => {
   if (lineIndex !== nowIndex.value) {
     return {
       color: colors.primary,
-      transition: 'color 0.3s ease',
-
+      transition: 'color 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
       backgroundImage: 'none',
       WebkitTextFillColor: 'initial'
     };
   }
 
   const currentTime = (nowTime.value + correctionTime.value) * 1000;
-
   const wordStartTime = word.startTime;
   const wordEndTime = word.startTime + word.duration;
 
   if (currentTime >= wordStartTime && currentTime < wordEndTime) {
-    const progress = Math.min((currentTime - wordStartTime) / word.duration, 1);
-    const progressPercent = Math.round(progress * 100);
+    const progress = Math.max(0, Math.min((currentTime - wordStartTime) / word.duration, 1));
+    const progressPercent = progress * 100;
+    const feather = config.value.featherEdge ? 2 : 0;
+    const startPercent = Math.max(0, progressPercent - feather);
+    const endPercent = Math.min(100, progressPercent + feather);
 
     return {
-      backgroundImage: `linear-gradient(to right, ${colors.active} 0%, ${colors.active} ${progressPercent}%, ${colors.primary} ${progressPercent}%, ${colors.primary} 100%)`,
+      backgroundImage: `linear-gradient(to right, ${colors.active} 0%, ${colors.active} ${startPercent}%, ${colors.primary}66 ${endPercent}%, ${colors.primary}66 100%)`,
       backgroundClip: 'text',
       WebkitBackgroundClip: 'text',
       WebkitTextFillColor: 'transparent',
-      textShadow: `0 0 8px ${colors.active}40`,
-      transition: 'all 0.1s ease'
+      textShadow: `0 0 16px ${colors.active}60`,
+      opacity: 1,
+      transform: 'scale(1.05)',
+      transformOrigin: 'left center',
+      display: 'inline-block',
+      transition: 'background-image 0.05s linear, transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
     };
   } else if (currentTime >= wordEndTime) {
     return {
       color: colors.active,
       WebkitTextFillColor: 'initial',
-      transition: 'none'
+      opacity: 1,
+      transform: 'scale(1)',
+      display: 'inline-block',
+      transition: 'color 0.3s ease-out, transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
     };
   } else {
     return {
       color: colors.primary,
       WebkitTextFillColor: 'initial',
-      transition: 'none'
+      opacity: 0.5,
+      transform: 'scale(1)',
+      display: 'inline-block',
+      transition: 'color 0.3s ease-out, transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
     };
   }
 };

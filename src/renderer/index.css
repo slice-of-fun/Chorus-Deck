@@ -184,11 +184,11 @@ html.dark.pure-black {
 html.dark.pure-black body {
   background-color: #000000 !important;
 }
-html.dark.pure-black .dark\:bg-dark-100, 
-html.dark.pure-black .dark\:bg-dark-200, 
+html.dark.pure-black .dark\:bg-dark-100,
+html.dark.pure-black .dark\:bg-dark-200,
 html.dark.pure-black .dark\:bg-dark-300,
-html.dark.pure-black .bg-dark-100, 
-html.dark.pure-black .bg-dark-200, 
+html.dark.pure-black .bg-dark-100,
+html.dark.pure-black .bg-dark-200,
 html.dark.pure-black .bg-dark-300 {
   background-color: #000000 !important;
 }

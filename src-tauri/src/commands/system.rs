@@ -1,6 +1,5 @@
 use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
 use serde::Deserialize;
-use serde_json::Value;
 use std::sync::Mutex;
 use tauri::AppHandle;
 
@@ -204,68 +203,4 @@ pub fn get_system_fonts() -> Result<Vec<String>, String> {
     {
         Err("system font enumeration is only implemented on Windows".to_string())
     }
-}
-
-
-#[derive(Deserialize, Debug)]
-pub struct DiscordPresencePayload {
-    pub title: String,
-    pub artist: String,
-    pub album: String,
-    #[serde(rename = "albumArt")]
-    pub album_art: String,
-    pub duration: u64,
-    #[serde(rename = "isPlaying")]
-    pub is_playing: bool,
-    #[serde(rename = "startTimestamp")]
-    pub start_timestamp: Option<i64>,
-}
-
-#[tauri::command(rename = "update-discord-presence")]
-pub fn update_discord_presence(presence: DiscordPresencePayload) -> Result<(), String> {
-    let mut lock = get_or_init_discord()?;
-    if let Some(client) = lock.as_mut() {
-        let mut activity = activity::Activity::new()
-            .state(&presence.artist)
-            .details(&presence.title);
-
-        let mut assets = activity::Assets::new()
-            .large_image(&presence.album_art)
-            .large_text(&presence.album);
-
-        // Add play/pause icon
-        if presence.is_playing {
-            assets = assets.small_image("play").small_text("Playing");
-        } else {
-            assets = assets.small_image("pause").small_text("Paused");
-        }
-
-        activity = activity.assets(assets);
-
-        if let Some(start_ts) = presence.start_timestamp {
-            let timestamps = activity::Timestamps::new().start(start_ts);
-            activity = activity.timestamps(timestamps);
-        }
-
-        if let Err(e) = client.set_activity(activity) {
-            return Err(format!("Failed to set Discord activity: {}", e));
-        }
-    }
-    Ok(())
-}
-
-#[tauri::command(rename = "clear-discord-presence")]
-pub fn clear_discord_presence() -> Result<(), String> {
-    let mut lock = get_or_init_discord()?;
-    if let Some(client) = lock.as_mut() {
-        let _ = client.clear_activity();
-    }
-    Ok(())
-}
-
-#[tauri::command(rename = "discord-logout")]
-pub fn discord_logout() -> Result<(), String> {
-    Ok(())
-}
-
 }

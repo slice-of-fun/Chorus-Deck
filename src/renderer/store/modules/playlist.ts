@@ -357,7 +357,9 @@ export const usePlaylistStore = defineStore(
         const sleepTimerStore = useSleepTimerStore();
 
         if (consecutiveFailCount.value >= MAX_CONSECUTIVE_FAILS) {
-          console.error(`[nextPlay] continuous${MAX_CONSECUTIVE_FAILS}The first playback failed and stopped.`);
+          console.error(
+            `[nextPlay] continuous${MAX_CONSECUTIVE_FAILS}The first playback failed and stopped.`
+          );
           getMessage().warning(
             'Playback error, possibly due to network issues or invalid source. Please switch playlist or try again later'
           );
@@ -377,7 +379,9 @@ export const usePlaylistStore = defineStore(
             const { audioService } = await import('@/services/audioService');
             audioService.pause();
           } else {
-            console.log('[nextPlay] Sequential playback: Already the last song, keep playing currently');
+            console.log(
+              '[nextPlay] Sequential playback: Already the last song, keep playing currently'
+            );
             getMessage().info('Reached the end of the playlist');
           }
           return;
@@ -484,17 +488,14 @@ export const usePlaylistStore = defineStore(
         ) {
           if (playerCore.play) {
             playerCore.setPlayMusic(false);
-            const { audioService } = await import('@/services/audioService');
-            audioService.getCurrentSound()?.pause();
+            audioService.pause();
             playerCore.userPlayIntent = false;
           } else {
             playerCore.setPlayMusic(true);
             playerCore.userPlayIntent = true;
-            const { audioService } = await import('@/services/audioService');
-            const sound = audioService.getCurrentSound();
-            if (sound) {
-              sound.play();
-            } else {
+            try {
+              await window.api.audioResume();
+            } catch (e) {
               const { playTrack } = await import('@/services/playbackController');
               const recoverSong = {
                 ...playerCore.playMusic,
@@ -545,7 +546,9 @@ export const usePlaylistStore = defineStore(
           console.log('After restarting, restore random play mode and reshuffle the playlist.');
           shufflePlayList();
         } else {
-          console.log('After restarting, the random play mode is restored, and the playlist is already in a shuffled state.');
+          console.log(
+            'After restarting, the random play mode is restored, and the playlist is already in a shuffled state.'
+          );
         }
       }
     };

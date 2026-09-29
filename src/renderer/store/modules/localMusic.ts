@@ -2,17 +2,10 @@ import { createDiscreteApi } from 'naive-ui';
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 
-import useIndexedDB from '@/hooks/IndexDBHook';
 import type { LocalMusicEntry } from '@/types/localMusic';
 import { removeStaleEntries } from '@/utils/localMusicUtils';
 
 const { message } = createDiscreteApi(['message']);
-
-const LOCAL_MUSIC_STORE = 'local_music' as const;
-
-type LocalMusicDBStores = {
-  local_music: LocalMusicEntry;
-};
 
 function generateId(filePath: string): string {
   let hash = 0;
@@ -31,14 +24,6 @@ function isUnderFolder(filePath: string, folder: string): boolean {
   return next === '/' || next === '\\';
 }
 
-async function initLocalMusicDB() {
-  return await useIndexedDB<typeof LOCAL_MUSIC_STORE, LocalMusicDBStores>(
-    'localMusicDB',
-    [{ name: LOCAL_MUSIC_STORE, keyPath: 'id' }],
-    1
-  );
-}
-
 export const useLocalMusicStore = defineStore(
   'localMusic',
   () => {
@@ -49,15 +34,6 @@ export const useLocalMusicStore = defineStore(
     const scanning = ref(false);
 
     const scanProgress = ref(0);
-
-    let db: Awaited<ReturnType<typeof initLocalMusicDB>> | null = null;
-
-    async function getDB() {
-      if (!db) {
-        db = await initLocalMusicDB();
-      }
-      return db;
-    }
 
     function addFolder(path: string): void {
       if (!path || folderPaths.value.includes(path)) {
@@ -74,17 +50,16 @@ export const useLocalMusicStore = defineStore(
       folderPaths.value.splice(index, 1);
 
       try {
-        const localDB = await getDB();
-        const entries = await localDB.getAllData(LOCAL_MUSIC_STORE);
+        const entries = await window.api.dbGetAllLocalMusic();
         for (const entry of entries) {
           const stillConfigured = folderPaths.value.some((folder) =>
             isUnderFolder(entry.filePath, folder)
           );
           if (isUnderFolder(entry.filePath, path) && !stillConfigured) {
-            await localDB.deleteData(LOCAL_MUSIC_STORE, entry.id);
+            await window.api.dbDeleteLocalMusic(entry.id);
           }
         }
-        musicList.value = await localDB.getAllData(LOCAL_MUSIC_STORE);
+        musicList.value = await window.api.dbGetAllLocalMusic();
       } catch (error) {
         console.error('Cleaning cache failed after removing folder:', error);
       }
@@ -92,11 +67,7 @@ export const useLocalMusicStore = defineStore(
 
     async function clearAllEntries(): Promise<void> {
       try {
-        const localDB = await getDB();
-        const entries = await localDB.getAllData(LOCAL_MUSIC_STORE);
-        for (const entry of entries) {
-          await localDB.deleteData(LOCAL_MUSIC_STORE, entry.id);
-        }
+        await window.api.dbClearLocalMusic();
         musicList.value = [];
       } catch (error) {
         console.error('Failed to clear local music cache:', error);
@@ -117,9 +88,7 @@ export const useLocalMusicStore = defineStore(
       scanProgress.value = 0;
 
       try {
-        const localDB = await getDB();
-
-        const cachedEntries = await localDB.getAllData(LOCAL_MUSIC_STORE);
+        const cachedEntries = await window.api.dbGetAllLocalMusic();
         const cachedMap = new Map<string, LocalMusicEntry>();
         for (const entry of cachedEntries) {
           cachedMap.set(entry.filePath, entry);
@@ -170,7 +139,7 @@ export const useLocalMusicStore = defineStore(
                   ...meta,
                   id: generateId(meta.filePath)
                 };
-                await localDB.saveData(LOCAL_MUSIC_STORE, entry);
+                await window.api.dbSaveLocalMusic(entry);
                 cachedMap.set(entry.filePath, entry);
               }
             } catch (error) {
@@ -187,10 +156,10 @@ export const useLocalMusicStore = defineStore(
           if (diskFilePaths.has(filePath) || isUnderUnreadableFolder(filePath)) {
             continue;
           }
-          await localDB.deleteData(LOCAL_MUSIC_STORE, entry.id);
+          await window.api.dbDeleteLocalMusic(entry.id);
         }
 
-        musicList.value = await localDB.getAllData(LOCAL_MUSIC_STORE);
+        musicList.value = await window.api.dbGetAllLocalMusic();
       } catch (error) {
         console.error('Scanning local music failed:', error);
         message.error('Scanning local music failed');
@@ -201,8 +170,7 @@ export const useLocalMusicStore = defineStore(
 
     async function loadFromCache(): Promise<void> {
       try {
-        const localDB = await getDB();
-        musicList.value = await localDB.getAllData(LOCAL_MUSIC_STORE);
+        musicList.value = await window.api.dbGetAllLocalMusic();
       } catch (error) {
         console.error('Loading local music from cache failed:', error);
         musicList.value = [];
@@ -210,8 +178,7 @@ export const useLocalMusicStore = defineStore(
     }
 
     async function removeEntry(id: string): Promise<void> {
-      const localDB = await getDB();
-      await localDB.deleteData(LOCAL_MUSIC_STORE, id);
+      await window.api.dbDeleteLocalMusic(id);
       const index = musicList.value.findIndex((entry) => entry.id === id);
       if (index !== -1) {
         musicList.value.splice(index, 1);
@@ -220,8 +187,7 @@ export const useLocalMusicStore = defineStore(
 
     async function clearCache(): Promise<void> {
       try {
-        const localDB = await getDB();
-        const allEntries = await localDB.getAllData(LOCAL_MUSIC_STORE);
+        const allEntries = await window.api.dbGetAllLocalMusic();
 
         if (allEntries.length === 0) {
           return;
@@ -243,7 +209,7 @@ export const useLocalMusicStore = defineStore(
         );
 
         for (const entry of removedEntries) {
-          await localDB.deleteData(LOCAL_MUSIC_STORE, entry.id);
+          await window.api.dbDeleteLocalMusic(entry.id);
         }
 
         musicList.value = validEntries;

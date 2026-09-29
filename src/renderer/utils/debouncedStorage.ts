@@ -6,7 +6,10 @@ const safeSetItem = (key: string, value: string) => {
   try {
     localStorage.setItem(key, value);
   } catch (error) {
-    console.error(`[debouncedStorage] localStorage Write failed key=${key}(May exceed quota):`, error);
+    console.error(
+      `[debouncedStorage] localStorage Write failed key=${key}(May exceed quota):`,
+      error
+    );
   }
 };
 

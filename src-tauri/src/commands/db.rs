@@ -61,3 +61,27 @@ pub fn get_all_playlists(state: State<'_, AppState>) -> Result<Vec<Playlist>, St
     let conn = state.db.lock().map_err(|_| "db lock poisoned")?;
     music_db::get_all_playlists(&conn).map_err(|e| e.to_string())
 }
+
+#[tauri::command(rename = "db_save_local_music")]
+pub fn save_local_music(state: State<'_, AppState>, entry: music_db::LocalMusicEntry) -> Result<(), String> {
+    let conn = state.db.lock().map_err(|_| "db lock poisoned")?;
+    music_db::save_local_music(&conn, &entry).map_err(|e| e.to_string())
+}
+
+#[tauri::command(rename = "db_get_all_local_music")]
+pub fn get_all_local_music(state: State<'_, AppState>) -> Result<Vec<music_db::LocalMusicEntry>, String> {
+    let conn = state.db.lock().map_err(|_| "db lock poisoned")?;
+    music_db::get_all_local_music(&conn).map_err(|e| e.to_string())
+}
+
+#[tauri::command(rename = "db_delete_local_music")]
+pub fn delete_local_music(state: State<'_, AppState>, id: String) -> Result<(), String> {
+    let conn = state.db.lock().map_err(|_| "db lock poisoned")?;
+    music_db::delete_local_music(&conn, &id).map_err(|e| e.to_string())
+}
+
+#[tauri::command(rename = "db_clear_local_music")]
+pub fn clear_local_music(state: State<'_, AppState>) -> Result<(), String> {
+    let conn = state.db.lock().map_err(|_| "db lock poisoned")?;
+    music_db::clear_local_music(&conn).map_err(|e| e.to_string())
+}

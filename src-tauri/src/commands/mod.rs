@@ -1,9 +1,12 @@
+pub mod db;
+pub mod discord;
 pub mod integrations;
 pub mod media;
 pub mod store;
 pub mod system;
 pub mod window;
-pub mod db;
+pub mod audio;
+pub mod eq;
 
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -14,7 +17,6 @@ use crate::cache::lru_cache::LRUCache;
 use crate::db::music_db;
 use crate::downloads::supervisor::DownloadSupervisor;
 
-/// Settings tracked by the disk cache, persisted in the store.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DiskCacheConfig {
@@ -33,21 +35,14 @@ impl Default for DiskCacheConfig {
     }
 }
 
-/// Application state shared by every command.
 pub struct AppState {
-    /// Metadata database. `rusqlite::Connection` is not `Sync`, so it always
-    /// sits behind a mutex.
     pub db: Mutex<rusqlite::Connection>,
-    /// Settings/UI store, replacing `electron-store`.
     pub store: store::JsonStore,
-    /// Download queue and in-flight transfers.
     pub downloads: DownloadSupervisor,
-    /// Response/lyric cache backed by SQLite.
     pub cache: Mutex<LRUCache>,
-    /// Persisted disk-cache configuration.
     pub disk_cache: Mutex<DiskCacheConfig>,
-    /// Last content zoom applied to the webview, so it can be read back.
     pub zoom: Mutex<f64>,
+    pub ytm: tokio::sync::Mutex<ytmusicapi::YTMusicClient>,
 }
 
 impl AppState {
@@ -59,8 +54,8 @@ impl AppState {
         std::fs::create_dir_all(&app_data_dir)
             .map_err(|e| format!("cannot create app data dir: {e}"))?;
 
-        let conn = music_db::init_db(&app_data_dir)
-            .map_err(|e| format!("cannot open database: {e}"))?;
+        let conn =
+            music_db::init_db(&app_data_dir).map_err(|e| format!("cannot open database: {e}"))?;
         if let Err(e) = music_db::import_legacy_data(&conn) {
             eprintln!("[db] legacy import failed (non-fatal): {e}");
         }
@@ -74,6 +69,10 @@ impl AppState {
         let cache = LRUCache::new(128 * 1024 * 1024, cache_conn)
             .map_err(|e| format!("cannot open cache: {e}"))?;
 
+        let ytm = ytmusicapi::YTMusicClient::builder()
+            .build()
+            .map_err(|e| format!("cannot create ytmusic client: {e}"))?;
+
         Ok(AppState {
             db: Mutex::new(conn),
             store,
@@ -81,6 +80,7 @@ impl AppState {
             cache: Mutex::new(cache),
             disk_cache: Mutex::new(DiskCacheConfig::default()),
             zoom: Mutex::new(1.0),
+            ytm: tokio::sync::Mutex::new(ytm),
         })
     }
 }

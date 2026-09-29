@@ -19,7 +19,15 @@ pub fn init_db(app_data_dir: &Path) -> Result<Connection> {
     )?;
 
     conn.execute_batch(
-        "CREATE TABLE IF NOT EXISTS meta (
+        "PRAGMA journal_mode = WAL;
+         PRAGMA synchronous = NORMAL;
+         PRAGMA temp_store = MEMORY;
+         PRAGMA cache_size = -64000;
+         PRAGMA mmap_size = 3000000000;
+         PRAGMA busy_timeout = 5000;
+         PRAGMA foreign_keys = ON;
+         
+         CREATE TABLE IF NOT EXISTS meta (
            key TEXT PRIMARY KEY,
            value TEXT
          );
@@ -34,6 +42,8 @@ pub fn init_db(app_data_dir: &Path) -> Result<Connection> {
            play_count INTEGER,
            rating INTEGER
          );
+         CREATE INDEX IF NOT EXISTS idx_tracks_artist ON tracks(artist);
+         CREATE INDEX IF NOT EXISTS idx_tracks_album ON tracks(album);
          CREATE TABLE IF NOT EXISTS artists (
            id TEXT PRIMARY KEY,
            name TEXT,
@@ -61,6 +71,8 @@ pub fn init_db(app_data_dir: &Path) -> Result<Connection> {
            track_index INTEGER,
            PRIMARY KEY (playlist_id, track_id)
          );
+         CREATE INDEX IF NOT EXISTS idx_playlist_tracks_playlist ON playlist_tracks(playlist_id);
+         
          CREATE TABLE IF NOT EXISTS liked_tracks (
            track_id TEXT PRIMARY KEY
          );
@@ -100,7 +112,27 @@ pub fn init_db(app_data_dir: &Path) -> Result<Connection> {
            id INTEGER PRIMARY KEY AUTOINCREMENT,
            query TEXT,
            searched_at INTEGER
-         );",
+         );
+         CREATE TABLE IF NOT EXISTS local_music (
+           id TEXT PRIMARY KEY,
+           file_path TEXT,
+           title TEXT,
+           artist TEXT,
+           album TEXT,
+           duration INTEGER,
+           cover_path TEXT,
+           lyrics TEXT,
+           file_size INTEGER,
+           modified_time INTEGER
+         );
+         CREATE INDEX IF NOT EXISTS idx_local_music_artist ON local_music(artist);
+         CREATE INDEX IF NOT EXISTS idx_local_music_album ON local_music(album);
+         CREATE TABLE IF NOT EXISTS audio_cache (
+           hash TEXT PRIMARY KEY,
+           file_size INTEGER,
+           last_accessed INTEGER
+         );
+         CREATE INDEX IF NOT EXISTS idx_audio_cache_last_accessed ON audio_cache(last_accessed);",
     )?;
 
     conn.execute(
@@ -369,4 +401,95 @@ pub struct Track {
     pub last_played: Option<i64>,
     pub play_count: Option<i64>,
     pub rating: Option<i64>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalMusicEntry {
+    pub id: String,
+    pub file_path: String,
+    pub title: String,
+    pub artist: String,
+    pub album: String,
+    pub duration: i64,
+    pub cover_path: Option<String>,
+    pub lyrics: Option<String>,
+    pub file_size: i64,
+    pub modified_time: i64,
+}
+
+pub fn save_local_music(conn: &Connection, entry: &LocalMusicEntry) -> Result<()> {
+    conn.execute(
+        "INSERT OR REPLACE INTO local_music (id, file_path, title, artist, album, duration, cover_path, lyrics, file_size, modified_time) 
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+        rusqlite::params![
+            entry.id,
+            entry.file_path,
+            entry.title,
+            entry.artist,
+            entry.album,
+            entry.duration,
+            entry.cover_path,
+            entry.lyrics,
+            entry.file_size,
+            entry.modified_time
+        ],
+    )?;
+    Ok(())
+}
+
+pub fn get_all_local_music(conn: &Connection) -> Result<Vec<LocalMusicEntry>> {
+    let mut stmt = conn.prepare(
+        "SELECT id, file_path, title, artist, album, duration, cover_path, lyrics, file_size, modified_time 
+         FROM local_music"
+    )?;
+    let rows = stmt.query_map([], |row| {
+        Ok(LocalMusicEntry {
+            id: row.get(0)?,
+            file_path: row.get(1)?,
+            title: row.get(2)?,
+            artist: row.get(3)?,
+            album: row.get(4)?,
+            duration: row.get(5)?,
+            cover_path: row.get(6)?,
+            lyrics: row.get(7)?,
+            file_size: row.get(8)?,
+            modified_time: row.get(9)?,
+        })
+    })?;
+    rows.collect()
+}
+
+pub fn delete_local_music(conn: &Connection, id: &str) -> Result<()> {
+    conn.execute("DELETE FROM local_music WHERE id = ?1", [id])?;
+    Ok(())
+}
+
+pub fn clear_local_music(conn: &Connection) -> Result<()> {
+    conn.execute("DELETE FROM local_music", [])?;
+    Ok(())
+}
+
+pub fn record_audio_cache_access(conn: &Connection, hash: &str, file_size: u64, accessed_at: i64) -> Result<()> {
+    conn.execute(
+        "INSERT OR REPLACE INTO audio_cache (hash, file_size, last_accessed) VALUES (?1, ?2, ?3)",
+        rusqlite::params![hash, file_size as i64, accessed_at],
+    )?;
+    Ok(())
+}
+
+pub fn get_audio_cache_eviction_candidates(conn: &Connection) -> Result<Vec<(String, u64)>> {
+    let mut stmt = conn.prepare("SELECT hash, file_size FROM audio_cache ORDER BY last_accessed ASC")?;
+    let rows = stmt.query_map([], |row| {
+        Ok((
+            row.get::<_, String>(0)?,
+            row.get::<_, i64>(1)?.max(0) as u64,
+        ))
+    })?;
+    rows.collect()
+}
+
+pub fn delete_audio_cache_record(conn: &Connection, hash: &str) -> Result<()> {
+    conn.execute("DELETE FROM audio_cache WHERE hash = ?1", [hash])?;
+    Ok(())
 }

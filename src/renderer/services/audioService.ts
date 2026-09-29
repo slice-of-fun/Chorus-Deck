@@ -3,20 +3,16 @@ import type { SongResult } from '@/types/music';
 import { getImgUrl, isDesktop } from '@/utils';
 
 class AudioService {
-  private audio: HTMLAudioElement;
   private currentTrack: SongResult | null = null;
 
-  private context: AudioContext | null = null;
-  private sourceNode: MediaElementAudioSourceNode | null = null;
-  private filters: BiquadFilterNode[] = [];
-  private bassBoostNode: BiquadFilterNode | null = null;
-  private pannerNode: StereoPannerNode | null = null;
-  private gainNode: GainNode | null = null;
   private bypass = false;
 
   private playbackRate = 1.0;
   private currentSinkId: string = 'default';
   private _isLoading = false;
+  private _isPlayingNative = false;
+  private currentUrl: string | null = null;
+  private _currentNativeDuration: number | null = null;
 
   private operationLock = false;
   private operationLockTimer: ReturnType<typeof setTimeout> | null = null;
@@ -41,10 +37,6 @@ class AudioService {
   private callbacks: { [key: string]: Function[] } = {};
 
   constructor() {
-    this.audio = new Audio();
-    this.audio.crossOrigin = 'anonymous';
-    this.audio.preload = 'auto';
-
     this.bindAudioEvents();
 
     if ('mediaSession' in navigator) {
@@ -59,49 +51,21 @@ class AudioService {
   }
 
   private bindAudioEvents() {
-    this.audio.addEventListener('play', () => {
-      this.updateMediaSessionState(true);
-      this.emit('');
-    });
-
-    this.audio.addEventListener('pause', () => {
-      this.updateMediaSessionState(false);
-      this.emit('');
-    });
-
-    this.audio.addEventListener('ended', () => {
-      this.emit('');
-    });
-
-    this.audio.addEventListener('seeked', () => {
-      this.updateMediaSessionPositionState();
-      this.emit('');
-    });
-
-    this.audio.addEventListener('timeupdate', () => {});
-
-    this.audio.addEventListener('waiting', () => {
-      this._isLoading = true;
-    });
-
-    this.audio.addEventListener('canplay', () => {
-      this._isLoading = false;
-    });
-
-    this.audio.addEventListener('error', () => {
-      const error = this.audio.error;
-      console.error('Audio element error:', error?.code, error?.message);
-      this.emit('audio_error', { type: 'media_error', error });
+    window.api.onPlaybackProgress((timeSecs: number) => {
+      this.emit('timeupdate', timeSecs);
     });
   }
 
   private initMediaSession() {
     navigator.mediaSession.setActionHandler('play', () => {
-      this.audio.play();
+      window.api.audioResume();
+      this._isPlayingNative = true;
+      this.updateMediaSessionState(true);
+      this.emit('play');
     });
 
     navigator.mediaSession.setActionHandler('pause', () => {
-      this.audio.pause();
+      this.pause();
     });
 
     navigator.mediaSession.setActionHandler('stop', () => {
@@ -114,20 +78,33 @@ class AudioService {
       }
     });
 
-    navigator.mediaSession.setActionHandler('seekbackward', (event) => {
-      this.seek(this.audio.currentTime - (event.seekOffset || 10));
+    navigator.mediaSession.setActionHandler('seekbackward', async (event) => {
+      try {
+        const currentTime = await window.api.audioGetTime();
+        const offset = event.seekOffset || 10;
+        this.seek(Math.max(0, currentTime - offset));
+      } catch (err) {
+        console.error('Error seeking backward:', err);
+      }
     });
 
-    navigator.mediaSession.setActionHandler('seekforward', (event) => {
-      this.seek(this.audio.currentTime + (event.seekOffset || 10));
+    navigator.mediaSession.setActionHandler('seekforward', async (event) => {
+      try {
+        const currentTime = await window.api.audioGetTime();
+        const offset = event.seekOffset || 10;
+        const duration = this.getDuration();
+        this.seek(Math.min(duration, currentTime + offset));
+      } catch (err) {
+        console.error('Error seeking forward:', err);
+      }
     });
 
     navigator.mediaSession.setActionHandler('previoustrack', () => {
-      this.emit('');
+      this.emit('previoustrack');
     });
 
     navigator.mediaSession.setActionHandler('nexttrack', () => {
-      this.emit('');
+      this.emit('nexttrack');
     });
   }
 
@@ -135,9 +112,7 @@ class AudioService {
     try {
       if (!('mediaSession' in navigator)) return;
 
-      const artists = track.ar
-        ? track.ar.map((a) => a.name)
-        : track.artists?.map((a) => a.name);
+      const artists = track.ar ? track.ar.map((a) => a.name) : track.artists?.map((a) => a.name);
       const album = track.al ? track.al.name : track.album;
 
       const artwork = ['96', '128', '192', '256', '384', '512', '1024'].map((size) => ({
@@ -163,16 +138,17 @@ class AudioService {
     this.updateMediaSessionPositionState();
   }
 
-  private updateMediaSessionPositionState() {
+  private async updateMediaSessionPositionState() {
     try {
       if (!('mediaSession' in navigator)) return;
-      if (!this.audio.duration || !isFinite(this.audio.duration)) return;
-
       if ('setPositionState' in navigator.mediaSession) {
+        const position = await window.api.audioGetTime();
+        const duration = this.getDuration();
+
         navigator.mediaSession.setPositionState({
-          duration: this.audio.duration,
+          duration: Math.max(0, duration),
           playbackRate: this.playbackRate,
-          position: this.audio.currentTime
+          position: Math.max(0, Math.min(position, duration))
         });
       }
     } catch (error) {
@@ -206,116 +182,12 @@ class AudioService {
   }
 
   private setupEQ() {
-    if (this.sourceNode) return;
-
-    if (!isDesktop()) {
-      console.log('WebSkip in environmentEQset, avoidCORSquestion');
-      this.bypass = true;
-      return;
-    }
-
-    try {
-      this.context = new AudioContext();
-      this.sourceNode = this.context.createMediaElementSource(this.audio);
-      this.gainNode = this.context.createGain();
-
-      const savedSettings = this.loadEQSettings();
-      this.filters = this.frequencies.map((freq) => {
-        const filter = this.context!.createBiquadFilter();
-        filter.type = 'peaking';
-        filter.frequency.value = freq;
-        filter.Q.value = 1;
-        filter.gain.value = savedSettings[freq.toString()] || 0;
-        return filter;
-      });
-
-      this.bassBoostNode = this.context.createBiquadFilter();
-      this.bassBoostNode.type = 'lowshelf';
-      this.bassBoostNode.frequency.value = 100;
-      this.bassBoostNode.gain.value = 0;
-
-      this.pannerNode = this.context.createStereoPanner();
-      this.pannerNode.pan.value = 0;
-
-      this.applyBypassState();
-
-      const savedVolume = localStorage.getItem('volume');
-      this.applyVolume(savedVolume ? parseFloat(savedVolume) : 1);
-
-      this.setupContextStateMonitoring();
-
-      this.restoreSavedAudioDevice();
-
-      console.log('EQ initialization successful');
-    } catch (error) {
-      console.error('EQ initialization failed:', error);
-
-      this.sourceNode = null;
-      this.context = null;
-    }
+    this.bypass = false;
+    window.api.audioSetEqBypass(this.bypass);
   }
 
   private applyBypassState() {
-    if (!this.sourceNode || !this.gainNode || !this.context) return;
-
-    try {
-      try {
-        this.sourceNode.disconnect();
-      } catch { /* empty */ }
-      this.filters.forEach((filter) => {
-        try {
-          filter.disconnect();
-        } catch { /* empty */ }
-      });
-      try {
-        this.gainNode.disconnect();
-      } catch { /* empty */ }
-
-      if (this.bypass) {
-        this.sourceNode.connect(this.gainNode);
-        this.gainNode.connect(this.context.destination);
-      } else {
-        const appSettingsStr = localStorage.getItem('appSettings');
-        const appSettings = appSettingsStr ? JSON.parse(appSettingsStr) : {};
-
-        // Apply DSP Settings
-        if (this.bassBoostNode) {
-          const bassBoostVal = appSettings.bassBoost ? appSettings.bassBoost / 1000 : 0;
-          this.bassBoostNode.gain.value = bassBoostVal * 15; // up to 15dB boost
-        }
-        
-        const currentNode: AudioNode = this.sourceNode;
-
-        currentNode.connect(this.filters[0]);
-        this.filters.forEach((filter, index) => {
-          if (index < this.filters.length - 1) {
-            filter.connect(this.filters[index + 1]);
-          }
-        });
-        
-        const lastEqNode = this.filters[this.filters.length - 1];
-        
-        if (this.bassBoostNode && this.pannerNode) {
-            lastEqNode.connect(this.bassBoostNode);
-            this.bassBoostNode.connect(this.pannerNode);
-            this.pannerNode.connect(this.gainNode);
-        } else {
-            lastEqNode.connect(this.gainNode);
-        }
-
-        this.gainNode.connect(this.context.destination);
-      }
-    } catch (error) {
-      console.error('Error applying EQ state, attempting fallback:', error);
-      try {
-        if (this.sourceNode && this.context) {
-          this.sourceNode.connect(this.context.destination);
-        }
-      } catch (fallbackError) {
-        console.error('Fallback connection also failed:', fallbackError);
-        this.emit('audio_error', { type: 'graph_disconnected', error: fallbackError });
-      }
-    }
+    window.api.audioSetEqBypass(this.bypass);
   }
 
   public isEQEnabled(): boolean {
@@ -325,24 +197,14 @@ class AudioService {
   public setEQEnabled(enabled: boolean) {
     this.bypass = !enabled;
     localStorage.setItem('eqBypass', JSON.stringify(this.bypass));
-
-    if (this.sourceNode && this.gainNode && this.context) {
-      this.applyBypassState();
-    }
   }
 
   public setEQFrequencyGain(frequency: string, gain: number) {
-    const filterIndex = this.frequencies.findIndex((f) => f.toString() === frequency);
-    if (filterIndex !== -1 && this.filters[filterIndex]) {
-      this.filters[filterIndex].gain.setValueAtTime(gain, this.context?.currentTime || 0);
-      this.saveEQSettings(frequency, gain);
-    }
+    this.saveEQSettings(frequency, gain);
+    window.api.audioSetEqBand(parseFloat(frequency), gain);
   }
 
   public resetEQ() {
-    this.filters.forEach((filter) => {
-      filter.gain.setValueAtTime(0, this.context?.currentTime || 0);
-    });
     localStorage.removeItem('eqSettings');
   }
 
@@ -406,10 +268,13 @@ class AudioService {
     isPlay: boolean = true,
     seekTime: number = 0,
     _existingSound?: HTMLAudioElement
-  ): Promise<HTMLAudioElement> {
-    if (this.audio.src && !url && !track) {
-      this.audio.play();
-      return Promise.resolve(this.audio);
+  ): Promise<void> {
+    if (this.currentUrl && !url && !track) {
+      window.api.audioResume();
+      this._isPlayingNative = true;
+      this.updateMediaSessionState(true);
+      this.emit('play');
+      return Promise.resolve();
     }
 
     this.forceResetOperationLock();
@@ -420,16 +285,18 @@ class AudioService {
       return Promise.reject(new Error('Missing required parameters: urlandtrack'));
     }
 
-    const currentSrc = this.audio.src;
-    const isSameUrl = currentSrc && currentSrc === url;
+    const isSameUrl = this.currentUrl === url;
 
     if (isSameUrl) {
       this.currentTrack = track;
-      if (seekTime > 0) this.audio.currentTime = seekTime;
-      if (isPlay) this.audio.play();
+      if (isPlay) {
+        window.api.audioResume();
+        this._isPlayingNative = true;
+        this.updateMediaSessionState(true);
+      }
       this.updateMediaSessionMetadata(track);
       this.releaseOperationLock();
-      return Promise.resolve(this.audio);
+      return Promise.resolve();
     }
 
     if (this.pendingLoadCleanup) {
@@ -441,52 +308,38 @@ class AudioService {
       let retryCount = 0;
       const maxRetries = 1;
 
-      const tryPlay = () => {
+      const tryPlay = async () => {
         this._isLoading = true;
         this.currentTrack = track;
 
-        this.setupEQ();
-
-        if (this.context && this.context.state === 'suspended') {
-          this.context.resume().catch((e) => console.warn('Failed to resume AudioContext:', e));
-        }
-
-        const onCanPlay = () => {
-          cleanup();
-          this._isLoading = false;
-
-          if (seekTime > 0) {
-            this.audio.currentTime = seekTime;
-          }
-
+        try {
           if (isPlay) {
-            this.audio.play().catch((err) => {
-              console.error('Audio play failed:', err);
-              this.emit('playerror', { track, error: err });
-            });
+            await window.api.audioPlay(url);
+            this._isPlayingNative = true;
+            try {
+              this._currentNativeDuration = await window.api.audioGetDuration();
+            } catch (e) {
+              console.warn('Failed to get native duration', e);
+            }
+            this.updateMediaSessionState(true);
           }
+          this._isLoading = false;
 
           const savedVolume = localStorage.getItem('volume');
           this.applyVolume(savedVolume ? parseFloat(savedVolume) : 1);
 
-          this.audio.playbackRate = this.playbackRate;
+          this.currentUrl = url;
+
           this.updateMediaSessionMetadata(track);
-          this.updateMediaSessionPositionState();
-          this.emit('');
+          this.emit('play');
           this.releaseOperationLock();
-          resolve(this.audio);
-        };
-
-        const onError = () => {
-          cleanup();
+          resolve(undefined as any);
+        } catch (err) {
           this._isLoading = false;
-          const error = this.audio.error;
-          console.error('Audio load error:', error?.code, error?.message);
-          this.emit('loaderror', { track, error });
+          console.error('Audio play failed:', err);
+          this.emit('playerror', { track, error: err });
 
-          const isSrcNotSupported = error?.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED;
-
-          if (!isSrcNotSupported && retryCount < maxRetries) {
+          if (retryCount < maxRetries) {
             retryCount++;
             console.log(`Retrying playback (${retryCount}/${maxRetries})...`);
             setTimeout(tryPlay, 1000 * retryCount);
@@ -495,23 +348,7 @@ class AudioService {
             this.releaseOperationLock();
             reject(new Error('Audio loading failed, please try switching to other songs'));
           }
-        };
-
-        const cleanup = () => {
-          this.audio.removeEventListener('canplay', onCanPlay);
-          this.audio.removeEventListener('error', onError);
-          if (this.pendingLoadCleanup === cleanup) {
-            this.pendingLoadCleanup = null;
-          }
-        };
-
-        this.pendingLoadCleanup = cleanup;
-
-        this.audio.addEventListener('canplay', onCanPlay, { once: true });
-        this.audio.addEventListener('error', onError, { once: true });
-
-        this.audio.src = url;
-        this.audio.load();
+        }
       };
 
       tryPlay();
@@ -523,7 +360,10 @@ class AudioService {
   public pause() {
     this.forceResetOperationLock();
     try {
-      this.audio.pause();
+      window.api.audioPause();
+      this._isPlayingNative = false;
+      this.updateMediaSessionState(false);
+      this.emit('pause');
     } catch (error) {
       console.error('Failed to pause audio:', error);
     }
@@ -537,9 +377,11 @@ class AudioService {
       this.pendingLoadCleanup = null;
     }
     try {
-      this.audio.pause();
-      this.audio.removeAttribute('src');
-      this.audio.load();
+      window.api.audioStop();
+      this._isPlayingNative = false;
+      this.updateMediaSessionState(false);
+      this.emit('stop');
+      this.currentUrl = null;
     } catch (error) {
       console.error('Failed to stop audio:', error);
     }
@@ -552,8 +394,9 @@ class AudioService {
   public seek(time: number) {
     this.forceResetOperationLock();
     try {
+      window.api.audioSeek(time);
       this.emit('seek_start', time);
-      this.audio.currentTime = Math.max(0, time);
+      this.emit('seek', time);
       this.updateMediaSessionPositionState();
     } catch (error) {
       console.error('SeekOperation failed:', error);
@@ -567,19 +410,14 @@ class AudioService {
   private applyVolume(volume: number) {
     const normalizedVolume = Math.max(0, Math.min(1, volume));
 
-    if (this.gainNode && this.context) {
-      this.gainNode.gain.cancelScheduledValues(this.context.currentTime);
-      this.gainNode.gain.setValueAtTime(normalizedVolume, this.context.currentTime);
-    } else {
-      this.audio.volume = normalizedVolume;
-    }
+    window.api.audioSetVolume(normalizedVolume);
 
     localStorage.setItem('volume', normalizedVolume.toString());
   }
 
   public setPlaybackRate(rate: number) {
     this.playbackRate = rate;
-    this.audio.playbackRate = rate;
+    // Native rate control not implemented yet
     this.updateMediaSessionPositionState();
   }
 
@@ -587,8 +425,13 @@ class AudioService {
     return this.playbackRate;
   }
 
-  getCurrentSound(): HTMLAudioElement | null {
-    return this.audio.src ? this.audio : null;
+  getDuration(): number {
+    if (this._currentNativeDuration) return this._currentNativeDuration;
+    if (!this.currentTrack) return 0;
+    // Prefer dt, then duration. Both are usually in milliseconds, but check for seconds if small.
+    const rawDur = this.currentTrack.dt || this.currentTrack.duration || 0;
+    // Some formats store it in seconds. We assume > 1000 means ms.
+    return rawDur > 1000 ? rawDur / 1000 : rawDur;
   }
 
   getCurrentTrack(): SongResult | null {
@@ -600,11 +443,10 @@ class AudioService {
   }
 
   isActuallyPlaying(): boolean {
-    if (!this.audio.src) return false;
+    if (!this.currentUrl && !this.currentTrack) return false;
     try {
-      const isPlaying = !this.audio.paused && !this.audio.ended;
-      const contextOk = !this.context || this.context.state === 'running';
-      return isPlaying && !this._isLoading && contextOk;
+      const isPlaying = this._isPlayingNative;
+      return isPlaying && !this._isLoading;
     } catch (error) {
       console.error('Error checking playback status:', error);
       return false;
@@ -629,16 +471,10 @@ class AudioService {
 
   public async setAudioOutputDevice(deviceId: string): Promise<boolean> {
     try {
-      if (this.context && typeof (this.context as any).setSinkId === 'function') {
-        await (this.context as any).setSinkId(deviceId);
-        this.currentSinkId = deviceId;
-        localStorage.setItem('audioOutputDeviceId', deviceId);
-        console.log('Audio output device switched:', deviceId);
-        return true;
-      } else {
-        console.warn('AudioContext.setSinkId Not available');
-        return false;
-      }
+      // Native audio output selection would go here
+      this.currentSinkId = deviceId;
+      localStorage.setItem('audioOutputDeviceId', deviceId);
+      return true;
     } catch (error) {
       console.error('Failed to set audio output device:', error);
       return false;
@@ -655,33 +491,14 @@ class AudioService {
       try {
         await this.setAudioOutputDevice(savedDeviceId);
       } catch (error) {
-        console.warn('Failed to restore audio output device and fell back to default device:', error);
+        console.warn(
+          'Failed to restore audio output device and fell back to default device:',
+          error
+        );
         localStorage.removeItem('audioOutputDeviceId');
         this.currentSinkId = 'default';
       }
     }
-  }
-
-  private setupContextStateMonitoring() {
-    if (!this.context) return;
-
-    this.context.addEventListener('statechange', async () => {
-      console.log('AudioContext state changed:', this.context?.state);
-
-      if (this.context?.state === 'suspended' && !this.audio.paused) {
-        console.log('AudioContext suspended while playing, attempting to resume...');
-        try {
-          await this.context.resume();
-          console.log('AudioContext resumed successfully');
-        } catch (e) {
-          console.error('Failed to resume AudioContext:', e);
-          this.emit('audio_error', { type: 'context_suspended', error: e });
-        }
-      } else if (this.context?.state === 'closed') {
-        console.warn('AudioContext was closed unexpectedly');
-        this.emit('audio_error', { type: 'context_closed' });
-      }
-    });
   }
 }
 

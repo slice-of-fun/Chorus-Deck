@@ -80,10 +80,7 @@ export const usePlayerCoreStore = defineStore(
 
     const handlePause = async () => {
       try {
-        const currentSound = audioService.getCurrentSound();
-        if (currentSound) {
-          currentSound.pause();
-        }
+        audioService.pause();
         setPlayMusic(false);
         userPlayIntent.value = false;
       } catch (error) {
@@ -131,48 +128,52 @@ export const usePlayerCoreStore = defineStore(
     };
 
     // Discord Rich Presence Integration
-    watch([playMusic, isPlay], ([newSong, newIsPlay]) => {
-      if (window.api) {
-        if (newSong && newSong.name) {
-          const artist = newSong.ar?.map((a: any) => a.name).join(' / ') || 'Unknown Artist';
-          const album = newSong.al?.name || 'Unknown Album';
-          const albumArt = newSong.al?.picUrl || 'chorus_logo';
-          const songId = newSong.id || '';
-          const artistId = newSong.ar?.[0]?.id || '';
-          const albumId = newSong.al?.id || '';
+    watch(
+      [playMusic, isPlay],
+      ([newSong, newIsPlay]) => {
+        if (window.api) {
+          if (newSong && newSong.name) {
+            const artist = newSong.ar?.map((a: any) => a.name).join(' / ') || 'Unknown Artist';
+            const album = newSong.al?.name || 'Unknown Album';
+            const albumArt = newSong.al?.picUrl || 'chorus_logo';
+            const songId = newSong.id || '';
+            const artistId = newSong.ar?.[0]?.id || '';
+            const albumId = newSong.al?.id || '';
+            window.api
+              .audioGetTime()
+              .then((time) => {
+                const currentTime = time * 1000;
+                const currentDur = audioService.getDuration();
+                const duration = currentDur > 0 ? currentDur * 1000 : newSong.dt || 0;
 
-          let currentTime = 0;
-          let duration = newSong.dt || 0;
-          const currentSound = audioService.getCurrentSound();
-          if (currentSound) {
-            currentTime = (currentSound.currentTime || 0) * 1000;
-            if (currentSound.duration && !isNaN(currentSound.duration)) {
-              duration = currentSound.duration * 1000;
-            }
+                let startTimestamp = undefined;
+                if (newIsPlay) {
+                  startTimestamp = Date.now() - currentTime;
+                }
+
+                window.api.send('update-discord-presence', {
+                  title: newSong.name,
+                  artist: artist,
+                  album: album,
+                  albumArt: albumArt,
+                  songId,
+                  artistId,
+                  albumId,
+                  duration: duration,
+                  isPlaying: newIsPlay,
+                  startTimestamp
+                });
+              })
+              .catch(() => {
+                window.api.send('clear-discord-presence');
+              });
+          } else {
+            window.api.send('clear-discord-presence');
           }
-
-          let startTimestamp = undefined;
-          if (newIsPlay) {
-            startTimestamp = Date.now() - currentTime;
-          }
-
-          window.api.send('update-discord-presence', {
-            title: newSong.name,
-            artist: artist,
-            album: album,
-            albumArt: albumArt,
-            songId,
-            artistId,
-            albumId,
-            duration: duration,
-            isPlaying: newIsPlay,
-            startTimestamp
-          });
-        } else {
-          window.api.send('clear-discord-presence');
         }
-      }
-    }, { deep: true });
+      },
+      { deep: true }
+    );
 
     return {
       play,

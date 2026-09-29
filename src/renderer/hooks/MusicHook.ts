@@ -40,7 +40,7 @@ export const nowTime = ref(0);
 export const allTime = ref(0);
 export const nowIndex = ref(0);
 export const currentLrcProgress = ref(0);
-export const sound = ref<HTMLAudioElement | null>(audioService.getCurrentSound());
+export const sound = ref<any>(null);
 export const isLyricWindowOpen = ref(false);
 export const textColors = ref<any>(getTextColors());
 
@@ -110,8 +110,6 @@ const parseLyricsString = async (
 
   try {
     const parseResult = parseLyrics(lyricsStr);
-    ;
-
     if (!parseResult.success) {
       console.error('Lyrics parsing failed:', parseResult.error.message);
       return { lrcArray: [], lrcTimeArray: [], hasWordByWord: false };
@@ -271,24 +269,19 @@ const setupAudioListeners = () => {
 
   const startProgressInterval = () => {
     clearInterval();
-    interval = window.setInterval(() => {
+    interval = window.setInterval(async () => {
       try {
-        const currentSound = audioService.getCurrentSound();
-        if (!currentSound) {
+        if (!audioService.isActuallyPlaying()) {
           return;
         }
 
-        const currentTime = currentSound.currentTime;
+        const currentTime = await window.api.audioGetTime();
         if (typeof currentTime !== 'number' || Number.isNaN(currentTime)) {
           return;
         }
 
-        if (sound.value !== currentSound) {
-          sound.value = currentSound;
-        }
-
         nowTime.value = currentTime;
-        allTime.value = currentSound.duration;
+        allTime.value = audioService.getDuration() || 0;
 
         const newIndex = getLrcIndex(nowTime.value);
         if (newIndex !== nowIndex.value) {
@@ -326,7 +319,9 @@ const setupAudioListeners = () => {
               })
             );
             lyricLastSend = now;
-          } catch { /* empty */ }
+          } catch {
+            /* empty */
+          }
         }
 
         if (
@@ -356,13 +351,14 @@ const setupAudioListeners = () => {
       try {
         const store = getPlayerStore();
         if (store.play && !interval) {
-          const currentSound = audioService.getCurrentSound();
-          if (currentSound && !currentSound.paused) {
+          if (audioService.isActuallyPlaying()) {
             console.warn('[MusicHook] Playing detected but interval Lost, automatically restored');
             startProgressInterval();
           }
         }
-      } catch { /* empty */ }
+      } catch {
+        /* empty */
+      }
     }, 500);
   };
 
@@ -372,27 +368,24 @@ const setupAudioListeners = () => {
     nowTime.value = time;
   });
 
-  audioService.on('seek', () => {
+  audioService.on('seek', async () => {
     try {
-      const currentSound = audioService.getCurrentSound();
-      if (currentSound) {
-        const currentTime = currentSound.currentTime;
-        if (typeof currentTime === 'number' && !Number.isNaN(currentTime)) {
-          nowTime.value = currentTime;
+      const currentTime = await window.api.audioGetTime();
+      if (typeof currentTime === 'number' && !Number.isNaN(currentTime)) {
+        nowTime.value = currentTime;
 
-          if (lrcArray.value[nowIndex.value]) {
-            if (lastIndex !== nowIndex.value) {
-              sendTrayLyric(nowIndex.value);
-              lastIndex = nowIndex.value;
-            }
+        if (lrcArray.value[nowIndex.value]) {
+          if (lastIndex !== nowIndex.value) {
+            sendTrayLyric(nowIndex.value);
+            lastIndex = nowIndex.value;
           }
+        }
 
-          const newIndex = getLrcIndex(nowTime.value);
-          if (newIndex !== nowIndex.value) {
-            nowIndex.value = newIndex;
-            if (isLyricWindowOpen.value) {
-              sendLyricToWin();
-            }
+        const newIndex = getLrcIndex(nowTime.value);
+        if (newIndex !== nowIndex.value) {
+          nowIndex.value = newIndex;
+          if (isLyricWindowOpen.value) {
+            sendLyricToWin();
           }
         }
       }
@@ -401,18 +394,15 @@ const setupAudioListeners = () => {
     }
   });
 
-  const updateCurrentTimeAndDuration = () => {
-    const currentSound = audioService.getCurrentSound();
-    if (currentSound) {
-      try {
-        const currentTime = currentSound.currentTime;
-        if (typeof currentTime === 'number' && !Number.isNaN(currentTime)) {
-          nowTime.value = currentTime;
-          allTime.value = currentSound.duration;
-        }
-      } catch (error) {
-        console.error('Initialization time and progress failed:', error);
+  const updateCurrentTimeAndDuration = async () => {
+    try {
+      const currentTime = await window.api.audioGetTime();
+      if (typeof currentTime === 'number' && !Number.isNaN(currentTime)) {
+        nowTime.value = currentTime;
+        allTime.value = audioService.getDuration() || 0;
       }
+    } catch (error) {
+      console.error('Initialization time and progress failed:', error);
     }
   };
 
@@ -442,7 +432,6 @@ const setupAudioListeners = () => {
     try {
       if (getPlayerStore().playMusicUrl && playMusic.value) {
         await audioService.play(getPlayerStore().playMusicUrl, playMusic.value);
-        sound.value = audioService.getCurrentSound();
         setupAudioListeners();
       } else {
         console.error('Single loop: None available URL or song data');
@@ -488,31 +477,25 @@ const setupAudioListeners = () => {
 };
 
 export const play = () => {
-  const currentSound = audioService.getCurrentSound();
-  if (currentSound) {
-    currentSound.play();
-  }
+  window.api.audioResume();
 };
 
-export const pause = () => {
-  const currentSound = audioService.getCurrentSound();
-  if (currentSound) {
-    try {
-      const currentTime = currentSound.currentTime;
-      if (getPlayerStore().playMusic && getPlayerStore().playMusic.id) {
-        localStorage.setItem(
-          'playProgress',
-          JSON.stringify({
-            songId: getPlayerStore().playMusic.id,
-            progress: currentTime
-          })
-        );
-      }
-
-      audioService.pause();
-    } catch (error) {
-      console.error('Pause playback error:', error);
+export const pause = async () => {
+  try {
+    const currentTime = await window.api.audioGetTime();
+    if (getPlayerStore().playMusic && getPlayerStore().playMusic.id) {
+      localStorage.setItem(
+        'playProgress',
+        JSON.stringify({
+          songId: getPlayerStore().playMusic.id,
+          progress: currentTime
+        })
+      );
     }
+
+    audioService.pause();
+  } catch (error) {
+    console.error('Pause playback error:', error);
   }
 };
 
@@ -626,11 +609,8 @@ export const useLyricProgress = () => {
 };
 
 export const setAudioTime = (index: number) => {
-  const currentSound = sound.value;
-  if (!currentSound) return;
-
   audioService.seek(lrcTimeArray.value[index]);
-  currentSound.play();
+  window.api.audioResume();
 };
 
 export const getCurrentLrc = () => {
@@ -805,7 +785,7 @@ const sendDiscordPresence = () => {
   if (!music || !music.id) return;
 
   const isPlaying = store.play;
-  const artistName = music.ar?.map(a => a.name).join(', ') || 'Unknown Artist';
+  const artistName = music.ar?.map((a) => a.name).join(', ') || 'Unknown Artist';
   const title = music.name || 'Unknown Title';
   const albumName = music.al?.name || '';
   const albumArt = music.al?.picUrl || 'chorus_logo';
@@ -814,25 +794,16 @@ const sendDiscordPresence = () => {
   const albumId = music.al?.id || '';
 
   try {
-    const currentSound = audioService.getCurrentSound();
-    let currentPlaybackTimeMillis = 0;
-    let duration = 0;
-    if (currentSound) {
-      currentPlaybackTimeMillis = (currentSound.currentTime || 0) * 1000;
-      duration = (currentSound.duration || 0) * 1000;
-    }
-    
+    let currentPlaybackTimeMillis = nowTime.value * 1000;
+    let duration = (audioService.getDuration() || 0) * 1000;
     window.api.send('update-discord-presence', {
-      title,
-      artist: artistName,
-      album: albumName,
-      albumArt,
-      songId,
-      artistId,
-      albumId,
-      duration,
-      isPlaying,
-      startTimestamp: isPlaying ? Date.now() - currentPlaybackTimeMillis : undefined
+      state: isPlaying ? `by ${artistName}` : 'Paused',
+      details: title,
+      largeImage: albumArt,
+      largeText: albumName,
+      smallImage: isPlaying ? 'play' : 'pause',
+      smallText: isPlaying ? 'Playing' : 'Paused',
+      startTimestamp: isPlaying ? Math.floor(Date.now() - currentPlaybackTimeMillis) : undefined
     });
   } catch (err) {
     console.error('Failed to send discord presence', err);
@@ -872,27 +843,6 @@ export const initAudioListeners = async () => {
       return;
     }
 
-    const initialSound = audioService.getCurrentSound();
-    if (!initialSound) {
-      console.log('No audio instance, waiting for audio to load...');
-
-      await new Promise<void>((resolve) => {
-        const checkInterval = setInterval(() => {
-          const sound = audioService.getCurrentSound();
-          if (sound) {
-            clearInterval(checkInterval);
-            resolve();
-          }
-        }, 100);
-
-        setTimeout(() => {
-          clearInterval(checkInterval);
-          console.log('Timeout waiting for audio to load');
-          resolve();
-        }, 5000);
-      });
-    }
-
     setupAudioListeners();
 
     if (isDesktop()) {
@@ -908,13 +858,6 @@ export const initAudioListeners = async () => {
         sendLyricToWin();
       });
     }
-
-    const finalSound = audioService.getCurrentSound();
-    if (finalSound) {
-      sound.value = finalSound;
-    } else {
-      console.warn('Unable to obtain audio instance, skipping progress update initialization');
-    }
   } catch (error) {
     console.error('Failed to initialize audio listener:', error);
   }
@@ -922,19 +865,7 @@ export const initAudioListeners = async () => {
 
 const handleAudioReady = ((event: CustomEvent) => {
   try {
-    const { sound: newSound } = event.detail;
-    if (newSound) {
-      sound.value = audioService.getCurrentSound();
-      setupAudioListeners();
-
-      const currentSound = audioService.getCurrentSound();
-      if (currentSound) {
-        const currentPosition = currentSound.currentTime;
-        if (typeof currentPosition === 'number' && !Number.isNaN(currentPosition)) {
-          nowTime.value = currentPosition;
-        }
-      }
-    }
+    setupAudioListeners();
   } catch (error) {
     console.error('Error handling audio ready event:', error);
   }

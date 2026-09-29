@@ -41,6 +41,7 @@ const GENERIC_INVOKE_CHANNELS = [
   'switch-disk-cache-directory',
   'clear-discord-presence',
   'discord-logout',
+  'discord-webview-login',
   'open-directory',
   'restart',
   'set-content-zoom',
@@ -56,16 +57,7 @@ const GENERIC_INVOKE_CHANNELS = [
   'lyric-drag-move',
   'lyric-drag-end',
   'control-back',
-  'ytm:search-keyword',
-  'ytm:hot-search',
-  'ytm:home',
-  'ytm:charts',
-  'ytm:search',
-  'ytm:suggestions',
-  'ytm:moods',
-  'ytm:player',
-  'ytm:playlist',
-  'ytm:artist'
+  'ytm:request'
 ] as const;
 
 const EVENT_CHANNELS = [
@@ -86,7 +78,8 @@ const EVENT_CHANNELS = [
   'download:progress',
   'download:state-change',
   'download:batch-complete',
-  'download:request-url'
+  'download:request-url',
+  'playback-progress'
 ] as const;
 
 export type Unlisten = () => void;
@@ -142,8 +135,10 @@ export const bridge = {
   restore: () => rawInvoke<void>('restore-window'),
   restart: () => rawInvoke<void>('restart'),
   dragStart: (data: unknown) => rawInvoke<void>('drag-start', { data }),
-  resizeWindow: (width: number, height: number) => rawInvoke<void>('resize-window', { width, height }),
-  resizeMiniWindow: (showPlaylist: boolean) => rawInvoke<void>('resize-mini-window', { showPlaylist }),
+  resizeWindow: (width: number, height: number) =>
+    rawInvoke<void>('resize-window', { width, height }),
+  resizeMiniWindow: (showPlaylist: boolean) =>
+    rawInvoke<void>('resize-mini-window', { showPlaylist }),
   miniTray: () => rawInvoke<void>('mini-tray'),
   miniWindow: () => rawInvoke<void>('mini-window'),
 
@@ -171,7 +166,8 @@ export const bridge = {
    * Store (replaces electron-store)
    * ------------------------------------------------------------------ */
   getStoreValue: (key: string) => rawInvoke<unknown>('get-store-value', { key }),
-  setStoreValue: (key: string, value: unknown) => rawInvoke<void>('set-store-value', { key, value }),
+  setStoreValue: (key: string, value: unknown) =>
+    rawInvoke<void>('set-store-value', { key, value }),
 
   /* ------------------------------------------------------------------ *
    * Generic escape hatch (Electron ipcRenderer parity)
@@ -246,7 +242,8 @@ export const bridge = {
   downloadDeleteCompleted: (filePath: string) =>
     rawInvoke<boolean>('download:delete-completed', { filePath }),
   downloadClearCompleted: () => rawInvoke<boolean>('download:clear-completed'),
-  getEmbeddedLyrics: (filePath: string) => rawInvoke<string | null>('download:get-embedded-lyrics', { filePath }),
+  getEmbeddedLyrics: (filePath: string) =>
+    rawInvoke<string | null>('download:get-embedded-lyrics', { filePath }),
   downloadProvideUrl: (taskId: string, url: string) =>
     rawInvoke<void>('download:provide-url', { taskId, url }),
   onDownloadProgress: (cb: (data: DownloadProgressEvent) => void) => {
@@ -285,7 +282,27 @@ export const bridge = {
     ),
   parseLocalMusicMetadata: (filePaths: string[]) =>
     rawInvoke<LocalMusicMeta[]>('parse-local-music-metadata', { filePaths }),
-
+  dbGetTrack: (id: string) => rawInvoke<unknown>('db_get_track', { id }),
+  dbGetLikedTracks: () => rawInvoke<string[]>('db_get_liked_tracks'),
+  dbAddLikedTrack: (trackId: string) => rawInvoke<void>('db_add_liked_track', { trackId }),
+  dbAddDislikedTrack: (trackId: string) => rawInvoke<void>('db_add_disliked_track', { trackId }),
+  dbTrackPlayed: (trackId: string, playedAt: number) =>
+    rawInvoke<void>('db_track_played', { trackId, playedAt }),
+  dbStorePlaylist: (id: string, name: string, description: string) =>
+    rawInvoke<void>('db_store_playlist', { id, name, description }),
+  dbAddTrackToPlaylist: (playlistId: string, trackId: string, trackIndex: number) =>
+    rawInvoke<void>('db_add_track_to_playlist', { playlistId, trackId, trackIndex }),
+  dbRemoveTrackFromPlaylist: (playlistId: string, trackId: string) =>
+    rawInvoke<void>('db_remove_track_from_playlist', { playlistId, trackId }),
+  dbGetTracksInPlaylist: (playlistId: string) =>
+    rawInvoke<unknown[]>('db_get_tracks_in_playlist', { playlistId }),
+  dbGetAllPlaylists: () => rawInvoke<unknown[]>('db_get_all_playlists'),
+  dbSaveLocalMusic: (entry: LocalMusicMeta & { id: string }) =>
+    rawInvoke<void>('db_save_local_music', { entry }),
+  dbGetAllLocalMusic: () =>
+    rawInvoke<(LocalMusicMeta & { id: string })[]>('db_get_all_local_music'),
+  dbDeleteLocalMusic: (id: string) => rawInvoke<void>('db_delete_local_music', { id }),
+  dbClearLocalMusic: () => rawInvoke<void>('db_clear_local_music'),
   getSystemAccentColor: () => rawInvoke<string | null>('get-system-accent-color'),
   getSystemFonts: () => rawInvoke<string[]>('get-system-fonts'),
   selectDirectory: (title?: string) => rawInvoke<string | null>('select-directory', { title }),
@@ -306,12 +323,31 @@ export const bridge = {
   getDiskCacheConfig: () => rawInvoke<unknown>('get-disk-cache-config'),
   setDiskCacheConfig: (config: unknown) => rawInvoke<void>('set-disk-cache-config', { config }),
   getDiskCacheStats: () => rawInvoke<unknown>('get-disk-cache-stats'),
-  switchDiskCacheDirectory: (path: string) => rawInvoke<void>('switch-disk-cache-directory', { path }),
+  switchDiskCacheDirectory: (path: string) =>
+    rawInvoke<void>('switch-disk-cache-directory', { path }),
   changeLanguage: (locale: string) => rawInvoke<void>('change-language', { locale }),
   discordLogout: () => rawInvoke<void>('discord-logout'),
-  updateDiscordPresence: (presence: unknown) => rawInvoke<void>('update-discord-presence', { presence }),
+  updateDiscordPresence: (presence: unknown) =>
+    rawInvoke<void>('update-discord-presence', { presence }),
   clearDiscordPresence: () => rawInvoke<void>('clear-discord-presence'),
-  trayLyricUpdate: (data: unknown) => rawInvoke<void>('tray-lyric-update', { data })
+  trayLyricUpdate: (data: unknown) => rawInvoke<void>('tray-lyric-update', { data }),
+
+  onPlaybackProgress: (cb: (timeSecs: number) => void) => {
+    listenChannel<number>('playback-progress', cb);
+  },
+
+  audioPlay: (url: string) => rawInvoke<void>('audio-play', { url }),
+  audioPause: () => rawInvoke<void>('audio-pause'),
+  audioResume: () => rawInvoke<void>('audio-resume'),
+  audioStop: () => rawInvoke<void>('audio-stop'),
+  audioSetVolume: (volume: number) => rawInvoke<void>('audio-set-volume', { volume }),
+  audioSeek: (timeSecs: number) => rawInvoke<void>('audio-seek', { timeSecs }),
+  audioGetTime: () => rawInvoke<number>('audio-get-time'),
+  audioGetDuration: () => rawInvoke<number | null>('audio-get-duration'),
+  audioSetEqBypass: (bypass: boolean) => rawInvoke<void>('audio-set-eq-bypass', { bypass }),
+  audioSetEqBand: (frequency: number, gain: number) =>
+    rawInvoke<void>('audio-set-eq-band', { frequency, gain }),
+  audioClearCache: () => rawInvoke<void>('audio-clear-cache')
 };
 
 export type Bridge = typeof bridge;

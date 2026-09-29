@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 use lazy_static::lazy_static;
-use souvlaki::{MediaControlEvent, MediaControls, MediaMetadata, MediaPlayback, PlatformConfig};
+use souvlaki::{MediaControlEvent, MediaControls, MediaMetadata, MediaPlayback, MediaPosition, PlatformConfig};
 use tauri::{AppHandle, Emitter, Manager};
 use raw_window_handle::HasRawWindowHandle;
 
@@ -109,6 +109,21 @@ fn update_smtc() {
             let playback = match state {
                 PlaybackState::Playing => MediaPlayback::Playing { progress: None },
                 PlaybackState::Paused => MediaPlayback::Paused { progress: None },
+                PlaybackState::Stopped => MediaPlayback::Stopped,
+            };
+            let _ = controls.set_playback(playback);
+        }
+    }
+}
+
+pub fn update_smtc_position(time_secs: f32) {
+    if let Ok(mut slot) = CONTROLS.lock() {
+        if let Some(controls) = slot.as_mut() {
+            let state = playback_state().unwrap_or(PlaybackState::Stopped);
+            let progress = Some(MediaPosition(std::time::Duration::from_secs_f32(time_secs)));
+            let playback = match state {
+                PlaybackState::Playing => MediaPlayback::Playing { progress },
+                PlaybackState::Paused => MediaPlayback::Paused { progress },
                 PlaybackState::Stopped => MediaPlayback::Stopped,
             };
             let _ = controls.set_playback(playback);

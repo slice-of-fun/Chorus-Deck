@@ -10,7 +10,8 @@ import {
   getCurrentTheme,
   getSystemTheme,
   type ThemeType,
-  watchSystemTheme} from '@/utils/theme';
+  watchSystemTheme
+} from '@/utils/theme';
 
 import { type AppUpdateState, createDefaultAppUpdateState } from '../../../shared/appUpdate';
 

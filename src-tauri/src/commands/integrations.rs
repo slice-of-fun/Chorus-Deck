@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde_json::{Value, json};
 use tauri::{AppHandle, Emitter};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -83,30 +83,93 @@ pub fn app_update_open_release_page(app: AppHandle) -> Result<bool, String> {
     Ok(true)
 }
 
-fn ytm_not_implemented(channel: &str) -> String {
-    format!(
-        "'{channel}' is not implemented in the Tauri backend. The YouTube Music client \
-         still runs in the renderer; migrate it to Rust (or proxy it) before removing \
-         the renderer fallback."
-    )
+use reqwest::header::{HeaderMap, HeaderValue, ACCEPT_LANGUAGE, AUTHORIZATION, COOKIE, CONTENT_TYPE, ORIGIN, REFERER, USER_AGENT};
+use sha1::{Digest, Sha1};
+use std::time::{SystemTime, UNIX_EPOCH};
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct YtmRequestArgs {
+    pub endpoint: String,
+    pub body: Value,
+    pub cookie: Option<String>,
+    pub client_name_id: Option<u32>,
+    pub client_version: Option<String>,
 }
 
-macro_rules! ytm_stub {
-    ($fn_name:ident, $channel:literal) => {
-        #[tauri::command(rename = $channel)]
-        pub fn $fn_name(_args: Option<Value>) -> Result<Value, String> {
-            Err(ytm_not_implemented($channel))
+#[tauri::command(rename = "ytm:request")]
+pub async fn ytm_request(args: YtmRequestArgs) -> Result<Value, String> {
+    let client = reqwest::Client::new();
+    let url = format!(
+        "https://music.youtube.com/youtubei/v1/{}?key=AIzaSyC9XL3ZjWddXya6X74dJoCTL-KZBW_4qT8&prettyPrint=false",
+        args.endpoint
+    );
+
+    let mut headers = HeaderMap::new();
+    headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
+    headers.insert(
+        USER_AGENT,
+        HeaderValue::from_static(
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+        ),
+    );
+    headers.insert(ORIGIN, HeaderValue::from_static("https://music.youtube.com"));
+    headers.insert(REFERER, HeaderValue::from_static("https://music.youtube.com/"));
+    
+    let client_name_id = args.client_name_id.unwrap_or(67).to_string();
+    headers.insert("X-YouTube-Client-Name", HeaderValue::from_str(&client_name_id).unwrap());
+    
+    let client_version = args.client_version.unwrap_or_else(|| "1.20241121.01.00".to_string());
+    headers.insert("X-YouTube-Client-Version", HeaderValue::from_str(&client_version).unwrap());
+
+    headers.insert("X-Goog-Visitor-Id", HeaderValue::from_static(""));
+    headers.insert(ACCEPT_LANGUAGE, HeaderValue::from_static("en-US,en;q=0.9"));
+
+    if let Some(c) = args.cookie {
+        if let Ok(c_val) = HeaderValue::from_str(&c) {
+            headers.insert(COOKIE, c_val);
         }
-    };
-}
+        
+        if let Some(sapisid) = c.split(';').find(|s| s.trim().starts_with("SAPISID=")) {
+            let sapisid = sapisid.trim().trim_start_matches("SAPISID=");
+            let ts = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
+            let input = format!("{} {} https://music.youtube.com", ts, sapisid);
+            let hash = hex::encode(Sha1::digest(input.as_bytes()));
+            if let Ok(auth_val) = HeaderValue::from_str(&format!("SAPISIDHASH {}_{}", ts, hash)) {
+                headers.insert(AUTHORIZATION, auth_val);
+            }
+        }
+    }
 
-ytm_stub!(ytm_home, "ytm:home");
-ytm_stub!(ytm_charts, "ytm:charts");
-ytm_stub!(ytm_search, "ytm:search");
-ytm_stub!(ytm_suggestions, "ytm:suggestions");
-ytm_stub!(ytm_moods, "ytm:moods");
-ytm_stub!(ytm_player, "ytm:player");
-ytm_stub!(ytm_playlist, "ytm:playlist");
-ytm_stub!(ytm_artist, "ytm:artist");
-ytm_stub!(ytm_search_keyword, "ytm:search-keyword");
-ytm_stub!(ytm_hot_search, "ytm:hot-search");
+    let mut payload = args.body.clone();
+    if !payload.as_object().map(|o| o.contains_key("context")).unwrap_or(false) {
+        let context = json!({
+            "client": {
+                "clientName": "WEB_REMIX",
+                "clientVersion": "1.20241121.01.00",
+                "hl": "en",
+                "gl": "US",
+                "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+                "timeZone": "UTC",
+                "utcOffsetMinutes": 0
+            }
+        });
+        if let Value::Object(ref mut map) = payload {
+            map.insert("context".to_string(), context);
+        }
+    }
+
+    let res = client
+        .post(&url)
+        .headers(headers)
+        .json(&payload)
+        .send()
+        .await
+        .map_err(|e| format!("Request failed: {}", e))?;
+
+    if !res.status().is_success() {
+        return Err(format!("YTM API error: {}", res.status()));
+    }
+
+    res.json::<Value>().await.map_err(|e| format!("Parse error: {}", e))
+}
