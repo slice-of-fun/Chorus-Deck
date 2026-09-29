@@ -36,6 +36,8 @@ const GENERIC_INVOKE_CHANNELS = [
   'get-store-value',
   'get-system-fonts',
   'select-directory',
+  'select-file',
+  'save-file',
   'set-disk-cache-config',
   'set-store-value',
   'switch-disk-cache-directory',
@@ -286,6 +288,12 @@ export const bridge = {
   dbGetLikedTracks: () => rawInvoke<string[]>('db_get_liked_tracks'),
   dbAddLikedTrack: (trackId: string) => rawInvoke<void>('db_add_liked_track', { trackId }),
   dbAddDislikedTrack: (trackId: string) => rawInvoke<void>('db_add_disliked_track', { trackId }),
+  dbGetTop50Tracks: () => rawInvoke<unknown[]>('db_get_top_50_tracks'),
+  dbGetDownloadedTracksFull: () => rawInvoke<unknown[]>('db_get_downloaded_tracks_full'),
+  dbExportUserData: (exportPath: string) => rawInvoke<void>('db_export_user_data', { exportPath }),
+  dbGetFollowedArtists: () => rawInvoke<unknown[]>('db_get_followed_artists'),
+  dbFollowArtist: (artistId: string, artistName: string, artworkUrl?: string) => rawInvoke<void>('db_follow_artist', { artistId, artistName, artworkUrl }),
+  dbUnfollowArtist: (artistId: string) => rawInvoke<void>('db_unfollow_artist', { artistId }),
   dbTrackPlayed: (trackId: string, playedAt: number) =>
     rawInvoke<void>('db_track_played', { trackId, playedAt }),
   dbStorePlaylist: (id: string, name: string, description: string) =>
@@ -296,6 +304,8 @@ export const bridge = {
     rawInvoke<void>('db_remove_track_from_playlist', { playlistId, trackId }),
   dbGetTracksInPlaylist: (playlistId: string) =>
     rawInvoke<unknown[]>('db_get_tracks_in_playlist', { playlistId }),
+  dbImportPlaylist: (id: string, name: string, description: string, tracks: any[]) =>
+    rawInvoke<void>('db_import_playlist', { id, name, description, tracks }),
   dbGetAllPlaylists: () => rawInvoke<unknown[]>('db_get_all_playlists'),
   dbSaveLocalMusic: (entry: LocalMusicMeta & { id: string }) =>
     rawInvoke<void>('db_save_local_music', { entry }),
@@ -306,6 +316,8 @@ export const bridge = {
   getSystemAccentColor: () => rawInvoke<string | null>('get-system-accent-color'),
   getSystemFonts: () => rawInvoke<string[]>('get-system-fonts'),
   selectDirectory: (title?: string) => rawInvoke<string | null>('select-directory', { title }),
+  selectFile: (title?: string) => rawInvoke<string | null>('select-file', { title }),
+  saveFile: (title?: string, defaultName?: string) => rawInvoke<string | null>('save-file', { title, defaultName }),
   openDirectory: (path: string) => rawInvoke<void>('open-directory', { path }),
   getDownloadsPath: () => rawInvoke<string>('get-downloads-path'),
   getPlatform: () => rawInvoke<string>('get-platform'),
@@ -347,7 +359,13 @@ export const bridge = {
   audioSetEqBypass: (bypass: boolean) => rawInvoke<void>('audio-set-eq-bypass', { bypass }),
   audioSetEqBand: (frequency: number, gain: number) =>
     rawInvoke<void>('audio-set-eq-band', { frequency, gain }),
-  audioClearCache: () => rawInvoke<void>('audio-clear-cache')
+  audioSetPlaybackRate: (rate: number) => rawInvoke<void>('audio-set-playback-rate', { rate }),
+  audioClearCache: () => rawInvoke<void>('audio-clear-cache'),
+
+  spotifyLogin: (clientId: string) => rawInvoke<string>('integrations:spotify-login', { clientId }),
+  spotifyExchangeToken: (code: string, clientId: string, clientSecret: string) => 
+    rawInvoke<any>('integrations:spotify-exchange-token', { code, clientId, clientSecret }),
+  parsePlaylistUrl: (url: string) => rawInvoke<any>('integrations:parse-playlist-url', { url })
 };
 
 export type Bridge = typeof bridge;

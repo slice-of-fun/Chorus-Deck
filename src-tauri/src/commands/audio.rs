@@ -10,13 +10,25 @@ use sha2::{Sha256, Digest};
 use futures_util::StreamExt;
 use std::io::Write;
 
-use crate::commands::eq::{EqCommand, EqSource};
+use crate::commands::eq::{EqCommand, EqSource, FREQUENCIES};
 use std::sync::mpsc::Sender;
 
 pub struct AudioPlayer {
     pub sink: Sink,
     pub duration: Option<f32>,
     pub eq_tx: Option<Sender<EqCommand>>,
+}
+
+pub struct EqState {
+    pub bypass: bool,
+    pub gains: [f32; 10],
+    pub playback_rate: f32,
+}
+
+impl Default for EqState {
+    fn default() -> Self {
+        Self { bypass: false, gains: [0.0; 10], playback_rate: 1.0 }
+    }
 }
 
 impl AudioPlayer {
@@ -48,7 +60,10 @@ impl AudioPlayer {
     }
 }
 
-pub struct AudioState(pub Mutex<Option<AudioPlayer>>);
+pub struct AudioState {
+    pub player: Mutex<Option<AudioPlayer>>,
+    pub eq: Mutex<EqState>,
+}
 
 pub struct StreamingReader {
     file: File,
@@ -133,7 +148,7 @@ fn manage_audio_cache(app: AppHandle, cache_dir: std::path::PathBuf, max_bytes: 
         }
         
         let mut current_size = total_size;
-        let mut db = app_state.db.lock().unwrap();
+        let db = app_state.db.lock().unwrap();
         
         if let Ok(candidates) = crate::db::music_db::get_audio_cache_eviction_candidates(&db) {
             for (hash, size) in candidates {
@@ -169,7 +184,7 @@ pub async fn audio_play(app: AppHandle, state: State<'_, AudioState>, url: Strin
     
     let downloaded_bytes = Arc::new(AtomicU64::new(0));
     let is_finished = Arc::new(AtomicBool::new(false));
-    let mut expected_size = None;
+    let expected_size;
 
     let read_file_path = if file_path.exists() && std::fs::metadata(&file_path).map(|m| m.len()).unwrap_or(0) > 0 {
         let size = std::fs::metadata(&file_path).map(|m| m.len()).unwrap_or(0);
@@ -227,7 +242,7 @@ pub async fn audio_play(app: AppHandle, state: State<'_, AudioState>, url: Strin
         let app_state = app.state::<crate::commands::AppState>();
         if let Ok(db) = app_state.db.lock() {
             let _ = crate::db::music_db::record_audio_cache_access(&db, &hash, size_to_record, accessed_at);
-        }
+        };
     }
 
     let read_file = OpenOptions::new().read(true).open(&read_file_path).map_err(|e| e.to_string())?;
@@ -243,16 +258,28 @@ pub async fn audio_play(app: AppHandle, state: State<'_, AudioState>, url: Strin
     use rodio::Source;
     let duration = source.total_duration().map(|d| d.as_secs_f32());
     
-    let mut player_lock = state.0.lock().unwrap();
+    let mut player_lock = state.player.lock().unwrap();
     let mut player = AudioPlayer::new()?;
     player.duration = duration;
-    
+
     let (eq_tx, eq_rx) = std::sync::mpsc::channel();
     let eq_source = EqSource::new(source.convert_samples::<f32>(), eq_rx);
-    player.eq_tx = Some(eq_tx);
-    
+    player.eq_tx = Some(eq_tx.clone());
+
     player.sink.append(eq_source);
     player.sink.play();
+
+    {
+        let eq_state = state.eq.lock().unwrap();
+        let _ = eq_tx.send(EqCommand::Bypass(eq_state.bypass));
+        for (i, &freq) in FREQUENCIES.iter().enumerate() {
+            let gain = eq_state.gains[i];
+            if gain.abs() > 0.001 {
+                let _ = eq_tx.send(EqCommand::Band { frequency: freq, gain });
+            }
+        }
+        player.sink.set_speed(eq_state.playback_rate);
+    }
     
     *player_lock = Some(player);
 
@@ -263,7 +290,7 @@ pub async fn audio_play(app: AppHandle, state: State<'_, AudioState>, url: Strin
 
 #[tauri::command(rename = "audio-pause")]
 pub fn audio_pause(state: State<'_, AudioState>) -> Result<(), String> {
-    if let Some(player) = state.0.lock().unwrap().as_ref() {
+    if let Some(player) = state.player.lock().unwrap().as_ref() {
         player.sink.pause();
         let pos = player.sink.get_pos().as_secs_f32();
         crate::smtc::windows_smtc::update_smtc_position(pos);
@@ -274,7 +301,7 @@ pub fn audio_pause(state: State<'_, AudioState>) -> Result<(), String> {
 
 #[tauri::command(rename = "audio-resume")]
 pub fn audio_resume(state: State<'_, AudioState>) -> Result<(), String> {
-    if let Some(player) = state.0.lock().unwrap().as_ref() {
+    if let Some(player) = state.player.lock().unwrap().as_ref() {
         player.sink.play();
         let pos = player.sink.get_pos().as_secs_f32();
         crate::smtc::windows_smtc::update_smtc_position(pos);
@@ -285,7 +312,7 @@ pub fn audio_resume(state: State<'_, AudioState>) -> Result<(), String> {
 
 #[tauri::command(rename = "audio-stop")]
 pub fn audio_stop(state: State<'_, AudioState>) -> Result<(), String> {
-    let mut player_lock = state.0.lock().unwrap();
+    let mut player_lock = state.player.lock().unwrap();
     if let Some(player) = player_lock.as_ref() {
         player.sink.stop();
         let _ = crate::commands::discord::clear_discord_presence();
@@ -296,7 +323,7 @@ pub fn audio_stop(state: State<'_, AudioState>) -> Result<(), String> {
 
 #[tauri::command(rename = "audio-set-volume")]
 pub fn audio_set_volume(state: State<'_, AudioState>, volume: f32) -> Result<(), String> {
-    if let Some(player) = state.0.lock().unwrap().as_ref() {
+    if let Some(player) = state.player.lock().unwrap().as_ref() {
         player.sink.set_volume(volume);
     }
     Ok(())
@@ -304,7 +331,7 @@ pub fn audio_set_volume(state: State<'_, AudioState>, volume: f32) -> Result<(),
 
 #[tauri::command(rename = "audio-seek")]
 pub fn audio_seek(state: State<'_, AudioState>, time_secs: f32) -> Result<(), String> {
-    if let Some(player) = state.0.lock().unwrap().as_ref() {
+    if let Some(player) = state.player.lock().unwrap().as_ref() {
         let duration = std::time::Duration::from_secs_f32(time_secs.max(0.0));
         let _ = player.sink.try_seek(duration);
         crate::smtc::windows_smtc::update_smtc_position(time_secs);
@@ -314,7 +341,7 @@ pub fn audio_seek(state: State<'_, AudioState>, time_secs: f32) -> Result<(), St
 
 #[tauri::command(rename = "audio-get-time")]
 pub fn audio_get_time(state: State<'_, AudioState>) -> Result<f32, String> {
-    if let Some(player) = state.0.lock().unwrap().as_ref() {
+    if let Some(player) = state.player.lock().unwrap().as_ref() {
         Ok(player.sink.get_pos().as_secs_f32())
     } else {
         Ok(0.0)
@@ -323,7 +350,7 @@ pub fn audio_get_time(state: State<'_, AudioState>) -> Result<f32, String> {
 
 #[tauri::command(rename = "audio-get-duration")]
 pub fn audio_get_duration(state: State<'_, AudioState>) -> Result<Option<f32>, String> {
-    if let Some(player) = state.0.lock().unwrap().as_ref() {
+    if let Some(player) = state.player.lock().unwrap().as_ref() {
         Ok(player.duration)
     } else {
         Ok(None)
@@ -332,7 +359,8 @@ pub fn audio_get_duration(state: State<'_, AudioState>) -> Result<Option<f32>, S
 
 #[tauri::command(rename = "audio-set-eq-bypass")]
 pub fn audio_set_eq_bypass(state: State<'_, AudioState>, bypass: bool) -> Result<(), String> {
-    if let Some(player) = state.0.lock().unwrap().as_ref() {
+    state.eq.lock().unwrap().bypass = bypass;
+    if let Some(player) = state.player.lock().unwrap().as_ref() {
         if let Some(tx) = &player.eq_tx {
             let _ = tx.send(EqCommand::Bypass(bypass));
         }
@@ -343,12 +371,29 @@ pub fn audio_set_eq_bypass(state: State<'_, AudioState>, bypass: bool) -> Result
 
 #[tauri::command(rename = "audio-set-eq-band")]
 pub fn audio_set_eq_band(state: State<'_, AudioState>, frequency: f32, gain: f32) -> Result<(), String> {
-    if let Some(player) = state.0.lock().unwrap().as_ref() {
+    {
+        let mut eq = state.eq.lock().unwrap();
+        if let Some(idx) = FREQUENCIES.iter().position(|&f| (f - frequency).abs() < 1.0) {
+            eq.gains[idx] = gain;
+        }
+    }
+    if let Some(player) = state.player.lock().unwrap().as_ref() {
         if let Some(tx) = &player.eq_tx {
             let _ = tx.send(EqCommand::Band { frequency, gain });
         }
     }
     println!("Native EQ band set: {}Hz to {}dB", frequency, gain);
+    Ok(())
+}
+
+#[tauri::command(rename = "audio-set-playback-rate")]
+pub fn audio_set_playback_rate(state: State<'_, AudioState>, rate: f32) -> Result<(), String> {
+    let clamped = rate.clamp(0.25, 4.0);
+    state.eq.lock().unwrap().playback_rate = clamped;
+    if let Some(player) = state.player.lock().unwrap().as_ref() {
+        player.sink.set_speed(clamped);
+    }
+    println!("Native playback rate set to: {}x", clamped);
     Ok(())
 }
 

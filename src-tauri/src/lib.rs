@@ -27,7 +27,10 @@ pub fn run() {
             let state = AppState::new(&handle)
                 .map_err(|e| format!("failed to initialise application state: {e}"))?;
             app.manage(state);
-            app.manage(AudioState(std::sync::Mutex::new(None)));
+            app.manage(AudioState {
+                player: std::sync::Mutex::new(None),
+                eq: std::sync::Mutex::new(commands::audio::EqState::default()),
+            });
 
             let progress_handle = handle.clone();
             std::thread::spawn(move || {
@@ -36,7 +39,7 @@ pub fn run() {
                     std::thread::sleep(std::time::Duration::from_millis(200));
                     {
                         let state = progress_handle.state::<AudioState>();
-                        if let Ok(guard) = state.0.lock() {
+                        if let Ok(guard) = state.player.lock() {
                             if let Some(player) = guard.as_ref() {
                                 if !player.sink.is_paused() && !player.sink.empty() {
                                     let pos = player.sink.get_pos().as_secs_f32();
@@ -147,6 +150,8 @@ pub fn run() {
             commands::store::switch_disk_cache_directory,
             commands::db::get_track,
             commands::db::get_liked_tracks,
+            commands::db::get_liked_tracks_full,
+            commands::db::get_recently_played_full,
             commands::db::add_liked_track,
             commands::db::add_disliked_track,
             commands::db::track_played,
@@ -159,6 +164,13 @@ pub fn run() {
             commands::db::get_all_local_music,
             commands::db::delete_local_music,
             commands::db::clear_local_music,
+            commands::db::follow_artist,
+            commands::db::unfollow_artist,
+            commands::db::get_followed_artists,
+            commands::db::get_top_50_tracks,
+            commands::db::get_downloaded_tracks_full,
+            commands::db::export_user_data,
+            commands::db::import_playlist,
             commands::media::get_downloads_path,
             commands::media::download_get_queue,
             commands::media::download_get_completed,
@@ -180,6 +192,8 @@ pub fn run() {
             commands::media::check_file_exists,
             commands::system::open_directory,
             commands::system::select_directory,
+            commands::system::select_file,
+            commands::system::save_file,
             commands::system::show_notification,
             commands::system::change_language,
             commands::system::get_system_accent_color,
@@ -190,6 +204,11 @@ pub fn run() {
             commands::integrations::app_update_quit_and_install,
             commands::integrations::app_update_open_release_page,
             commands::integrations::ytm_request,
+            commands::integrations::spotify_login,
+            commands::integrations::spotify_exchange_token,
+            commands::integrations::spotify_fetch_playlists,
+            commands::integrations::spotify_fetch_playlist_tracks,
+            commands::integrations::parse_playlist_url,
             commands::discord::update_discord_presence,
             commands::discord::clear_discord_presence,
             commands::discord::discord_logout,
@@ -204,6 +223,7 @@ pub fn run() {
             commands::audio::audio_get_duration,
             commands::audio::audio_set_eq_bypass,
             commands::audio::audio_set_eq_band,
+            commands::audio::audio_set_playback_rate,
             commands::audio::audio_clear_cache,
         ])
         .run(tauri::generate_context!())

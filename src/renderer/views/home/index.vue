@@ -249,11 +249,15 @@ function scrollSection(idx: number, dir: 1 | -1) {
 async function loadHome() {
   loading.value = true;
   error.value = null;
+  sections.value = [];
   try {
     const page = await getYTMHome();
-    sections.value = page.sections.filter((s) => s.items.length > 0);
+    const networkSections = page.sections.filter((s) => s.items.length > 0);
+    sections.value = [...sections.value, ...networkSections];
   } catch (e: any) {
-    error.value = e.message || 'Could not load YouTube Music home';
+    if (sections.value.length === 0) {
+      error.value = e.message || 'Could not load YouTube Music home';
+    }
   } finally {
     loading.value = false;
   }

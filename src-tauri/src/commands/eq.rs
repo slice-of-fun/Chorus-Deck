@@ -7,7 +7,7 @@ pub enum EqCommand {
     Band { frequency: f32, gain: f32 },
 }
 
-const FREQUENCIES: [f32; 10] = [
+pub const FREQUENCIES: [f32; 10] = [
     31.0, 62.0, 125.0, 250.0, 500.0, 1000.0, 2000.0, 4000.0, 8000.0, 16000.0,
 ];
 

@@ -163,8 +163,8 @@ import { useDebounceFn } from '@vueuse/core';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
-import type { SearchFilter } from '@/api/search';
-import { getSearchSuggestions } from '@/api/search';
+import type { SearchFilter } from '@/api/provider';
+import { getProvider } from '@/api/providers';
 import { SEARCH_TYPES } from '@/const/bar-const';
 import { useZoom } from '@/hooks/useZoom';
 import { useDownloadStore } from '@/store/modules/download';
@@ -314,7 +314,8 @@ const debouncedSuggest = useDebounceFn(async (kw: string) => {
   }
   lastSuggestKeyword = kw;
   suggestionsLoading.value = true;
-  const result = await getSearchSuggestions(kw);
+  const provider = getProvider();
+  const result = await provider.getSuggestions(kw);
 
   if (kw !== lastSuggestKeyword) {
     return;

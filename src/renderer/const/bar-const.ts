@@ -1,4 +1,4 @@
-import type { SearchFilter } from '@/api/search';
+import type { SearchFilter } from '@/api/provider';
 
 export const SEARCH_TYPES: { label: string; key: SearchFilter }[] = [
   {

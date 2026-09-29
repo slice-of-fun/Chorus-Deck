@@ -1,6 +1,6 @@
-export type Platform = 'ytmusic';
+export type Platform = 'ytmusic' | 'spotify';
 
-export const DEFAULT_PLATFORMS: Platform[] = ['ytmusic'];
+export const DEFAULT_PLATFORMS: Platform[] = ['ytmusic', 'spotify'];
 
 export interface IWordData {
   text: string;
@@ -36,14 +36,6 @@ export interface Album {
   picUrl?: string;
 }
 
-/**
- * A single playable track.
- *
- * `id` is always the YouTube video id (11 characters) for streamed tracks, a
- * `local://` path for local files, or a local download id for downloaded files.
- * `ar`/`al`/`dt` are kept as optional legacy aliases so older components that
- * still read them keep working; prefer `artists`/`album`/`duration`.
- */
 export interface SongResult {
   id: string;
   name: string;
@@ -51,13 +43,8 @@ export interface SongResult {
   artists?: Artist[];
   album?: string;
 
-  /**
-   * Short-form aliases kept for compatibility with older cached track objects;
-   * prefer `artists`/`album`/`duration` in new code.
-   */
   ar?: Artist[];
   al?: Album;
-  /** Cover image used by some cache/playlist entry shapes. */
   coverImgUrl?: string;
   dt?: number;
   count?: number;
@@ -74,11 +61,9 @@ export interface SongResult {
   lyric?: ILyric;
   backgroundColor?: string;
   primaryColor?: string;
-  source?: 'ytmusic' | 'local';
+  source?: 'ytmusic' | 'local' | 'spotify';
 
-  /** YouTube video id backing this track. */
   videoId?: string;
-  /** Mime type of the most recently resolved stream, e.g. `audio/mp4`. */
   mimeType?: string;
   expiredAt?: number;
   createdAt?: number;

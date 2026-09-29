@@ -65,7 +65,8 @@
 import { computed, inject, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
-import { getSearch, type SearchFilter, toSongResult } from '@/api/search';
+import { getProvider } from '@/api/providers';
+import type { SearchFilter } from '@/api/provider';
 import SearchItem from '@/components/common/SearchItem.vue';
 import SongItem from '@/components/common/SongItem.vue';
 import { SEARCH_TYPE, SEARCH_TYPES } from '@/const/bar-const';
@@ -114,14 +115,15 @@ const performSearch = async (isLoadMore = false) => {
 
   try {
     if (searchType.value === SEARCH_TYPE.MUSIC) {
-      const { data } = await getSearch({
+      const provider = getProvider(searchStore.searchProvider);
+      const data = await provider.search({
         keywords: keyword.value,
-        type: searchType.value,
+        type: 'songs',
         limit: ITEMS_PER_PAGE,
         offset: (page.value - 1) * ITEMS_PER_PAGE
       });
 
-      const songs = (data.songs || []).map((item) => toSongResult(item));
+      const songs = data.songs || [];
 
       if (isLoadMore) {
         results.value = [...results.value, ...songs];
@@ -131,20 +133,15 @@ const performSearch = async (isLoadMore = false) => {
 
       hasMore.value = songs.length === ITEMS_PER_PAGE;
     } else if (searchType.value === SEARCH_TYPE.ALBUM) {
-      const { data } = await getSearch({
+      const provider = getProvider(searchStore.searchProvider);
+      const data = await provider.search({
         keywords: keyword.value,
-        type: searchType.value,
+        type: 'albums',
         limit: ITEMS_PER_PAGE,
         offset: (page.value - 1) * ITEMS_PER_PAGE
       });
 
-      const albums = (data.albums || []).map((item) => ({
-        id: item.id,
-        name: item.title,
-        picUrl: item.thumbnail,
-        desc: item.subtitle || '',
-        type: 'album'
-      }));
+      const albums = data.albums || [];
 
       if (isLoadMore) {
         results.value = [...results.value, ...albums];
@@ -154,20 +151,15 @@ const performSearch = async (isLoadMore = false) => {
 
       hasMore.value = albums.length === ITEMS_PER_PAGE;
     } else if (searchType.value === SEARCH_TYPE.PLAYLIST) {
-      const { data } = await getSearch({
+      const provider = getProvider(searchStore.searchProvider);
+      const data = await provider.search({
         keywords: keyword.value,
-        type: searchType.value,
+        type: 'playlists',
         limit: ITEMS_PER_PAGE,
         offset: (page.value - 1) * ITEMS_PER_PAGE
       });
 
-      const playlists = (data.playlists || []).map((item) => ({
-        id: item.id,
-        name: item.title,
-        picUrl: item.thumbnail,
-        desc: item.subtitle || '',
-        type: 'playlist'
-      }));
+      const playlists = data.playlists || [];
 
       if (isLoadMore) {
         results.value = [...results.value, ...playlists];

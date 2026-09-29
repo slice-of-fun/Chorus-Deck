@@ -132,7 +132,10 @@ pub fn init_db(app_data_dir: &Path) -> Result<Connection> {
            file_size INTEGER,
            last_accessed INTEGER
          );
-         CREATE INDEX IF NOT EXISTS idx_audio_cache_last_accessed ON audio_cache(last_accessed);",
+         CREATE INDEX IF NOT EXISTS idx_audio_cache_last_accessed ON audio_cache(last_accessed);
+         CREATE TABLE IF NOT EXISTS followed_artists (
+           artist_id TEXT PRIMARY KEY
+         );",
     )?;
 
     conn.execute(
@@ -288,6 +291,28 @@ pub fn get_liked_tracks(conn: &Connection) -> Result<Vec<String>> {
     rows.collect()
 }
 
+pub fn get_liked_tracks_full(conn: &Connection) -> Result<Vec<Track>> {
+    let mut stmt = conn.prepare(
+        "SELECT t.id, t.name, t.artist, t.album, t.duration, t.file_path, t.last_played, t.play_count, t.rating
+         FROM tracks t
+         JOIN liked_tracks lt ON t.id = lt.track_id"
+    )?;
+    let rows = stmt.query_map([], track_from_row)?;
+    rows.collect()
+}
+
+pub fn get_recently_played_full(conn: &Connection) -> Result<Vec<Track>> {
+    let mut stmt = conn.prepare(
+        "SELECT t.id, t.name, t.artist, t.album, t.duration, t.file_path, t.last_played, t.play_count, t.rating
+         FROM tracks t
+         JOIN recently_played rp ON t.id = rp.track_id
+         ORDER BY rp.played_at DESC
+         LIMIT 20"
+    )?;
+    let rows = stmt.query_map([], track_from_row)?;
+    rows.collect()
+}
+
 pub fn add_liked_track(conn: &Connection, track_id: &str) -> Result<()> {
     conn.execute(
         "INSERT OR IGNORE INTO liked_tracks (track_id) VALUES (?1)",
@@ -316,6 +341,47 @@ pub fn track_played(conn: &Connection, track_id: &str, played_at: i64) -> Result
         rusqlite::params![track_id, played_at],
     )?;
     Ok(())
+}
+
+pub fn get_top_50_tracks(conn: &Connection) -> Result<Vec<Track>> {
+    let mut stmt = conn.prepare(&format!(
+        "SELECT {TRACK_COLUMNS} FROM tracks ORDER BY play_count DESC LIMIT 50"
+    ))?;
+    let rows = stmt.query_map([], track_from_row)?;
+    rows.collect()
+}
+
+pub fn get_downloaded_tracks_full(conn: &Connection) -> Result<Vec<Track>> {
+    let mut stmt = conn.prepare(
+        "SELECT t.id, t.name, t.artist, t.album, t.duration, t.file_path, t.last_played, t.play_count, t.rating
+         FROM tracks t
+         JOIN downloads d ON t.id = d.track_id
+         WHERE d.status = 'completed'"
+    )?;
+    let rows = stmt.query_map([], track_from_row)?;
+    rows.collect()
+}
+
+pub fn follow_artist(conn: &Connection, artist_id: &str) -> Result<()> {
+    conn.execute(
+        "INSERT OR IGNORE INTO followed_artists (artist_id) VALUES (?1)",
+        [artist_id],
+    )?;
+    Ok(())
+}
+
+pub fn unfollow_artist(conn: &Connection, artist_id: &str) -> Result<()> {
+    conn.execute(
+        "DELETE FROM followed_artists WHERE artist_id = ?1",
+        [artist_id],
+    )?;
+    Ok(())
+}
+
+pub fn get_followed_artists(conn: &Connection) -> Result<Vec<String>> {
+    let mut stmt = conn.prepare("SELECT artist_id FROM followed_artists")?;
+    let rows = stmt.query_map([], |row| row.get::<_, String>(0))?;
+    rows.collect()
 }
 
 pub fn store_playlist(conn: &Connection, id: &str, name: &str, description: &str) -> Result<()> {
@@ -491,5 +557,73 @@ pub fn get_audio_cache_eviction_candidates(conn: &Connection) -> Result<Vec<(Str
 
 pub fn delete_audio_cache_record(conn: &Connection, hash: &str) -> Result<()> {
     conn.execute("DELETE FROM audio_cache WHERE hash = ?1", [hash])?;
+    Ok(())
+}
+
+pub fn export_user_data(conn: &Connection, export_path: &str) -> Result<()> {
+    let playlists = get_all_playlists(conn)?;
+    
+    let mut stmt = conn.prepare("SELECT playlist_id, track_id, track_index FROM playlist_tracks")?;
+    let playlist_tracks: Vec<serde_json::Value> = stmt.query_map([], |row| {
+        Ok(serde_json::json!({
+            "playlist_id": row.get::<_, String>(0)?,
+            "track_id": row.get::<_, String>(1)?,
+            "track_index": row.get::<_, i32>(2)?,
+        }))
+    })?.filter_map(Result::ok).collect();
+
+    let liked_tracks = get_liked_tracks(conn)?;
+    let followed_artists = get_followed_artists(conn)?;
+
+    let mut stmt = conn.prepare("SELECT id, name, artist, album, duration, file_path, last_played, play_count, rating FROM tracks")?;
+    let tracks: Vec<Track> = stmt.query_map([], track_from_row)?.filter_map(Result::ok).collect();
+
+    let export_data = serde_json::json!({
+        "playlists": playlists,
+        "playlist_tracks": playlist_tracks,
+        "liked_tracks": liked_tracks,
+        "followed_artists": followed_artists,
+        "tracks": tracks
+    });
+
+    let f = std::fs::File::create(export_path).map_err(|e| {
+        rusqlite::Error::ToSqlConversionFailure(Box::new(std::io::Error::other(e.to_string())))
+    })?;
+    
+    serde_json::to_writer_pretty(f, &export_data).map_err(|e| {
+         rusqlite::Error::ToSqlConversionFailure(Box::new(std::io::Error::other(e.to_string())))
+    })?;
+    
+    Ok(())
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct ImportedTrack {
+    pub id: String,
+    pub title: String,
+    pub artist: String,
+    pub duration_ms: i64,
+}
+
+pub fn import_playlist(conn: &mut Connection, id: &str, name: &str, description: &str, tracks: &[ImportedTrack]) -> Result<()> {
+    let tx = conn.transaction()?;
+    
+    tx.execute(
+        "INSERT OR REPLACE INTO playlists (id, name, description, created, last_modified) VALUES (?1, ?2, ?3, ?4, ?4)",
+        rusqlite::params![id, name, description, 0_i64],
+    )?;
+
+    {
+        let mut track_stmt = tx.prepare("INSERT OR IGNORE INTO tracks (id, name, artist, duration, file_path) VALUES (?1, ?2, ?3, ?4, '')")?;
+        let mut pt_stmt = tx.prepare("INSERT OR REPLACE INTO playlist_tracks (playlist_id, track_id, track_index) VALUES (?1, ?2, ?3)")?;
+
+        for (index, track) in tracks.iter().enumerate() {
+            track_stmt.execute(rusqlite::params![track.id, track.title, track.artist, track.duration_ms])?;
+            pt_stmt.execute(rusqlite::params![id, track.id, index as i32])?;
+        }
+    }
+
+    tx.commit()?;
     Ok(())
 }

@@ -36,17 +36,10 @@
               v-for="(s, i) in suggestions"
               :key="i"
               class="w-full flex items-center gap-3 px-4 py-3 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors text-left"
-              @click="selectSuggestion(s.query)"
+              @click="selectSuggestion(s)"
             >
-              <i
-                :class="[
-                  'text-base text-neutral-400',
-                  s.fromHistory ? 'ri-time-line' : 'ri-search-line'
-                ]"
-              />
-              <span class="text-sm text-neutral-700 dark:text-neutral-300 flex-1">{{
-                s.query
-              }}</span>
+              <i class="text-base text-neutral-400 ri-search-line" />
+              <span class="text-sm text-neutral-700 dark:text-neutral-300 flex-1">{{ s }}</span>
               <i
                 class="ri-arrow-up-left-line text-neutral-300 dark:text-neutral-600 text-xs"
                 title="Fill search bar"
@@ -104,64 +97,6 @@
               <p class="text-sm">No results found for "{{ lastQuery }}"</p>
             </div>
 
-            <section v-if="results.topResult" class="mb-8">
-              <h2 class="text-xl font-bold text-neutral-900 dark:text-white mb-4 px-1">
-                Top Result
-              </h2>
-              <div
-                class="search-result-row group flex items-center gap-5 p-4 rounded-3xl bg-primary/5 dark:bg-primary/10 hover:bg-primary/10 dark:hover:bg-primary/20 transition-all cursor-pointer"
-                @click="'artists' in results.topResult ? playSong(results.topResult) : null"
-              >
-                <div
-                  class="relative w-20 h-20 sm:w-24 sm:h-24 flex-shrink-0 rounded-xl overflow-hidden bg-neutral-200 dark:bg-neutral-800 shadow-sm group-hover:shadow-md transition-all"
-                >
-                  <img
-                    :src="results.topResult.thumbnail || getPlaceholder(results.topResult.title)"
-                    :alt="results.topResult.title"
-                    class="w-full h-full object-cover"
-                    loading="lazy"
-                    @error="onImgError($event, results.topResult.title)"
-                  />
-                  <div
-                    v-if="'artists' in results.topResult"
-                    class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]"
-                  >
-                    <div
-                      class="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white shadow-lg transform scale-90 group-hover:scale-100 transition-transform"
-                    >
-                      <i class="ri-play-fill text-xl" />
-                    </div>
-                  </div>
-                </div>
-                <div class="flex-1 min-w-0 flex flex-col justify-center">
-                  <div
-                    class="inline-block px-2 py-0.5 rounded-md bg-neutral-200 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 text-[10px] font-bold uppercase tracking-wider mb-2 w-max"
-                  >
-                    {{
-                      (results.topResult as any).resultType ||
-                      ('artists' in results.topResult ? 'Song' : 'Playlist / Album')
-                    }}
-                  </div>
-                  <p
-                    class="text-lg sm:text-xl font-bold text-neutral-900 dark:text-white line-clamp-1 group-hover:text-primary transition-colors"
-                  >
-                    {{ results.topResult.title }}
-                  </p>
-                  <p
-                    class="text-sm text-neutral-500 dark:text-neutral-400 line-clamp-1 mt-1 font-medium"
-                  >
-                    <template v-if="'subtitle' in results.topResult && results.topResult.subtitle">
-                      {{ results.topResult.subtitle }}
-                    </template>
-                    <template v-else-if="'artists' in results.topResult">
-                      {{ results.topResult.artists.map((a) => a.name).join(', ') }}
-                      <span v-if="results.topResult.album"> · {{ results.topResult.album }}</span>
-                    </template>
-                  </p>
-                </div>
-              </div>
-            </section>
-
             <section v-if="results.songs.length > 0" class="mb-8">
               <h2 class="text-xl font-bold text-neutral-900 dark:text-white mb-3 px-1">Songs</h2>
               <div
@@ -178,11 +113,11 @@
                     class="relative w-11 h-11 flex-shrink-0 rounded-lg overflow-hidden bg-neutral-200 dark:bg-neutral-800"
                   >
                     <img
-                      :src="song.thumbnail || getPlaceholder(song.title)"
-                      :alt="song.title"
+                      :src="song.picUrl || getPlaceholder(song.name)"
+                      :alt="song.name"
                       class="w-full h-full object-cover"
                       loading="lazy"
-                      @error="onImgError($event, song.title)"
+                      @error="onImgError($event, song.name)"
                     />
                     <div
                       class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
@@ -194,7 +129,7 @@
                     <p
                       class="text-sm font-semibold text-neutral-900 dark:text-white line-clamp-1 group-hover:text-primary transition-colors"
                     >
-                      {{ song.title }}
+                      {{ song.name }}
                     </p>
                     <p class="text-xs text-neutral-500 dark:text-neutral-400 line-clamp-1 mt-0.5">
                       {{ song.artists.map((a) => a.name).join(', ') }}
@@ -202,10 +137,10 @@
                     </p>
                   </div>
                   <span
-                    v-if="song.duration"
+                    v-if="formatTime(song.dt)"
                     class="text-xs text-neutral-400 flex-shrink-0 tabular-nums"
                   >
-                    {{ song.duration }}
+                    {{ formatTime(song.dt) }}
                   </span>
                 </div>
               </div>
@@ -228,18 +163,18 @@
                     class="relative w-12 h-12 flex-shrink-0 rounded-full overflow-hidden bg-neutral-200 dark:bg-neutral-800"
                   >
                     <img
-                      :src="ar.thumbnail || getPlaceholder(ar.title)"
-                      :alt="ar.title"
+                      :src="ar.picUrl || getPlaceholder(ar.name)"
+                      :alt="ar.name"
                       class="w-full h-full object-cover"
                       loading="lazy"
-                      @error="onImgError($event, ar.title)"
+                      @error="onImgError($event, ar.name)"
                     />
                   </div>
                   <div class="flex-1 min-w-0">
                     <p
                       class="text-sm font-semibold text-neutral-900 dark:text-white line-clamp-1 group-hover:text-primary transition-colors"
                     >
-                      {{ ar.title }}
+                      {{ ar.name }}
                     </p>
                   </div>
                 </div>
@@ -261,24 +196,24 @@
                     class="relative w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden bg-neutral-200 dark:bg-neutral-800"
                   >
                     <img
-                      :src="al.thumbnail || getPlaceholder(al.title)"
-                      :alt="al.title"
+                      :src="al.picUrl || getPlaceholder(al.name)"
+                      :alt="al.name"
                       class="w-full h-full object-cover"
                       loading="lazy"
-                      @error="onImgError($event, al.title)"
+                      @error="onImgError($event, al.name)"
                     />
                   </div>
                   <div class="flex-1 min-w-0">
                     <p
                       class="text-sm font-semibold text-neutral-900 dark:text-white line-clamp-1 group-hover:text-primary transition-colors"
                     >
-                      {{ al.title }}
+                      {{ al.name }}
                     </p>
                     <p
-                      v-if="al.subtitle"
+                      v-if="al.desc"
                       class="text-xs text-neutral-500 dark:text-neutral-400 line-clamp-1 mt-0.5"
                     >
-                      {{ al.subtitle }}
+                      {{ al.desc }}
                     </p>
                   </div>
                 </div>
@@ -302,24 +237,24 @@
                     class="relative w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden bg-neutral-200 dark:bg-neutral-800"
                   >
                     <img
-                      :src="pl.thumbnail || getPlaceholder(pl.title)"
-                      :alt="pl.title"
+                      :src="pl.picUrl || getPlaceholder(pl.name)"
+                      :alt="pl.name"
                       class="w-full h-full object-cover"
                       loading="lazy"
-                      @error="onImgError($event, pl.title)"
+                      @error="onImgError($event, pl.name)"
                     />
                   </div>
                   <div class="flex-1 min-w-0">
                     <p
                       class="text-sm font-semibold text-neutral-900 dark:text-white line-clamp-1 group-hover:text-primary transition-colors"
                     >
-                      {{ pl.title }}
+                      {{ pl.name }}
                     </p>
                     <p
-                      v-if="pl.subtitle"
+                      v-if="pl.desc"
                       class="text-xs text-neutral-500 dark:text-neutral-400 line-clamp-2 mt-0.5"
                     >
-                      {{ pl.subtitle }}
+                      {{ pl.desc }}
                     </p>
                   </div>
                 </div>
@@ -348,11 +283,11 @@
                   class="relative w-11 h-11 flex-shrink-0 rounded-lg overflow-hidden bg-neutral-200 dark:bg-neutral-800"
                 >
                   <img
-                    :src="song.thumbnail || getPlaceholder(song.title)"
-                    :alt="song.title"
+                    :src="song.picUrl || getPlaceholder(song.name)"
+                    :alt="song.name"
                     class="w-full h-full object-cover"
                     loading="lazy"
-                    @error="onImgError($event, song.title)"
+                    @error="onImgError($event, song.name)"
                   />
                   <div
                     class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
@@ -364,7 +299,7 @@
                   <p
                     class="text-sm font-semibold text-neutral-900 dark:text-white line-clamp-1 group-hover:text-primary transition-colors"
                   >
-                    {{ song.title }}
+                    {{ song.name }}
                   </p>
                   <p class="text-xs text-neutral-500 dark:text-neutral-400 line-clamp-1 mt-0.5">
                     {{ song.artists.map((a) => a.name).join(', ') }}
@@ -372,10 +307,10 @@
                   </p>
                 </div>
                 <span
-                  v-if="song.duration"
+                  v-if="formatTime(song.dt)"
                   class="text-xs text-neutral-400 flex-shrink-0 tabular-nums"
                 >
-                  {{ song.duration }}
+                  {{ formatTime(song.dt) }}
                 </span>
               </div>
             </div>
@@ -401,24 +336,24 @@
                   class="relative w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden bg-neutral-200 dark:bg-neutral-800"
                 >
                   <img
-                    :src="pl.thumbnail || getPlaceholder(pl.title)"
-                    :alt="pl.title"
+                    :src="pl.picUrl || getPlaceholder(pl.name)"
+                    :alt="pl.name"
                     class="w-full h-full object-cover"
                     loading="lazy"
-                    @error="onImgError($event, pl.title)"
+                    @error="onImgError($event, pl.name)"
                   />
                 </div>
                 <div class="flex-1 min-w-0">
                   <p
                     class="text-sm font-semibold text-neutral-900 dark:text-white line-clamp-1 group-hover:text-primary transition-colors"
                   >
-                    {{ pl.title }}
+                    {{ pl.name }}
                   </p>
                   <p
-                    v-if="pl.subtitle"
+                    v-if="pl.desc"
                     class="text-xs text-neutral-500 dark:text-neutral-400 line-clamp-2 mt-0.5"
                   >
-                    {{ pl.subtitle }}
+                    {{ pl.desc }}
                   </p>
                 </div>
               </div>
@@ -445,24 +380,24 @@
                   class="relative w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden bg-neutral-200 dark:bg-neutral-800"
                 >
                   <img
-                    :src="al.thumbnail || getPlaceholder(al.title)"
-                    :alt="al.title"
+                    :src="al.picUrl || getPlaceholder(al.name)"
+                    :alt="al.name"
                     class="w-full h-full object-cover"
                     loading="lazy"
-                    @error="onImgError($event, al.title)"
+                    @error="onImgError($event, al.name)"
                   />
                 </div>
                 <div class="flex-1 min-w-0">
                   <p
                     class="text-sm font-semibold text-neutral-900 dark:text-white line-clamp-1 group-hover:text-primary transition-colors"
                   >
-                    {{ al.title }}
+                    {{ al.name }}
                   </p>
                   <p
-                    v-if="al.subtitle"
+                    v-if="al.desc"
                     class="text-xs text-neutral-500 dark:text-neutral-400 line-clamp-1 mt-0.5"
                   >
-                    {{ al.subtitle }}
+                    {{ al.desc }}
                   </p>
                 </div>
               </div>
@@ -489,18 +424,18 @@
                   class="relative w-12 h-12 flex-shrink-0 rounded-full overflow-hidden bg-neutral-200 dark:bg-neutral-800"
                 >
                   <img
-                    :src="ar.thumbnail || getPlaceholder(ar.title)"
-                    :alt="ar.title"
+                    :src="ar.picUrl || getPlaceholder(ar.name)"
+                    :alt="ar.name"
                     class="w-full h-full object-cover"
                     loading="lazy"
-                    @error="onImgError($event, ar.title)"
+                    @error="onImgError($event, ar.name)"
                   />
                 </div>
                 <div class="flex-1 min-w-0">
                   <p
                     class="text-sm font-semibold text-neutral-900 dark:text-white line-clamp-1 group-hover:text-primary transition-colors"
                   >
-                    {{ ar.title }}
+                    {{ ar.name }}
                   </p>
                 </div>
               </div>
@@ -528,11 +463,11 @@
                   class="relative w-20 h-11 flex-shrink-0 rounded-lg overflow-hidden bg-neutral-200 dark:bg-neutral-800"
                 >
                   <img
-                    :src="video.thumbnail || getPlaceholder(video.title)"
-                    :alt="video.title"
+                    :src="video.picUrl || getPlaceholder(video.name)"
+                    :alt="video.name"
                     class="w-full h-full object-cover"
                     loading="lazy"
-                    @error="onImgError($event, video.title)"
+                    @error="onImgError($event, video.name)"
                   />
                   <div
                     class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
@@ -544,17 +479,17 @@
                   <p
                     class="text-sm font-semibold text-neutral-900 dark:text-white line-clamp-1 group-hover:text-primary transition-colors"
                   >
-                    {{ video.title }}
+                    {{ video.name }}
                   </p>
                   <p class="text-xs text-neutral-500 dark:text-neutral-400 line-clamp-1 mt-0.5">
                     {{ video.artists.map((a) => a.name).join(', ') }}
                   </p>
                 </div>
                 <span
-                  v-if="video.duration"
+                  v-if="formatTime(video.dt)"
                   class="text-xs text-neutral-400 flex-shrink-0 tabular-nums"
                 >
-                  {{ video.duration }}
+                  {{ formatTime(video.dt) }}
                 </span>
               </div>
             </div>
@@ -628,19 +563,12 @@
 </template>
 
 <script lang="ts" setup>
-import { NScrollbar } from 'naive-ui';
+import { NScrollbar, NSelect } from 'naive-ui';
 import { onMounted, ref, watch } from 'vue';
 
-import {
-  getYTMMoods,
-  getYTMSuggestions,
-  isYTMSong,
-  searchYTM,
-  type YTMMood,
-  type YTMSearchResult,
-  type YTMSearchSuggestion,
-  type YTMSong
-} from '@/api/ytmusic';
+import { getYTMMoods, type YTMMood } from '@/api/ytmusic';
+import { getProvider } from '@/api/providers';
+import type { SearchResults, SearchFilter } from '@/api/provider';
 import logoImg from '@/assets/logo.png';
 import { usePlaylistStore } from '@/store/modules/playlist';
 import type { SongResult } from '@/types/music';
@@ -666,7 +594,7 @@ const SUGGESTION_DEBOUNCE = 350;
 
 const query = ref('');
 const lastQuery = ref('');
-const suggestions = ref<YTMSearchSuggestion[]>([]);
+const suggestions = ref<string[]>([]);
 const searchDone = ref(false);
 const searchLoading = ref(false);
 const activeTab = ref<'all' | 'songs' | 'videos' | 'albums' | 'artists' | 'playlists'>('all');
@@ -720,7 +648,8 @@ function onQueryInput() {
   suggestDebounceTimer.value = setTimeout(
     async () => {
       try {
-        suggestions.value = await getYTMSuggestions(query.value.trim());
+        const provider = getProvider();
+        suggestions.value = await provider.getSuggestions(query.value.trim());
       } catch {
         // request cancelled - ignore
       }
@@ -782,7 +711,11 @@ async function doSearch(clearResults = true) {
   }
 
   try {
-    const res = await searchYTM(q, activeTab.value === 'all' ? undefined : activeTab.value);
+    const provider = getProvider();
+    const res = await provider.search({
+      keywords: q,
+      type: activeTab.value === 'all' ? undefined : (activeTab.value as SearchFilter)
+    });
 
     if (activeTab.value === 'all') {
       results.value = res;
@@ -801,16 +734,9 @@ function searchByMood(title: string) {
   doSearch();
 }
 
-function playSong(song: YTMSong) {
-  const track: SongResult = {
-    id: song.id,
-    name: song.title,
-    picUrl: song.thumbnail,
-    source: 'ytmusic',
-    artists: song.artists.map((a) => ({ name: a.name }))
-  };
-  playlistStore.setPlayList([track], false, false);
-  window.dispatchEvent(new CustomEvent('ytm:play', { detail: track }));
+function playSong(song: SongResult) {
+  playlistStore.setPlayList([song], false, false);
+  window.dispatchEvent(new CustomEvent('ytm:play', { detail: song }));
 }
 
 // ─── History ─────────────────────────────────────────────────────────────────

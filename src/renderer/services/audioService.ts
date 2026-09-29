@@ -417,7 +417,9 @@ class AudioService {
 
   public setPlaybackRate(rate: number) {
     this.playbackRate = rate;
-    // Native rate control not implemented yet
+    window.api.audioSetPlaybackRate(rate).catch((err: unknown) => {
+      console.error('[audioService] Failed to set native playback rate:', err);
+    });
     this.updateMediaSessionPositionState();
   }
 

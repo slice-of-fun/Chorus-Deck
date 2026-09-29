@@ -54,6 +54,47 @@ pub fn select_directory(app: AppHandle, title: String) -> Result<Option<String>,
     }
 }
 
+#[tauri::command(rename = "select-file")]
+pub fn select_file(app: AppHandle, title: String) -> Result<Option<String>, String> {
+    use tauri_plugin_dialog::DialogExt;
+
+    let (tx, rx) = std::sync::mpsc::sync_channel(1);
+    app.dialog()
+        .file()
+        .set_title(&title)
+        .add_filter("JSON Files", &["json"])
+        .pick_file(move |picked| {
+            let _ = tx.send(picked);
+        });
+
+    match rx.recv_timeout(std::time::Duration::from_secs(300)) {
+        Ok(Some(path)) => Ok(Some(path.to_string())),
+        Ok(None) => Ok(None),
+        Err(_) => Err("file selection timed out".to_string()),
+    }
+}
+
+#[tauri::command(rename = "save-file")]
+pub fn save_file(app: AppHandle, title: String, default_name: String) -> Result<Option<String>, String> {
+    use tauri_plugin_dialog::DialogExt;
+
+    let (tx, rx) = std::sync::mpsc::sync_channel(1);
+    app.dialog()
+        .file()
+        .set_title(&title)
+        .set_file_name(&default_name)
+        .add_filter("JSON Files", &["json"])
+        .save_file(move |picked| {
+            let _ = tx.send(picked);
+        });
+
+    match rx.recv_timeout(std::time::Duration::from_secs(300)) {
+        Ok(Some(path)) => Ok(Some(path.to_string())),
+        Ok(None) => Ok(None),
+        Err(_) => Err("file save timed out".to_string()),
+    }
+}
+
 #[tauri::command(rename = "show-notification")]
 pub fn show_notification(app: AppHandle, title: String, body: String) -> Result<(), String> {
     use tauri_plugin_notification::NotificationExt;

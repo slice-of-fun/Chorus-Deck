@@ -47,15 +47,15 @@ const layoutRouter: RouteRecordRaw[] = [
     }
   },
   {
-    path: '/local-music',
-    name: 'localMusic',
+    path: '/library',
+    name: 'library',
     meta: {
-      title: 'comp.localMusic',
-      icon: 'ri-folder-music-fill',
+      title: 'comp.library',
+      icon: 'ri-book-3-fill',
       keepAlive: true,
       isMobile: false
     },
-    component: () => import('@/views/local-music/index.vue')
+    component: () => import('@/views/library/index.vue')
   },
   {
     path: '/set',

@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 
-import type { SearchFilter } from '@/api/search';
+import type { SearchFilter } from '@/api/provider';
 
 export const useSearchStore = defineStore('search', () => {
   const searchValue = ref('');
