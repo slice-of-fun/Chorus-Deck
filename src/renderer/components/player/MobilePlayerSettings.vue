@@ -1,7 +1,6 @@
 <template>
   <Teleport to="body">
     <Transition name="settings-drawer">
-import { t } from '@/utils/i18n';
       <div
         v-if="visible"
         class="fixed inset-0 z-[99999] flex items-end justify-center"
@@ -163,6 +162,7 @@ import { storeToRefs } from 'pinia';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
 import { usePlayerStore } from '@/store/modules/player';
+import { t } from '@/utils/i18n';
 
 const playerStore = usePlayerStore();
 const { sleepTimer, playbackRate } = storeToRefs(playerStore);

@@ -12,7 +12,6 @@
           :key="tab.key"
           :ref="(el) => setTabRef(el as HTMLElement, i)"
           class="tab-btn"
-import { locale, t } from '@/utils/i18n';
           :class="isTabActive(tab.path) ? 'tab-btn--on' : 'tab-btn--off'"
           @click="router.push(tab.path)"
         >
@@ -176,6 +175,7 @@ import { getImgUrl, isDesktop } from '@/utils';
 import { checkUpdate, UpdateResult } from '@/utils/update';
 
 import config from '../../../../package.json';
+import { locale, t } from '@/utils/i18n';
 
 const router = useRouter();
 const route = useRoute();

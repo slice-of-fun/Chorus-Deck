@@ -1,6 +1,5 @@
 <template>
   <div
-import { t } from '@/utils/i18n';
     v-show="visible"
     class="theme-color-panel"
     :class="{ visible: visible, hidden: !visible }"
@@ -94,6 +93,7 @@ import {
   optimizeColorForTheme,
   validateColor
 } from '@/utils/linearColor';
+import { t } from '@/utils/i18n';
 
 interface Props {
   visible: boolean;

@@ -6,7 +6,6 @@
       </div>
       <div class="header-keyword">{{ keyword }}</div>
       <div class="header-actions">
-import { locale, t } from '@/utils/i18n';
         <div class="action-btn" @click="openSearch">
           <i class="ri-search-line"></i>
         </div>
@@ -72,6 +71,7 @@ import SongItem from '@/components/common/SongItem.vue';
 import { SEARCH_TYPE, SEARCH_TYPES } from '@/const/bar-const';
 import { usePlayerStore } from '@/store/modules/player';
 import { useSearchStore } from '@/store/modules/search';
+import { locale, t } from '@/utils/i18n';
 
 const route = useRoute();
 const router = useRouter();

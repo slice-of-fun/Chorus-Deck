@@ -1,7 +1,6 @@
 <template>
   <history-item
     :image-url="getImgUrl(item.picUrl || '', '100y100')"
-import { t } from '@/utils/i18n';
     :name="item.name"
     :description="getDescription()"
     :count="item.count"
@@ -16,6 +15,7 @@ import { t } from '@/utils/i18n';
 import HistoryItem from '@/components/common/HistoryItem.vue';
 import type { AlbumHistoryItem } from '@/store/modules/playHistory';
 import { getImgUrl } from '@/utils';
+import { t } from '@/utils/i18n';
 
 const props = withDefaults(
   defineProps<{
