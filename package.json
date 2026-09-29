@@ -25,26 +25,15 @@
     ]
   },
   "dependencies": {
-    "@httptoolkit/dbus-native": "^0.1.5",
     "@material/material-color-utilities": "^0.4.0",
-    "@unblockneteasemusic/server": "^0.27.10",
     "cors": "^2.8.5",
     "crypto-js": "^4.2.0",
-    "discord-rpc": "^4.0.1",
-    "express": "^4.22.1",
-    "file-type": "^21.1.1",
     "flac-tagger": "^1.0.7",
     "font-list": "^1.6.0",
-    "form-data": "^4.0.5",
     "husky": "^9.1.7",
     "jsencrypt": "^3.5.4",
-    "mpris-service": "^2.1.2",
-    "music-metadata": "^11.10.3",
-    "node-fetch": "^2.7.0",
-    "node-id3": "^0.2.9",
     "node-machine-id": "^1.1.12",
-    "pinia-plugin-persistedstate": "^4.7.1",
-    "ws": "^8.22.0"
+    "pinia-plugin-persistedstate": "^4.7.1"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.5.0",
@@ -104,100 +93,6 @@
     "vue-eslint-parser": "^10.2.0",
     "vue-router": "^4.6.4",
     "vue-tsc": "^2.2.12"
-  },
-  "build": {
-    "appId": "com.chorus.deck",
-    "productName": "Chorus Deck",
-    "publish": null,
-    "extraResources": [
-      {
-        "from": "resources/html",
-        "to": "html",
-        "filter": [
-          "**/*"
-        ]
-      }
-    ],
-    "mac": {
-      "icon": "resources/icon.icns",
-      "target": [
-        "dmg",
-        "zip"
-      ],
-      "artifactName": "${productName}-${version}-mac-${arch}.${ext}",
-      "darkModeSupport": true,
-      "hardenedRuntime": false,
-      "gatekeeperAssess": false,
-      "entitlements": "build/entitlements.mac.plist",
-      "entitlementsInherit": "build/entitlements.mac.plist",
-      "extendInfo": {
-        "NSCameraUsageDescription": "Application requests access to the device's camera.",
-        "NSDocumentsFolderUsageDescription": "Application requests access to the user's Documents folder.",
-        "NSDownloadsFolderUsageDescription": "Application requests access to the user's Downloads folder."
-      },
-      "notarize": false,
-      "identity": null,
-      "type": "distribution",
-      "binaries": [
-        "Contents/MacOS/Chorus Deck"
-      ]
-    },
-    "win": {
-      "icon": "resources/icon.ico",
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64",
-            "ia32",
-            "arm64"
-          ]
-        }
-      ],
-      "artifactName": "${productName}-${version}-win-${arch}.${ext}",
-      "requestedExecutionLevel": "asInvoker"
-    },
-    "linux": {
-      "icon": "build/icons",
-      "target": [
-        {
-          "target": "AppImage",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
-        },
-        {
-          "target": "deb",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
-        },
-        {
-          "target": "rpm",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
-        }
-      ],
-      "artifactName": "${productName}-${version}-linux-${arch}.${ext}",
-      "category": "Audio",
-      "maintainer": "Chorus Deck"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "installerIcon": "resources/icon.ico",
-      "uninstallerIcon": "resources/icon.ico",
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "shortcutName": "Chorus Deck",
-      "include": "build/installer.nsh",
-      "deleteAppDataOnUninstall": true,
-      "uninstallDisplayName": "Chorus Deck"
-    }
   },
   "pnpm": {
     "onlyBuiltDependencies": [

@@ -559,7 +559,6 @@ const logoutDiscord = () => {
 };
 
 const refreshDiscord = () => {
-  // TODO: Implement IPC call to forcefully refresh presence
   console.log('Refresh Discord presence');
 };
 

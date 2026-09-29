@@ -1,7 +1,33 @@
+use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
+use serde::Deserialize;
 use serde_json::Value;
+use std::sync::Mutex;
 use tauri::AppHandle;
 
-/// Open a file or directory with the OS default handler.
+lazy_static::lazy_static! {
+    static ref DISCORD_CLIENT: Mutex<Option<DiscordIpcClient>> = Mutex::new(None);
+}
+
+const DISCORD_CLIENT_ID: &str = "1538302367584362536";
+
+fn get_or_init_discord() -> Result<std::sync::MutexGuard<'static, Option<DiscordIpcClient>>, String>
+{
+    let mut lock = DISCORD_CLIENT
+        .lock()
+        .map_err(|_| "Failed to lock Discord client".to_string())?;
+
+    if lock.is_none() {
+        let mut client = DiscordIpcClient::new(DISCORD_CLIENT_ID);
+        if client.connect().is_ok() {
+            *lock = Some(client);
+        } else {
+            return Err("Failed to connect to Discord IPC".to_string());
+        }
+    }
+
+    Ok(lock)
+}
+
 #[tauri::command(rename = "open-directory")]
 pub fn open_directory(app: AppHandle, path: String) -> Result<(), String> {
     use tauri_plugin_opener::OpenerExt;
@@ -10,15 +36,17 @@ pub fn open_directory(app: AppHandle, path: String) -> Result<(), String> {
         .map_err(|e| e.to_string())
 }
 
-/// Prompt for a directory. Resolves to `None` when the user cancels.
 #[tauri::command(rename = "select-directory")]
 pub fn select_directory(app: AppHandle, title: String) -> Result<Option<String>, String> {
     use tauri_plugin_dialog::DialogExt;
 
     let (tx, rx) = std::sync::mpsc::sync_channel(1);
-    app.dialog().file().set_title(&title).pick_folder(move |picked| {
-        let _ = tx.send(picked);
-    });
+    app.dialog()
+        .file()
+        .set_title(&title)
+        .pick_folder(move |picked| {
+            let _ = tx.send(picked);
+        });
 
     match rx.recv_timeout(std::time::Duration::from_secs(300)) {
         Ok(Some(path)) => Ok(Some(path.to_string())),
@@ -51,12 +79,6 @@ pub fn change_language(app: AppHandle, locale: String) -> Result<(), String> {
     Ok(())
 }
 
-// --------------------------------------------------------------- system info
-
-/// System accent colour as `#RRGGBB`.
-///
-/// Read from the DWM `ColorizationColor` value, which Windows writes whenever
-/// the accent colour changes. Stored as `AABBGGRR`.
 #[tauri::command(rename = "get-system-accent-color")]
 pub fn get_system_accent_color() -> Result<String, String> {
     #[cfg(windows)]
@@ -97,8 +119,6 @@ pub fn get_system_accent_color() -> Result<String, String> {
             if status.is_err() {
                 return Err(format!("cannot read ColorizationColor: {status:?}"));
             }
-
-            // Stored as 0xAABBGGRR.
             let r = data & 0xFF;
             let g = (data >> 8) & 0xFF;
             let b = (data >> 16) & 0xFF;
@@ -112,7 +132,6 @@ pub fn get_system_accent_color() -> Result<String, String> {
     }
 }
 
-/// Installed font family names.
 #[tauri::command(rename = "get-system-fonts")]
 pub fn get_system_fonts() -> Result<Vec<String>, String> {
     #[cfg(windows)]
@@ -187,46 +206,60 @@ pub fn get_system_fonts() -> Result<Vec<String>, String> {
     }
 }
 
-/// Search suggestions, currently sourced from the renderer.
-///
-/// TODO: port the suggestion source into Rust once the YTM backend lands.
-#[tauri::command(rename = "get-search-suggestions")]
-pub fn get_search_suggestions(_keyword: String) -> Result<Vec<String>, String> {
-    Err("get-search-suggestions is served by the renderer-side YTM client".to_string())
-}
 
-/// Placeholder for the lx-music script bridge.
-#[tauri::command(rename = "lx-music-http-request")]
-pub fn lx_music_http_request(_request: Value) -> Result<Value, String> {
-    Err("lx-music-http-request is not implemented in the Tauri backend".to_string())
-}
-
-#[tauri::command(rename = "lx-music-http-cancel")]
-pub fn lx_music_http_cancel(_request_id: String) -> Result<(), String> {
-    Ok(())
-}
-
-#[tauri::command(rename = "import-lx-music-script")]
-pub fn import_lx_music_script(_app: AppHandle) -> Result<Value, String> {
-    Err("import-lx-music-script is not implemented in the Tauri backend".to_string())
-}
-
-#[tauri::command(rename = "import-custom-api-plugin")]
-pub fn import_custom_api_plugin() -> Result<Value, String> {
-    Err("import-custom-api-plugin is not implemented in the Tauri backend".to_string())
+#[derive(Deserialize, Debug)]
+pub struct DiscordPresencePayload {
+    pub title: String,
+    pub artist: String,
+    pub album: String,
+    #[serde(rename = "albumArt")]
+    pub album_art: String,
+    pub duration: u64,
+    #[serde(rename = "isPlaying")]
+    pub is_playing: bool,
+    #[serde(rename = "startTimestamp")]
+    pub start_timestamp: Option<i64>,
 }
 
 #[tauri::command(rename = "update-discord-presence")]
-pub fn update_discord_presence(_presence: Value) -> Result<(), String> {
-    Err(
-        "Discord Rich Presence is not implemented in the Tauri backend; it requires a \
-         discord-rpc client in Rust"
-            .to_string(),
-    )
+pub fn update_discord_presence(presence: DiscordPresencePayload) -> Result<(), String> {
+    let mut lock = get_or_init_discord()?;
+    if let Some(client) = lock.as_mut() {
+        let mut activity = activity::Activity::new()
+            .state(&presence.artist)
+            .details(&presence.title);
+
+        let mut assets = activity::Assets::new()
+            .large_image(&presence.album_art)
+            .large_text(&presence.album);
+
+        // Add play/pause icon
+        if presence.is_playing {
+            assets = assets.small_image("play").small_text("Playing");
+        } else {
+            assets = assets.small_image("pause").small_text("Paused");
+        }
+
+        activity = activity.assets(assets);
+
+        if let Some(start_ts) = presence.start_timestamp {
+            let timestamps = activity::Timestamps::new().start(start_ts);
+            activity = activity.timestamps(timestamps);
+        }
+
+        if let Err(e) = client.set_activity(activity) {
+            return Err(format!("Failed to set Discord activity: {}", e));
+        }
+    }
+    Ok(())
 }
 
 #[tauri::command(rename = "clear-discord-presence")]
 pub fn clear_discord_presence() -> Result<(), String> {
+    let mut lock = get_or_init_discord()?;
+    if let Some(client) = lock.as_mut() {
+        let _ = client.clear_activity();
+    }
     Ok(())
 }
 
@@ -235,7 +268,4 @@ pub fn discord_logout() -> Result<(), String> {
     Ok(())
 }
 
-#[tauri::command(rename = "discord-webview-login")]
-pub fn discord_webview_login(_app: AppHandle) -> Result<(), String> {
-    Err("discord-webview-login is not implemented in the Tauri backend".to_string())
 }

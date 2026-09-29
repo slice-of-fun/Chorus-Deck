@@ -3,6 +3,7 @@ pub mod media;
 pub mod store;
 pub mod system;
 pub mod window;
+pub mod db;
 
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;

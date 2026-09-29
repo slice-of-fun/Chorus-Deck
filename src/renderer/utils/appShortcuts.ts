@@ -54,6 +54,14 @@ const onMprisPause = async () => {
   }
 };
 
+const onMprisNext = async () => {
+  await usePlayerStore().nextPlay();
+};
+
+const onMprisPrevious = async () => {
+  await usePlayerStore().prevPlay();
+};
+
 function shouldSkipAction(action: ShortcutAction): boolean {
   const now = Date.now();
   const lastTimestamp = actionTimestamps.get(action) ?? 0;
@@ -191,6 +199,8 @@ export async function initAppShortcuts() {
   window.api.on('mpris-set-position', onMprisSeekOrSetPosition);
   window.api.on('mpris-play', onMprisPlay);
   window.api.on('mpris-pause', onMprisPause);
+  window.api.on('mpris-next', onMprisNext);
+  window.api.on('mpris-previous', onMprisPrevious);
 
   const storedShortcuts = await window.api.getStoreValue('shortcuts');
   updateAppShortcuts(storedShortcuts);
@@ -207,6 +217,8 @@ export function cleanupAppShortcuts() {
   window.api.removeListener('mpris-set-position', onMprisSeekOrSetPosition);
   window.api.removeListener('mpris-play', onMprisPlay);
   window.api.removeListener('mpris-pause', onMprisPause);
+  window.api.removeListener('mpris-next', onMprisNext);
+  window.api.removeListener('mpris-previous', onMprisPrevious);
 
   document.removeEventListener('keydown', handleKeyDown);
 }

@@ -4,7 +4,7 @@ use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::commands::AppState;
 use crate::downloads::supervisor::{
-    build_filename, CompletedDownload, DownloadTask, SongArtist, SongInfo, TaskState,
+    build_filename, CompletedDownload, DownloadTask, SongInfo,
 };
 
 const LYRIC_CHANNEL: &str = "receive-lyric";
@@ -94,7 +94,7 @@ pub fn get_lyrics(payload: LyricsPayload) -> Result<serde_json::Value, String> {
 #[tauri::command(rename = "download:get-embedded-lyrics")]
 pub fn get_embedded_lyrics(file_path: String) -> Result<Option<String>, String> {
     use lofty::prelude::*;
-    use lofty::read::read_from_path;
+    use lofty::read_from_path;
     use lofty::tag::Accessor;
 
     let tagged = read_from_path(&file_path).map_err(|e| e.to_string())?;
@@ -229,40 +229,88 @@ pub fn filename_for(format: &str, separator: &str, extension: &str, song: &SongI
 
 #[derive(Debug, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct LocalTrack {
-    pub path: String,
-    pub file_name: String,
-    pub name: String,
+pub struct LocalMusicMeta {
+    pub file_path: String,
+    pub title: String,
     pub artist: String,
     pub album: String,
     pub duration: f64,
-    pub cover: Option<String>,
+    pub cover_path: Option<String>,
+    pub lyrics: Option<String>,
+    pub file_size: u64,
+    pub modified_time: u64,
+}
+
+#[derive(Debug, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct FileInfo {
+    pub path: String,
+    pub modified_time: u64,
+}
+
+#[derive(Debug, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct ScanResultWithStats {
+    pub files: Vec<FileInfo>,
+    pub count: usize,
+}
+
+#[derive(Debug, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct ScanResult {
+    pub files: Vec<String>,
+    pub count: usize,
 }
 
 const AUDIO_EXTENSIONS: &[&str] = &[
     "mp3", "m4a", "aac", "flac", "wav", "ogg", "opus", "wma", "aiff", "alac",
 ];
 
-fn read_metadata(path: &Path) -> Option<LocalTrack> {
+fn read_metadata(path: &Path, app: Option<&AppHandle>) -> Option<LocalMusicMeta> {
     use lofty::prelude::*;
-    use lofty::read::read_from_path;
+    use lofty::read_from_path;
     use lofty::tag::Accessor;
 
+    let fs_meta = std::fs::metadata(path).ok()?;
+    let file_size = fs_meta.len();
+    let modified_time = fs_meta
+        .modified()
+        .ok()
+        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0);
+
     let tagged = read_from_path(path).ok()?;
-    let duration = tagged.file().properties().duration().as_secs_f64();
+    let duration = tagged.properties().duration().as_secs_f64();
 
     let tag = tagged.primary_tag().or_else(|| tagged.first_tag());
-    let (name, artist, album, cover) = match tag {
-        Some(t) => (
-            t.title().map(|s| s.to_string()),
-            t.artist().map(|s| s.to_string()),
-            t.album().map(|s| s.to_string()),
-            t.pictures().first().map(|p| {
-                use base64::Engine;
-                base64::engine::general_purpose::STANDARD.encode(&p.data)
-            }),
-        ),
-        None => (None, None, None, None),
+    let (name, artist, album, cover, lyrics) = match tag {
+        Some(t) => {
+            let c = t.pictures().first().and_then(|p| {
+                if let Some(app_handle) = app {
+                    if let Ok(cache_dir) = app_handle.path().app_cache_dir() {
+                        let covers_dir = cache_dir.join("covers");
+                        let _ = std::fs::create_dir_all(&covers_dir);
+                        use std::hash::{Hash, Hasher};
+                        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+                        p.data().hash(&mut hasher);
+                        let file_name = format!("{:x}.jpg", hasher.finish());
+                        let file_path = covers_dir.join(file_name);
+                        let _ = std::fs::write(&file_path, p.data());
+                        return Some(file_path.to_string_lossy().to_string());
+                    }
+                }
+                None
+            });
+            (
+                t.title().map(|s| s.to_string()),
+                t.artist().map(|s| s.to_string()),
+                t.album().map(|s| s.to_string()),
+                c,
+                t.comment().map(|s| s.to_string()).filter(|s| !s.trim().is_empty()),
+            )
+        }
+        None => (None, None, None, None, None),
     };
 
     let stem = path
@@ -270,17 +318,16 @@ fn read_metadata(path: &Path) -> Option<LocalTrack> {
         .map(|s| s.to_string_lossy().to_string())
         .unwrap_or_default();
 
-    Some(LocalTrack {
-        path: path.to_string_lossy().to_string(),
-        file_name: path
-            .file_name()
-            .map(|s| s.to_string_lossy().to_string())
-            .unwrap_or_default(),
-        name: name.unwrap_or(stem),
+    Some(LocalMusicMeta {
+        file_path: path.to_string_lossy().to_string(),
+        title: name.unwrap_or(stem),
         artist: artist.unwrap_or_default(),
         album: album.unwrap_or_default(),
         duration,
-        cover,
+        cover_path: cover,
+        lyrics,
+        file_size,
+        modified_time,
     })
 }
 
@@ -304,49 +351,45 @@ fn collect_audio_files(root: &Path, out: &mut Vec<PathBuf>) {
 }
 
 #[tauri::command(rename = "scan-local-music")]
-pub fn scan_local_music(folder_path: String) -> Vec<LocalTrack> {
+pub fn scan_local_music(folder_path: String) -> ScanResult {
     let mut files = Vec::new();
     collect_audio_files(Path::new(&folder_path), &mut files);
-    files.iter().filter_map(|p| read_metadata(p)).collect()
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ScanStats {
-    pub total: usize,
-    pub with_cover: usize,
-    pub with_lyrics: usize,
-    pub duration: f64,
-    pub by_artist: std::collections::BTreeMap<String, usize>,
+    let paths: Vec<String> = files.iter().map(|p| p.to_string_lossy().to_string()).collect();
+    ScanResult {
+        count: paths.len(),
+        files: paths,
+    }
 }
 
 #[tauri::command(rename = "scan-local-music-with-stats")]
-pub fn scan_local_music_with_stats(folder_path: String) -> ScanStats {
-    let tracks = scan_local_music(folder_path);
-    let mut by_artist = std::collections::BTreeMap::new();
-    let mut with_cover = 0;
-    for t in &tracks {
-        if t.cover.is_some() {
-            with_cover += 1;
-        }
-        if !t.artist.is_empty() {
-            *by_artist.entry(t.artist.clone()).or_insert(0) += 1;
-        }
+pub fn scan_local_music_with_stats(folder_path: String) -> ScanResultWithStats {
+    let mut files = Vec::new();
+    collect_audio_files(Path::new(&folder_path), &mut files);
+    
+    let mut file_infos = Vec::new();
+    for p in &files {
+        let meta = std::fs::metadata(p).ok();
+        let modified_time = meta
+            .and_then(|m| m.modified().ok())
+            .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+            .map(|d| d.as_millis() as u64)
+            .unwrap_or(0);
+        file_infos.push(FileInfo {
+            path: p.to_string_lossy().to_string(),
+            modified_time,
+        });
     }
-    ScanStats {
-        total: tracks.len(),
-        with_cover,
-        with_lyrics: 0,
-        duration: tracks.iter().map(|t| t.duration).sum(),
-        by_artist,
+    ScanResultWithStats {
+        count: file_infos.len(),
+        files: file_infos,
     }
 }
 
 #[tauri::command(rename = "parse-local-music-metadata")]
-pub fn parse_local_music_metadata(file_paths: Vec<String>) -> Vec<LocalTrack> {
+pub fn parse_local_music_metadata(app: AppHandle, file_paths: Vec<String>) -> Vec<LocalMusicMeta> {
     file_paths
         .iter()
-        .filter_map(|p| read_metadata(Path::new(p)))
+        .filter_map(|p| read_metadata(Path::new(p), Some(&app)))
         .collect()
 }
 

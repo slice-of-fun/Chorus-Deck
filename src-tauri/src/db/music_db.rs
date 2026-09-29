@@ -162,7 +162,7 @@ pub fn import_legacy_data(conn: &Connection) -> Result<()> {
                     let index = pt.get("track_index").and_then(|v| v.as_i64()).unwrap_or(0);
                     conn.execute(
                         "INSERT OR IGNORE INTO playlist_tracks (playlist_id, track_id, track_index) VALUES (?1, ?2, ?3)",
-                        [playlist_id, track_id, index],
+                        rusqlite::params![playlist_id, track_id, index],
                     )?;
                 }
             }
@@ -180,7 +180,7 @@ pub fn import_legacy_data(conn: &Connection) -> Result<()> {
                         .unwrap_or(0);
                     conn.execute(
                         "INSERT OR IGNORE INTO cache_index (key, value, expires_at) VALUES (?1, ?2, ?3)",
-                        [key, value, expires_at],
+                        rusqlite::params![key, value, expires_at],
                     )?;
                 }
             }
@@ -204,7 +204,7 @@ pub fn import_legacy_data(conn: &Connection) -> Result<()> {
                 let file_size = dl.get("file_size").and_then(|v| v.as_i64()).unwrap_or(0);
                 conn.execute(
                     "INSERT INTO downloads (track_id, file_path, status, file_size) VALUES (?1, ?2, ?3, ?4)",
-                    [track_id, file_path, status, file_size],
+                    rusqlite::params![track_id, file_path, status, file_size],
                 )?;
             }
         }
@@ -277,11 +277,11 @@ pub fn add_disliked_track(conn: &Connection, track_id: &str) -> Result<()> {
 pub fn track_played(conn: &Connection, track_id: &str, played_at: i64) -> Result<()> {
     conn.execute(
         "UPDATE tracks SET play_count = COALESCE(play_count, 0) + 1, last_played = ?1 WHERE id = ?2",
-        [played_at, track_id],
+        rusqlite::params![played_at, track_id],
     )?;
     conn.execute(
         "INSERT OR REPLACE INTO recently_played (track_id, played_at) VALUES (?1, ?2)",
-        [track_id, played_at],
+        rusqlite::params![track_id, played_at],
     )?;
     Ok(())
 }
@@ -302,7 +302,7 @@ pub fn add_track_to_playlist(
 ) -> Result<()> {
     conn.execute(
         "INSERT OR REPLACE INTO playlist_tracks (playlist_id, track_id, track_index) VALUES (?1, ?2, ?3)",
-        [playlist_id, track_id, track_index],
+        rusqlite::params![playlist_id, track_id, track_index],
     )?;
     Ok(())
 }

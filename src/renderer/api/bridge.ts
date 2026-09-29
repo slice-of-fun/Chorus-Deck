@@ -27,7 +27,6 @@ const GENERIC_INVOKE_CHANNELS = [
   'change-language',
   'check-file-exists',
   'clear-disk-cache',
-  'discord-webview-login',
   'get-cached-lyric',
   'get-content-zoom',
   'get-disk-cache-config',
@@ -75,6 +74,8 @@ const EVENT_CHANNELS = [
   'mpris-play',
   'mpris-seek',
   'mpris-set-position',
+  'mpris-next',
+  'mpris-previous',
   'update-app-shortcuts',
   'receive-lyric',
   'lyric-mouse-presence',
@@ -90,7 +91,6 @@ const EVENT_CHANNELS = [
 
 export type Unlisten = () => void;
 
-/** Registry of active listeners so `removeListener` can detach by callback. */
 const listenerRegistry = new Map<string, Set<UnlistenFn>>();
 
 async function rawInvoke<T>(channel: string, args?: unknown): Promise<T> {
@@ -103,15 +103,6 @@ function assertAllowed(channel: string, allowed: readonly string[]): void {
   }
 }
 
-/**
- * Subscribes to a backend event.
- *
- * Tauri's `listen` resolves asynchronously, but the renderer was written
- * against Electron's `ipcRenderer.on`, which returns its disposer
- * synchronously and is stored/used in `onUnmounted`. Returning a synchronous
- * disposer keeps that contract intact: if the listener has not attached yet we
- * mark it disposed and tear it down as soon as `listen` resolves.
- */
 function listenChannel<T>(channel: string, handler: (payload: T) => void): Unlisten {
   assertAllowed(channel, EVENT_CHANNELS);
 
@@ -295,10 +286,6 @@ export const bridge = {
   parseLocalMusicMetadata: (filePaths: string[]) =>
     rawInvoke<LocalMusicMeta[]>('parse-local-music-metadata', { filePaths }),
 
-  /* ------------------------------------------------------------------ *
-   * Misc
-   * ------------------------------------------------------------------ */
-  getSearchSuggestions: (keyword: string) => rawInvoke<unknown>('get-search-suggestions', { keyword }),
   getSystemAccentColor: () => rawInvoke<string | null>('get-system-accent-color'),
   getSystemFonts: () => rawInvoke<string[]>('get-system-fonts'),
   selectDirectory: (title?: string) => rawInvoke<string | null>('select-directory', { title }),
@@ -310,12 +297,6 @@ export const bridge = {
     rawInvoke<void>('show-notification', { title, body }),
   unblockMusic: (id: number, data: unknown, enabledSources?: string[]) =>
     rawInvoke<unknown>('unblock-music', { id, data, enabledSources }),
-  importCustomApiPlugin: () =>
-    rawInvoke<{ name: string; content: string } | null>('import-custom-api-plugin'),
-  importLxMusicScript: () => rawInvoke<{ name: string; content: string } | null>('import-lx-music-script'),
-  lxMusicHttpRequest: (request: { url: string; options: unknown; requestId: string }) =>
-    rawInvoke<unknown>('lx-music-http-request', { request }),
-  lxMusicHttpCancel: (requestId: string) => rawInvoke<void>('lx-music-http-cancel', { requestId }),
   getCachedLyric: (key: string) => rawInvoke<unknown>('get-cached-lyric', { key }),
   getLyrics: (payload: unknown) => rawInvoke<unknown>('get-lyrics', { payload }),
   clearLyricsCache: () => rawInvoke<void>('clear-lyrics-cache'),
@@ -327,7 +308,6 @@ export const bridge = {
   getDiskCacheStats: () => rawInvoke<unknown>('get-disk-cache-stats'),
   switchDiskCacheDirectory: (path: string) => rawInvoke<void>('switch-disk-cache-directory', { path }),
   changeLanguage: (locale: string) => rawInvoke<void>('change-language', { locale }),
-  discordWebviewLogin: () => rawInvoke<unknown>('discord-webview-login'),
   discordLogout: () => rawInvoke<void>('discord-logout'),
   updateDiscordPresence: (presence: unknown) => rawInvoke<void>('update-discord-presence', { presence }),
   clearDiscordPresence: () => rawInvoke<void>('clear-discord-presence'),

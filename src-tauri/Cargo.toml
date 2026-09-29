@@ -34,6 +34,10 @@ sha2 = "0.10"
 hex = "0.4"
 base64 = "0.22"
 lofty = "0.25"
+discord-rich-presence = "1.1.0"
+souvlaki = "0.8.3"
+lazy_static = "1.5.0"
+raw-window-handle = "0.6.2"
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.58", features = [
