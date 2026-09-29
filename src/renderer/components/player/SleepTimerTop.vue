@@ -36,7 +36,6 @@ const formattedRemainingTime = computed(() => {
 
   if (sleepTimer.value.type !== 'time' || !sleepTimer.value.endTime) {
     if (sleepTimer.value.type === 'songs' && sleepTimer.value.remainingSongs) {
-      // eslint-disable-next-line no-undef
       return t('player.sleepTimer.songsRemaining', { count: sleepTimer.value.remainingSongs });
     }
     if (sleepTimer.value.type === 'end') {

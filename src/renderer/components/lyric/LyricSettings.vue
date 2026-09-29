@@ -282,7 +282,10 @@ import { inject, reactive, ref } from 'vue';
 
 import { DEFAULT_LYRIC_CONFIG, type LyricConfig } from '@/types/lyric';
 
-const config = inject<LyricConfig>('lyricSetting', reactive<LyricConfig>({ ...DEFAULT_LYRIC_CONFIG }));
+const config = inject<LyricConfig>(
+  'lyricSetting',
+  reactive<LyricConfig>({ ...DEFAULT_LYRIC_CONFIG })
+);
 
 const activeTab = ref('display');
 const tabs = [

@@ -717,13 +717,17 @@ function onQueryInput() {
     suggestions.value = [];
     return;
   }
-  suggestDebounceTimer.value = setTimeout(async () => {
-    try {
-      suggestions.value = await getYTMSuggestions(query.value.trim());
-    } catch (_) {
-      // request cancelled - ignore
-    }
-  }, SUGGESTION_DEBOUNCE, { signal: suggestAbortController.signal });
+  suggestDebounceTimer.value = setTimeout(
+    async () => {
+      try {
+        suggestions.value = await getYTMSuggestions(query.value.trim());
+      } catch {
+        // request cancelled - ignore
+      }
+    },
+    SUGGESTION_DEBOUNCE,
+    { signal: suggestAbortController.signal }
+  );
 }
 
 function clearQuery() {

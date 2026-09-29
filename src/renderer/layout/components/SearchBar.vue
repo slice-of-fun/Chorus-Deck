@@ -163,19 +163,19 @@ import { useDebounceFn } from '@vueuse/core';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
+import type { SearchFilter } from '@/api/search';
 import { getSearchSuggestions } from '@/api/search';
 import { SEARCH_TYPES } from '@/const/bar-const';
-import type { SearchFilter } from '@/api/search';
 import { useZoom } from '@/hooks/useZoom';
 import { useDownloadStore } from '@/store/modules/download';
 import { useNavTitleStore } from '@/store/modules/navTitle';
 import { useSearchStore } from '@/store/modules/search';
 import { useSettingsStore } from '@/store/modules/settings';
 import { getImgUrl, isDesktop } from '@/utils';
+import { locale, t } from '@/utils/i18n';
 import { checkUpdate, UpdateResult } from '@/utils/update';
 
 import config from '../../../../package.json';
-import { locale, t } from '@/utils/i18n';
 
 const router = useRouter();
 const route = useRoute();
@@ -192,7 +192,6 @@ const showDownloadButton = computed(
     isDesktop() && (settingsStore.setData?.alwaysShowDownloadButton || downloadingCount.value > 0)
 );
 const { zoomFactor, initZoomFactor, increaseZoom, decreaseZoom, resetZoom, isZoom100 } = useZoom();
-
 
 const showBackButton = computed(() => {
   const meta = router.currentRoute.value.meta;
@@ -294,14 +293,11 @@ const selectSearchType = (key: SearchFilter) => {
 
 const rawSearchTypes = ref(SEARCH_TYPES);
 const searchTypeOptions = computed(() => {
-  // eslint-disable-next-line no-undef
   locale.value;
-  return (
-    rawSearchTypes.value
-      .filter(() => isDesktop())
-      // eslint-disable-next-line no-undef
-      .map((type) => ({ label: t(type.label), key: type.key }))
-  );
+  return rawSearchTypes.value
+    .filter(() => isDesktop())
+
+    .map((type) => ({ label: t(type.label), key: type.key }));
 });
 
 const suggestions = ref<string[]>([]);

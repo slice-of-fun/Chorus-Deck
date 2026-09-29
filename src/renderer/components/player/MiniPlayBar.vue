@@ -168,7 +168,6 @@ const playList = computed(() => playerStore.playList as SongResult[]);
 const palyListRef = useTemplateRef('palyListRef') as any;
 const isPlaylistOpen = ref(false);
 
-
 const togglePlaylist = () => {
   isPlaylistOpen.value = !isPlaylistOpen.value;
   console.log('Switch playlist status', isPlaylistOpen.value);

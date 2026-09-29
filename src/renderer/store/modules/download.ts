@@ -5,9 +5,9 @@ import logoImg from '@/assets/logo.png';
 import { isDesktop } from '@/utils';
 
 import {
+  type CompletedDownload,
   createDefaultDownloadSettings,
   DOWNLOAD_TASK_STATE,
-  type CompletedDownload,
   type DownloadSettings,
   type DownloadTask
 } from '../../../shared/download';

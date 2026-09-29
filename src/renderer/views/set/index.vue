@@ -24,7 +24,9 @@
     >
       <div
         class="w-10 h-10 rounded-full hover:bg-gray-100 dark:hover:bg-neutral-800 flex items-center justify-center cursor-pointer transition-colors"
-        @click="currentSection === 'discord' ? currentSection = 'account' : currentSection = 'main'"
+        @click="
+          currentSection === 'discord' ? (currentSection = 'account') : (currentSection = 'main')
+        "
       >
         <i class="ri-arrow-left-line text-xl text-neutral-900 dark:text-white"></i>
       </div>
@@ -62,7 +64,7 @@
 
         <!-- Sub Tabs -->
         <div v-show="currentSection === 'account'" class="animate-fade-in">
-          <account-tab @navigate="(section: string) => currentSection = section" />
+          <account-tab @navigate="(section: string) => (currentSection = section)" />
         </div>
         <div v-show="currentSection === 'discord'" class="animate-fade-in">
           <discord-tab />
@@ -115,11 +117,11 @@ import config from '../../../../package.json';
 import { createDefaultAppUpdateState } from '../../../shared/appUpdate';
 import { SETTINGS_DATA_KEY, SETTINGS_DIALOG_KEY, SETTINGS_MESSAGE_KEY } from './keys';
 import AboutTab from './tabs/AboutTab.vue';
-import DiscordTab from './tabs/DiscordTab.vue';
 import AiTab from './tabs/AiTab.vue';
 import AppearanceTab from './tabs/AppearanceTab.vue';
 import BackupRestoreTab from './tabs/BackupRestoreTab.vue';
 import ContentTab from './tabs/ContentTab.vue';
+import DiscordTab from './tabs/DiscordTab.vue';
 import PlayerTab from './tabs/PlayerTab.vue';
 import PrivacyTab from './tabs/PrivacyTab.vue';
 import StorageTab from './tabs/StorageTab.vue';

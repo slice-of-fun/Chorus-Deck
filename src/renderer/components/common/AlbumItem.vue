@@ -37,7 +37,7 @@ const emit = defineEmits<{
 const getDescription = () => {
   const parts: string[] = [];
   if (props.item.artist?.name) parts.push(props.item.artist.name);
-  // eslint-disable-next-line no-undef
+
   if (props.item.size !== undefined) parts.push(t('common.songCount', { count: props.item.size }));
   return parts.join(' · ') || 'No description';
 };

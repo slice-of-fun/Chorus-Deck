@@ -1,4 +1,4 @@
-import { searchYTM, getYTMSuggestions, type YTMPlaylist, type YTMSong } from '@/api/ytmusic';
+import { getYTMSuggestions, searchYTM, type YTMPlaylist, type YTMSong } from '@/api/ytmusic';
 
 export type SearchFilter = 'songs' | 'videos' | 'albums' | 'artists' | 'playlists';
 

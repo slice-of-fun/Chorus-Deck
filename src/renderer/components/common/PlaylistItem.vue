@@ -37,7 +37,6 @@ const emit = defineEmits<{
 const getDescription = () => {
   const parts: string[] = [];
   if (props.item.trackCount !== undefined)
-    // eslint-disable-next-line no-undef
     parts.push(t('user.playlist.trackCount', { count: props.item.trackCount }));
   if (props.item.creator?.nickname) parts.push(props.item.creator.nickname);
   return parts.join(' · ') || 'No description';

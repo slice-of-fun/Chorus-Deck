@@ -1,6 +1,10 @@
 <template>
   <setting-section v-if="isDesktop()" title="Application Settings">
-    <setting-item icon="ri-close-circle-line" title="Close Action" description="Choose action when closing window">
+    <setting-item
+      icon="ri-close-circle-line"
+      title="Close Action"
+      description="Choose action when closing window"
+    >
       <s-select
         v-model="setData.closeAction"
         :options="closeActionOptions"
@@ -45,19 +49,35 @@
   </setting-section>
 
   <setting-section title="General Content Settings">
-    <setting-item icon="ri-translate-2" title="Content Language" description="Select the language for content">
+    <setting-item
+      icon="ri-translate-2"
+      title="Content Language"
+      description="Select the language for content"
+    >
       <n-input v-model:value="setData.contentLanguage" placeholder="system" />
     </setting-item>
 
-    <setting-item icon="ri-map-pin-line" title="Content Country" description="Select the country for content">
+    <setting-item
+      icon="ri-map-pin-line"
+      title="Content Country"
+      description="Select the country for content"
+    >
       <n-input v-model:value="setData.contentCountry" placeholder="system" />
     </setting-item>
 
-    <setting-item icon="ri-map-pin-2-line" title="Suggestions Region" description="Select the region for suggestions">
+    <setting-item
+      icon="ri-map-pin-2-line"
+      title="Suggestions Region"
+      description="Select the region for suggestions"
+    >
       <n-input v-model:value="setData.suggestionRegion" placeholder="system" />
     </setting-item>
 
-    <setting-item icon="ri-eye-close-line" title="Hide Explicit" description="Hide explicit content">
+    <setting-item
+      icon="ri-eye-close-line"
+      title="Hide Explicit"
+      description="Hide explicit content"
+    >
       <n-switch v-model:value="setData.hideExplicit" />
     </setting-item>
 
@@ -65,40 +85,59 @@
       <n-switch v-model:value="setData.hideVideoSongs" />
     </setting-item>
 
-    <setting-item icon="ri-video-off-fill" title="Hide YouTube Shorts" description="Hide YouTube Shorts in search results">
+    <setting-item
+      icon="ri-video-off-fill"
+      title="Hide YouTube Shorts"
+      description="Hide YouTube Shorts in search results"
+    >
       <n-switch v-model:value="setData.hideYoutubeShorts" />
     </setting-item>
 
-    <setting-item icon="ri-skip-forward-line" title="SponsorBlock" description="Skip sponsors, intro, outro, etc.">
+    <setting-item
+      icon="ri-skip-forward-line"
+      title="SponsorBlock"
+      description="Skip sponsors, intro, outro, etc."
+    >
       <n-switch v-model:value="setData.sponsorBlockEnabled" />
     </setting-item>
   </setting-section>
 
   <setting-section title="Artist Page Settings">
-    <setting-item icon="ri-file-text-line" title="Show Artist Description" description="Show description on artist page">
+    <setting-item
+      icon="ri-file-text-line"
+      title="Show Artist Description"
+      description="Show description on artist page"
+    >
       <n-switch v-model:value="setData.showArtistDescription" />
     </setting-item>
 
     <setting-item
-      icon="ri-user-follow-line" title="Show Artist Subscriber Count"
+      icon="ri-user-follow-line"
+      title="Show Artist Subscriber Count"
       description="Show subscriber count on artist page"
     >
       <n-switch v-model:value="setData.showArtistSubscriberCount" />
     </setting-item>
 
     <setting-item
-      icon="ri-headphone-line" title="Show Monthly Listeners"
+      icon="ri-headphone-line"
+      title="Show Monthly Listeners"
       description="Show monthly listeners on artist page"
     >
       <n-switch v-model:value="setData.showMonthlyListeners" />
     </setting-item>
 
-    <setting-item icon="ri-video-line" title="Show Artist Video" description="Show videos on artist page">
+    <setting-item
+      icon="ri-video-line"
+      title="Show Artist Video"
+      description="Show videos on artist page"
+    >
       <n-switch v-model:value="setData.showArtistVideo" />
     </setting-item>
 
     <setting-item
-      icon="ri-image-edit-line" title="Show Artist Background Video"
+      icon="ri-image-edit-line"
+      title="Show Artist Background Video"
       description="Show background video on artist page"
     >
       <n-switch v-model:value="setData.showArtistBackgroundVideo" />
@@ -106,30 +145,51 @@
   </setting-section>
 
   <setting-section title="Other Content Settings">
-    <setting-item icon="ri-flashlight-line" title="Set Quick Picks" description="Select quick picks mode">
+    <setting-item
+      icon="ri-flashlight-line"
+      title="Set Quick Picks"
+      description="Select quick picks mode"
+    >
       <s-select v-model="setData.quickPicks" :options="quickPicksOptions" width="w-40" />
     </setting-item>
 
-    <setting-item icon="ri-list-ordered" title="Top Length" description="Number of items for top lists">
+    <setting-item
+      icon="ri-list-ordered"
+      title="Top Length"
+      description="Number of items for top lists"
+    >
       <n-input v-model:value="setData.lengthTop" />
     </setting-item>
 
-    <setting-item icon="ri-global-line" title="Network IP Version" description="Select preferred IP version">
+    <setting-item
+      icon="ri-global-line"
+      title="Network IP Version"
+      description="Select preferred IP version"
+    >
       <s-select v-model="setData.ipVersion" :options="ipVersionOptions" width="w-40" />
     </setting-item>
 
     <setting-item
-      icon="ri-shuffle-line" title="Randomize Home Order"
+      icon="ri-shuffle-line"
+      title="Randomize Home Order"
       description="Randomize the order of items on the home page"
     >
       <n-switch v-model:value="setData.randomizeHomeOrder" />
     </setting-item>
 
-    <setting-item icon="ri-speed-mini-fill" title="Show Speed Dial" description="Show speed dial on home page">
+    <setting-item
+      icon="ri-speed-mini-fill"
+      title="Show Speed Dial"
+      description="Show speed dial on home page"
+    >
       <n-switch v-model:value="setData.showSpeedDial" />
     </setting-item>
 
-    <setting-item icon="ri-album-line" title="Enable Album Canvas" description="Show Spotify album canvas if available">
+    <setting-item
+      icon="ri-album-line"
+      title="Enable Album Canvas"
+      description="Show Spotify album canvas if available"
+    >
       <n-switch v-model:value="setData.albumCanvasEnabled" />
     </setting-item>
   </setting-section>

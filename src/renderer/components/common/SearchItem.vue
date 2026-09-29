@@ -32,8 +32,6 @@
         {{ item.desc }}
       </p>
     </div>
-
-
   </div>
 </template>
 
@@ -62,8 +60,6 @@ const showPop = ref(false);
 const playerStore = usePlayerStore();
 const router = useRouter();
 const playHistoryStore = usePlayHistoryStore();
-
-
 
 const handleClick = async () => {
   if (props.item.type === 'album') {

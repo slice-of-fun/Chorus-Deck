@@ -1,7 +1,11 @@
 <template>
   <div>
     <setting-section title="Appearance">
-      <setting-item icon="ri-contrast-drop-2-line" title="Theme Mode" description="Switch between light, dark, AMOLED, or system theme">
+      <setting-item
+        icon="ri-contrast-drop-2-line"
+        title="Theme Mode"
+        description="Switch between light, dark, AMOLED, or system theme"
+      >
         <template #action>
           <div class="flex items-center gap-1 overflow-x-auto pb-1 no-scrollbar max-md:w-full">
             <button
@@ -22,23 +26,42 @@
         </template>
       </setting-item>
 
-      <setting-item icon="ri-palette-line" title="Color Palette" description="Choose a custom accent color">
+      <setting-item
+        icon="ri-palette-line"
+        title="Color Palette"
+        description="Choose a custom accent color"
+      >
         <template #action>
-          <div class="flex flex-wrap gap-3 max-md:w-full items-center justify-end max-md:justify-start w-[400px]">
+          <div
+            class="flex flex-wrap gap-3 max-md:w-full items-center justify-end max-md:justify-start w-[400px]"
+          >
             <button
               v-for="color in paletteColors"
               :key="color.value"
               class="w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 relative border-2"
               :class="
-                (setData.selectedThemeColor || 'dynamic') === color.value 
-                  ? 'border-primary scale-110 shadow-md' 
+                (setData.selectedThemeColor || 'dynamic') === color.value
+                  ? 'border-primary scale-110 shadow-md'
                   : 'border-transparent hover:scale-105'
               "
-              :style="{ backgroundColor: color.value === 'dynamic' ? 'var(--color-surface-variant, #e5e7eb)' : color.value }"
+              :style="{
+                backgroundColor:
+                  color.value === 'dynamic' ? 'var(--color-surface-variant, #e5e7eb)' : color.value
+              }"
               @click="setThemeColor(color.value)"
             >
-              <i v-if="color.value === 'dynamic' && (setData.selectedThemeColor || 'dynamic') !== 'dynamic'" class="ri-palette-line text-neutral-500 text-lg"></i>
-              <i v-if="(setData.selectedThemeColor || 'dynamic') === color.value" class="ri-check-line text-white text-lg drop-shadow-md" :class="{'text-neutral-700': color.value === 'dynamic'}"></i>
+              <i
+                v-if="
+                  color.value === 'dynamic' &&
+                  (setData.selectedThemeColor || 'dynamic') !== 'dynamic'
+                "
+                class="ri-palette-line text-neutral-500 text-lg"
+              ></i>
+              <i
+                v-if="(setData.selectedThemeColor || 'dynamic') === color.value"
+                class="ri-check-line text-white text-lg drop-shadow-md"
+                :class="{ 'text-neutral-700': color.value === 'dynamic' }"
+              ></i>
             </button>
           </div>
         </template>
@@ -46,7 +69,8 @@
 
       <setting-item
         v-if="!isDesktop()"
-        icon="ri-tablet-line" title="Tablet Mode"
+        icon="ri-tablet-line"
+        title="Tablet Mode"
         description="Enabling tablet mode allows using PC-style interface on mobile devices"
       >
         <n-switch v-model:value="setData.tabletMode">
@@ -57,7 +81,8 @@
 
       <setting-item
         v-if="isDesktop()"
-        icon="ri-font-size" title="Font Settings"
+        icon="ri-font-size"
+        title="Font Settings"
         description="Select fonts, prioritize fonts in order"
       >
         <template #action>
@@ -141,7 +166,8 @@
 
     <setting-section title="Player Appearance">
       <setting-item
-        icon="ri-image-line" title="Player Background Style"
+        icon="ri-image-line"
+        title="Player Background Style"
         description="Select the background style for the player"
       >
         <template #action>
@@ -153,7 +179,8 @@
         </template>
       </setting-item>
       <setting-item
-        icon="ri-image-2-line" title="Mini Player Background Style"
+        icon="ri-image-2-line"
+        title="Mini Player Background Style"
         description="Select the background style for the mini player"
       >
         <template #action>
@@ -165,7 +192,8 @@
         </template>
       </setting-item>
       <setting-item
-        icon="ri-play-circle-line" title="Player Buttons Style"
+        icon="ri-play-circle-line"
+        title="Player Buttons Style"
         description="Select the style for the player control buttons"
       >
         <template #action>
@@ -176,7 +204,11 @@
           />
         </template>
       </setting-item>
-      <setting-item icon="ri-git-commit-line" title="Slider Style" description="Select the style for the progress slider">
+      <setting-item
+        icon="ri-git-commit-line"
+        title="Slider Style"
+        description="Select the style for the progress slider"
+      >
         <template #action>
           <n-select
             v-model:value="setData.sliderStyle"
@@ -186,49 +218,64 @@
         </template>
       </setting-item>
       <setting-item
-        icon="ri-guide-line" title="Squiggly Slider"
+        icon="ri-guide-line"
+        title="Squiggly Slider"
         description="Enable squiggly effect on the progress slider"
       >
         <n-switch v-model:value="setData.squigglySlider" />
       </setting-item>
       <setting-item
-        icon="ri-information-line" title="Show Codec on Player"
+        icon="ri-information-line"
+        title="Show Codec on Player"
         description="Display audio codec information on the player"
       >
         <n-switch v-model:value="setData.showCodecOnPlayer" />
       </setting-item>
       <setting-item
-        icon="ri-eye-off-line" title="Hide Player Thumbnail"
+        icon="ri-eye-off-line"
+        title="Hide Player Thumbnail"
         description="Hide the album art thumbnail in the player"
       >
         <n-switch v-model:value="setData.hidePlayerThumbnail" />
       </setting-item>
-      <setting-item icon="ri-crop-line" title="Crop Album Art" description="Crop album art to fit the container">
+      <setting-item
+        icon="ri-crop-line"
+        title="Crop Album Art"
+        description="Crop album art to fit the container"
+      >
         <n-switch v-model:value="setData.cropAlbumArt" />
       </setting-item>
       <setting-item
-        icon="ri-magic-line" title="Canvas Thumbnail Animation"
+        icon="ri-magic-line"
+        title="Canvas Thumbnail Animation"
         description="Enable canvas animation for thumbnails"
       >
         <n-switch v-model:value="setData.canvasThumbnailAnimation" />
       </setting-item>
       <setting-item
-        icon="ri-refresh-line" title="Rotating Thumbnail"
+        icon="ri-refresh-line"
+        title="Rotating Thumbnail"
         description="Enable rotating animation for thumbnails"
       >
         <n-switch v-model:value="setData.rotatingThumbnail" />
       </setting-item>
       <setting-item
-        icon="ri-drag-move-2-line" title="Swipe Thumbnail to Change Song"
+        icon="ri-drag-move-2-line"
+        title="Swipe Thumbnail to Change Song"
         description="Swipe on the thumbnail to skip or go back"
       >
         <n-switch v-model:value="setData.swipeThumbnail" />
       </setting-item>
-      <setting-item icon="ri-drag-move-fill" title="Swipe to Song" description="Swipe to switch songs in lists">
+      <setting-item
+        icon="ri-drag-move-fill"
+        title="Swipe to Song"
+        description="Swipe to switch songs in lists"
+      >
         <n-switch v-model:value="setData.swipeToSong" />
       </setting-item>
       <setting-item
-        icon="ri-settings-4-line" title="Swipe Sensitivity"
+        icon="ri-settings-4-line"
+        title="Swipe Sensitivity"
         description="Adjust the sensitivity for swipe gestures"
       >
         <template #action>
@@ -240,7 +287,11 @@
     </setting-section>
 
     <setting-section title="Lyrics Appearance">
-      <setting-item icon="ri-align-left" title="Lyrics Position" description="Alignment of the lyrics text">
+      <setting-item
+        icon="ri-align-left"
+        title="Lyrics Position"
+        description="Alignment of the lyrics text"
+      >
         <template #action>
           <n-select
             v-model:value="setData.lyricsTextPosition"
@@ -250,7 +301,8 @@
         </template>
       </setting-item>
       <setting-item
-        icon="ri-film-line" title="Lyrics Animation Style"
+        icon="ri-film-line"
+        title="Lyrics Animation Style"
         description="Select the animation style for lyrics transitions"
       >
         <template #action>
@@ -261,7 +313,11 @@
           />
         </template>
       </setting-item>
-      <setting-item icon="ri-font-size-2" title="Lyrics Text Size" description="Adjust the font size for lyrics">
+      <setting-item
+        icon="ri-font-size-2"
+        title="Lyrics Text Size"
+        description="Adjust the font size for lyrics"
+      >
         <template #action>
           <div class="w-40 flex justify-end">
             <n-slider v-model:value="setData.lyricsTextSize" :min="16" :max="36" :step="1" />
@@ -269,7 +325,8 @@
         </template>
       </setting-item>
       <setting-item
-        icon="ri-line-height" title="Lyrics Line Spacing"
+        icon="ri-line-height"
+        title="Lyrics Line Spacing"
         description="Adjust the spacing between lines of lyrics"
       >
         <template #action>
@@ -279,31 +336,50 @@
         </template>
       </setting-item>
       <setting-item
-        icon="ri-cursor-line" title="Click to Seek"
+        icon="ri-cursor-line"
+        title="Click to Seek"
         description="Click on a lyric line to seek to that position"
       >
         <n-switch v-model:value="setData.lyricsClick" />
       </setting-item>
-      <setting-item icon="ri-scroll-to-bottom-line" title="Auto Scroll" description="Automatically scroll lyrics as the song plays">
+      <setting-item
+        icon="ri-scroll-to-bottom-line"
+        title="Auto Scroll"
+        description="Automatically scroll lyrics as the song plays"
+      >
         <n-switch v-model:value="setData.lyricsScroll" />
       </setting-item>
-      <setting-item icon="ri-sun-foggy-line" title="Glow Effect" description="Enable glow effect for the active lyric line">
+      <setting-item
+        icon="ri-sun-foggy-line"
+        title="Glow Effect"
+        description="Enable glow effect for the active lyric line"
+      >
         <n-switch v-model:value="setData.lyricsGlowEffect" />
       </setting-item>
       <setting-item
-        icon="ri-apple-line" title="Apple Music Blur Style"
+        icon="ri-apple-line"
+        title="Apple Music Blur Style"
         description="Use Apple Music style blur for lyrics background"
       >
         <n-switch v-model:value="setData.appleMusicLyricsBlur" />
       </setting-item>
-      <setting-item icon="ri-blur-off-line" title="Standard Blur" description="Use standard blur for lyrics background">
+      <setting-item
+        icon="ri-blur-off-line"
+        title="Standard Blur"
+        description="Use standard blur for lyrics background"
+      >
         <n-switch v-model:value="setData.lyricsStandardBlur" />
       </setting-item>
-      <setting-item icon="ri-drag-move-line" title="Swipe Lyrics" description="Allow swiping on lyrics to change songs">
+      <setting-item
+        icon="ri-drag-move-line"
+        title="Swipe Lyrics"
+        description="Allow swiping on lyrics to change songs"
+      >
         <n-switch v-model:value="setData.swipeLyrics" />
       </setting-item>
       <setting-item
-        icon="ri-play-line" title="Show Play/Pause on Thumbnail"
+        icon="ri-play-line"
+        title="Show Play/Pause on Thumbnail"
         description="Show play/pause controls on the lyrics thumbnail"
       >
         <n-switch v-model:value="setData.enableLyricsThumbnailPlayPause" />
@@ -312,7 +388,8 @@
 
     <setting-section title="Library & UI Appearance">
       <setting-item
-        icon="ri-home-4-line" title="Default Open Tab"
+        icon="ri-home-4-line"
+        title="Default Open Tab"
         description="The tab to open by default when starting the app"
       >
         <template #action>
@@ -323,7 +400,11 @@
           />
         </template>
       </setting-item>
-      <setting-item icon="ri-grid-fill" title="Grid Items Size" description="Size of items in grid views">
+      <setting-item
+        icon="ri-grid-fill"
+        title="Grid Items Size"
+        description="Size of items in grid views"
+      >
         <template #action>
           <n-select
             v-model:value="setData.gridItemsSize"
@@ -333,7 +414,8 @@
         </template>
       </setting-item>
       <setting-item
-        icon="ri-filter-3-line" title="Default Library Filter"
+        icon="ri-filter-3-line"
+        title="Default Library Filter"
         description="Default filter chip selected in library"
       >
         <template #action>
@@ -344,42 +426,69 @@
           />
         </template>
       </setting-item>
-      <setting-item icon="ri-aspect-ratio-line" title="Density Scale" description="Adjust the UI density scaling">
+      <setting-item
+        icon="ri-aspect-ratio-line"
+        title="Density Scale"
+        description="Adjust the UI density scaling"
+      >
         <template #action>
           <div class="w-40 flex justify-end">
             <n-slider v-model:value="setData.densityScale" :min="0.5" :max="2.0" :step="0.1" />
           </div>
         </template>
       </setting-item>
-      <setting-item icon="ri-heart-3-line" title="Show Liked Playlist" description="Show Liked playlist in library">
+      <setting-item
+        icon="ri-heart-3-line"
+        title="Show Liked Playlist"
+        description="Show Liked playlist in library"
+      >
         <n-switch v-model:value="setData.showLikedPlaylist" />
       </setting-item>
       <setting-item
-        icon="ri-download-2-line" title="Show Downloaded Playlist"
+        icon="ri-download-2-line"
+        title="Show Downloaded Playlist"
         description="Show Downloaded playlist in library"
       >
         <n-switch v-model:value="setData.showDownloadedPlaylist" />
       </setting-item>
-      <setting-item icon="ri-file-download-line" title="Show Exported Playlist" description="Show Exported playlist in library">
+      <setting-item
+        icon="ri-file-download-line"
+        title="Show Exported Playlist"
+        description="Show Exported playlist in library"
+      >
         <n-switch v-model:value="setData.showExportedPlaylist" />
       </setting-item>
-      <setting-item icon="ri-bar-chart-line" title="Show Top Playlist" description="Show Top playlist in library">
+      <setting-item
+        icon="ri-bar-chart-line"
+        title="Show Top Playlist"
+        description="Show Top playlist in library"
+      >
         <n-switch v-model:value="setData.showTopPlaylist" />
       </setting-item>
-      <setting-item icon="ri-database-2-line" title="Show Cached Playlist" description="Show Cached playlist in library">
+      <setting-item
+        icon="ri-database-2-line"
+        title="Show Cached Playlist"
+        description="Show Cached playlist in library"
+      >
         <n-switch v-model:value="setData.showCachedPlaylist" />
       </setting-item>
-      <setting-item icon="ri-chat-1-line" title="Show Comment Button" description="Show comments button on the player">
+      <setting-item
+        icon="ri-chat-1-line"
+        title="Show Comment Button"
+        description="Show comments button on the player"
+      >
         <n-switch v-model:value="setData.showCommentButton" />
       </setting-item>
       <setting-item
-        icon="ri-delete-bin-line" title="Swipe to Remove Song"
+        icon="ri-delete-bin-line"
+        title="Swipe to Remove Song"
         description="Swipe left/right to remove songs from lists"
       >
         <n-switch v-model:value="setData.swipeToRemoveSong" />
       </setting-item>
       <setting-item
-        icon="ri-fullscreen-exit-line" title="Hide Status Bar on Fullscreen"
+        icon="ri-fullscreen-exit-line"
+        title="Hide Status Bar on Fullscreen"
         description="Hide the OS status bar when in fullscreen mode"
       >
         <n-switch v-model:value="setData.hideStatusBarOnFullscreen" />
@@ -393,8 +502,8 @@ import { computed, h, inject, onMounted, onUnmounted, ref, watch } from 'vue';
 
 import { useSettingsStore } from '@/store/modules/settings';
 import { isDesktop, isMobile } from '@/utils';
-import { applyTheme } from '@/utils/theme';
 import { t } from '@/utils/i18n';
+import { applyTheme } from '@/utils/theme';
 
 import { SETTINGS_DATA_KEY, SETTINGS_MESSAGE_KEY } from '../keys';
 import SettingItem from '../SettingItem.vue';

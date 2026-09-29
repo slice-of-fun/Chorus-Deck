@@ -86,6 +86,7 @@
 import { NColorPicker } from 'naive-ui';
 import { ref, watch } from 'vue';
 
+import { t } from '@/utils/i18n';
 import {
   getLyricThemeColors,
   getPresetColorValue,
@@ -93,7 +94,6 @@ import {
   optimizeColorForTheme,
   validateColor
 } from '@/utils/linearColor';
-import { t } from '@/utils/i18n';
 
 interface Props {
   visible: boolean;
@@ -130,7 +130,6 @@ const isColorActive = (color: LyricThemeColor): boolean => {
 };
 
 const getColorName = (color: LyricThemeColor): string => {
-  // eslint-disable-next-line no-undef
   return t(`settings.themeColor.colorNames.${color.id}`) || color.name;
 };
 

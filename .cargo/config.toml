@@ -1,0 +1,7 @@
+# The repository lives inside a OneDrive-synced folder, which holds locks on
+# files inside `target/` and makes `cargo` fail with:
+#   error: failed to remove ... The process cannot access the file because it
+#   is being used by another process. (os error 32)
+# Redirecting the build directory to local (non-synced) storage fixes it.
+[build]
+target-dir = "C:/Users/pushk/AppData/Local/ChorusDeckCargo/target"

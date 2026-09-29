@@ -4,9 +4,9 @@ import { computed, ref } from 'vue';
 import { usePlayerStore } from '@/store';
 import type { SongResult } from '@/types/music';
 import { getImgUrl } from '@/utils';
+import { t } from '@/utils/i18n';
 import { getImageBackground } from '@/utils/linearColor';
 
-import { t } from '@/utils/i18n';
 import { useArtist } from './useArtist';
 import { useDownload } from './useDownload';
 

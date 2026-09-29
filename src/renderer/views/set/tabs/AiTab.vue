@@ -1,7 +1,11 @@
 <template>
   <div>
     <setting-section title="AI Provider">
-      <setting-item icon="ri-robot-2-line" title="AI Provider" description="Select the AI service provider">
+      <setting-item
+        icon="ri-robot-2-line"
+        title="AI Provider"
+        description="Select the AI service provider"
+      >
         <template #action>
           <s-select
             v-model="setData.aiProvider"
@@ -13,7 +17,8 @@
 
       <setting-item
         v-if="setData.aiProvider === 'Custom'"
-        icon="ri-link" title="Base URL"
+        icon="ri-link"
+        title="Base URL"
         description="Custom API Base URL"
       >
         <template #action>
@@ -28,7 +33,11 @@
 
     <setting-section title="Setup Guide">
       <template v-if="setData.aiProvider === 'DeepL'">
-        <setting-item icon="ri-key-line" title="DeepL API Key" description="Your DeepL authentication key">
+        <setting-item
+          icon="ri-key-line"
+          title="DeepL API Key"
+          description="Your DeepL authentication key"
+        >
           <template #action>
             <s-input
               v-model="setData.deeplApiKey"
@@ -39,7 +48,11 @@
           </template>
         </setting-item>
 
-        <setting-item icon="ri-chat-check-line" title="DeepL Formality" description="Formality of translation">
+        <setting-item
+          icon="ri-chat-check-line"
+          title="DeepL Formality"
+          description="Formality of translation"
+        >
           <template #action>
             <s-select
               v-model="setData.deeplFormality"
@@ -51,7 +64,11 @@
       </template>
 
       <template v-else>
-        <setting-item icon="ri-key-line" title="API Key" description="Your authentication key for the provider">
+        <setting-item
+          icon="ri-key-line"
+          title="API Key"
+          description="Your authentication key for the provider"
+        >
           <template #action>
             <s-input
               v-model="setData.openRouterApiKey"
@@ -64,7 +81,8 @@
 
         <setting-item
           v-if="setData.aiProvider !== 'Custom'"
-          icon="ri-cpu-line" title="Model"
+          icon="ri-cpu-line"
+          title="Model"
           description="Select the AI model"
         >
           <template #action>
@@ -80,7 +98,11 @@
 
     <setting-section title="AI Lyrics Translation">
       <template v-if="setData.aiProvider !== 'DeepL'">
-        <setting-item icon="ri-translate" title="Translation Mode" description="Choose translation style">
+        <setting-item
+          icon="ri-translate"
+          title="Translation Mode"
+          description="Choose translation style"
+        >
           <template #action>
             <s-select
               v-model="setData.translateMode"
@@ -91,7 +113,11 @@
         </setting-item>
       </template>
 
-      <setting-item icon="ri-global-line" title="Target Language" description="Language for lyrics translation">
+      <setting-item
+        icon="ri-global-line"
+        title="Target Language"
+        description="Language for lyrics translation"
+      >
         <template #action>
           <s-select
             v-model="setData.translateLanguage"
@@ -101,7 +127,11 @@
         </template>
       </setting-item>
 
-      <setting-item icon="ri-magic-line" title="Auto Translate" description="Automatically translate lyrics">
+      <setting-item
+        icon="ri-magic-line"
+        title="Auto Translate"
+        description="Automatically translate lyrics"
+      >
         <template #action>
           <n-switch v-model:value="setData.autoTranslate" />
         </template>
@@ -109,7 +139,11 @@
     </setting-section>
 
     <setting-section title="AI Recommendations">
-      <setting-item icon="ri-lightbulb-flash-line" title="Enable Recommendations" description="Use AI to recommend similar songs">
+      <setting-item
+        icon="ri-lightbulb-flash-line"
+        title="Enable Recommendations"
+        description="Use AI to recommend similar songs"
+      >
         <template #action>
           <n-switch v-model:value="setData.aiRecommendations" />
         </template>
@@ -117,7 +151,8 @@
 
       <setting-item
         v-if="setData.aiRecommendations"
-        icon="ri-refresh-line" title="Refresh Recommendations"
+        icon="ri-refresh-line"
+        title="Refresh Recommendations"
         description="Manually refresh AI recommendations list"
       >
         <template #action>

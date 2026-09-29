@@ -1,107 +1,55 @@
 {
+  "$schema": "https://schema.tauri.app/config/2",
   "productName": "Chorus Deck",
   "version": "5.1.0",
   "identifier": "com.chorusdeck.app",
   "build": {
-    "beforeDevCommand": "pnpm dev:web && pnpm tauri:dev",
-    "beforeBuildCommand": "pnpm build:web && pnpm tauri:build",
-    "devPath": "http://localhost:1420",
-    "distDir": "../dist"
+    "beforeDevCommand": "npm run dev:web",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build:web",
+    "frontendDist": "../src/renderer/dist"
   },
-  "tauri": {
-    "allowlist": {
-      "all": false,
-      "shell": {
-        "open": true,
-        "download": true
-      },
-      "window": {
-        "disable-reduce-motion": false,
-        "always-on-top": false
-      },
-      "fs": {
-        "directory": true,
-        "glob": true,
-        "write": true
-      },
-      "dialog": {
-        "open": true,
-        "save": true
-      },
-      "updater": {
-        "active": false
-      },
-      "tray": {
-        "icon": "resources/icon.png",
-        "tooltip": "Chorus Deck",
-        "menu": {
-          "default": {
-            "quit": {
-              "visible": true,
-              "shortcut": "CmdOrCtrl+Q"
-            },
-            "hide": {
-              "visible": true,
-              "shortcut": "CmdOrCtrl+H",
-              "click": "hide_window"
-            }
-          },
-          "mac": {
-            "about": {
-              "visible": true
-            },
-            "services": {
-              "items": []
-            }
-          }
-        }
-      },
-      "global-shortcut": {
-        "general": [
-          {
-            "label": "toggle_window",
-            "default": "F12"
-          }
-        ]
-      },
-      "window": {
+  "app": {
+    "windows": [
+      {
+        "label": "main",
         "title": "Chorus Deck",
-        "icon": "resources/icon.png",
         "width": 1200,
         "height": 800,
         "minWidth": 800,
         "minHeight": 600,
-        "transparent": false,
         "resizable": true,
         "fullscreen": false,
-        "always-on-top": false,
-        "dark-mode": true,
-        "skip-taskbar": false,
+        "center": true,
         "focus": true,
-        "center": true
+        "visible": true,
+        "decorations": true,
+        "transparent": false
       }
+    ],
+    "security": {
+      "csp": null
     },
-    "bundle": {
-      "active": true,
-      "targets": {
-        "windows": {
-          "installer": "nsis",
-          "url": null
-        },
-        "mac": {
-          "beforeBuild": null,
-          "category": null
-        },
-        "linux": {
-          "beforeBuild": null,
-          "category": null
-        }
-      },
-      "icon": [
-        "resources/icon.png",
-        "resources/icon.icns",
-        "resources/icon.ico"
-      ]
+    "trayIcon": {
+      "id": "main-tray",
+      "iconPath": "icons/icon.png",
+      "iconAsTemplate": false,
+      "tooltip": "Chorus Deck",
+      "menuOnLeftClick": false
     }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "category": "Music",
+    "shortDescription": "Chorus Deck",
+    "longDescription": "Chorus Deck music player"
   }
 }

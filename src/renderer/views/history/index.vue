@@ -67,12 +67,14 @@
               <template v-if="!isMobile">
                 <div
                   class="px-4 text-xs text-gray-400 dark:text-gray-600 font-medium min-w-[60px] text-right"
-                  v-show="true"                >
+                  v-show="true"
+                >
                   {{ t('history.playCount', { count: item.count }) }}
                 </div>
                 <div
                   class="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer transition-all opacity-0 group-hover:opacity-100"
-                  v-show="true"                  @click="handleDelMusic(item)"
+                  v-show="true"
+                  @click="handleDelMusic(item)"
                 >
                   <i class="ri-close-line text-lg"></i>
                 </div>
@@ -85,7 +87,9 @@
               v-for="(item, index) in displayList"
               :key="item.id"
               :item="item"
-              :show-count="true"              :show-delete="true"              class="rounded-xl hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors"
+              :show-count="true"
+              :show-delete="true"
+              class="rounded-xl hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors"
               :class="setAnimationClass('animate__bounceInRight')"
               :style="setAnimationDelay(index, 30)"
               @click="handlePlaylistClick(item)"
@@ -98,14 +102,15 @@
               v-for="(item, index) in displayList"
               :key="item.id"
               :item="item"
-              :show-count="true"              :show-delete="true"              class="rounded-xl hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors"
+              :show-count="true"
+              :show-delete="true"
+              class="rounded-xl hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors"
               :class="setAnimationClass('animate__bounceInRight')"
               :style="setAnimationDelay(index, 30)"
               @click="handleAlbumClick(item)"
               @delete="handleDelAlbum(item)"
             />
           </template>
-
 
           <div v-if="displayList.length === 0 && !loading" class="text-center py-12 text-gray-400">
             <div
@@ -157,7 +162,6 @@ import type { SongResult } from '@/types/music';
 import { isMobile, setAnimationClass, setAnimationDelay } from '@/utils';
 import { t } from '@/utils/i18n';
 
-
 const message = useMessage();
 const router = useRouter();
 const playHistoryStore = usePlayHistoryStore();
@@ -171,7 +175,6 @@ const currentCategory = ref<'songs' | 'playlists' | 'albums'>('songs');
 
 const pageSize = 100;
 const currentPage = ref(1);
-
 
 const getCurrentList = (): any[] => {
   if (currentCategory.value === 'songs') return playHistoryStore.musicHistory;
@@ -231,8 +234,6 @@ const handleDelAlbum = (item: any) => {
   displayList.value = displayList.value.filter((album) => album.id !== item.id);
 };
 
-
-
 const loadHistoryData = async () => {
   const currentList = getCurrentList();
   if (currentList.length === 0) {
@@ -285,7 +286,6 @@ const handleScroll = (e: any) => {
 const handlePlay = () => {
   playerStore.setPlayList(displayList.value);
 };
-
 
 onMounted(async () => {
   if (!hasLoaded.value) {

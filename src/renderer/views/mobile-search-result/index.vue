@@ -65,7 +65,7 @@
 import { computed, inject, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
-import { getSearch, toSongResult, type SearchFilter } from '@/api/search';
+import { getSearch, type SearchFilter, toSongResult } from '@/api/search';
 import SearchItem from '@/components/common/SearchItem.vue';
 import SongItem from '@/components/common/SongItem.vue';
 import { SEARCH_TYPE, SEARCH_TYPES } from '@/const/bar-const';
@@ -84,10 +84,8 @@ const keyword = ref((route.query.keyword as string) || '');
 
 const searchType = ref(Number(route.query.type) || searchStore.searchType || 1);
 const searchTypes = computed(() => {
-  // eslint-disable-next-line no-undef
   locale.value;
   return SEARCH_TYPES.map((type) => ({
-    // eslint-disable-next-line no-undef
     label: t(type.label),
     key: type.key
   }));
@@ -179,7 +177,6 @@ const performSearch = async (isLoadMore = false) => {
 
       hasMore.value = playlists.length === ITEMS_PER_PAGE;
     }
-
 
     page.value++;
   } catch (error) {

@@ -28,16 +28,15 @@ import { computed, nextTick, onMounted, onUnmounted, reactive, watch } from 'vue
 import { useRouter } from 'vue-router';
 
 import DisclaimerModal from '@/components/common/DisclaimerModal.vue';
+import { initAudioListeners, initMusicHook } from '@/hooks/MusicHook';
+import { audioService } from '@/services/audioService';
 import { usePlayerStore } from '@/store/modules/player';
 import { usePlayerCoreStore } from '@/store/modules/playerCore';
 import { useSettingsStore } from '@/store/modules/settings';
 import { isLyricWindow } from '@/utils';
-import { locale } from '@/utils/i18n';
-
-import { initAudioListeners, initMusicHook } from '@/hooks/MusicHook';
-import { audioService } from '@/services/audioService';
 import { isMobile } from '@/utils';
 import { useAppShortcuts } from '@/utils/appShortcuts';
+import { locale } from '@/utils/i18n';
 
 const settingsStore = useSettingsStore();
 const playerStore = usePlayerStore();
@@ -137,9 +136,8 @@ onMounted(async () => {
 
   initMusicHook(playerStore);
 
-  const { setupUrlExpiredHandler, setupYTMusicPlayHandler } = await import(
-    '@/services/playbackController'
-  );
+  const { setupUrlExpiredHandler, setupYTMusicPlayHandler } =
+    await import('@/services/playbackController');
   setupUrlExpiredHandler();
   setupYTMusicPlayHandler();
 

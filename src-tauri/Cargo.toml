@@ -1,16 +1,47 @@
 [package]
 name = "chorus-deck"
-version = "0.1.0"
+version = "5.1.0"
+description = "Chorus Deck"
+authors = ["Chorus Deck"]
 edition = "2021"
+rust-version = "1.77.2"
+
+[lib]
+name = "chorus_deck_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
-tauri = { version = "2", features = [
-  "shell-open",
-  "window-state",
-  "tray",
-  "global-shortcut",
-  "fs",
-  "dialog",
-  "sql",
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon", "image-png"] }
+tauri-plugin-opener = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-notification = "2"
+tauri-plugin-global-shortcut = "2"
+tauri-plugin-single-instance = "2"
+
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+rusqlite = { version = "0.32", features = ["bundled"] }
+dirs = "5"
+
+tokio = { version = "1", features = ["fs", "io-util", "rt", "rt-multi-thread", "macros", "sync", "time"] }
+futures-util = "0.3"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "stream"] }
+sha2 = "0.10"
+hex = "0.4"
+base64 = "0.22"
+lofty = "0.25"
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.58", features = [
+  "Win32_Foundation",
+  "Win32_System_Registry",
+  "Win32_Graphics_Dwm",
 ] }
-rusqlite = { version = "0.31" }
+
+[features]
+# Enabled by `tauri build`; keeps devtools out of release bundles.
+default = []

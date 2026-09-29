@@ -207,7 +207,6 @@ const timerDisplayText = computed(() => {
   }
 
   if (sleepTimer.value.type === 'songs') {
-    // eslint-disable-next-line no-undef
     return t('player.sleepTimer.songsRemaining', { count: sleepTimer.value.remainingSongs || 0 });
   }
 

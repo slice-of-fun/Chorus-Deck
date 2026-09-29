@@ -1,11 +1,5 @@
-fn main() {
-    tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-    // Initialize library module (SQLite + legacy import) on startup
-    if let Ok(()) = library::init() {
-      // Library initialized successfully - data is now in SQLite
-    }
+fn main() {
+    chorus_deck_lib::run()
 }

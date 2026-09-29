@@ -1,7 +1,11 @@
 <template>
   <div>
     <setting-section title="Backup & Restore">
-      <setting-item icon="ri-save-line" title="Local Backup" description="Create a manual zip backup of your data">
+      <setting-item
+        icon="ri-save-line"
+        title="Local Backup"
+        description="Create a manual zip backup of your data"
+      >
         <template #action>
           <n-button secondary round>
             <template #icon><i class="ri-save-line"></i></template>
@@ -11,7 +15,8 @@
       </setting-item>
 
       <setting-item
-        icon="ri-spotify-line" title="Import from Spotify"
+        icon="ri-spotify-line"
+        title="Import from Spotify"
         description="Import playlists and liked songs from Spotify"
       >
         <template #action>
@@ -25,7 +30,8 @@
 
     <setting-section title="Import Data">
       <setting-item
-        icon="ri-folder-open-line" title="Import from local file"
+        icon="ri-folder-open-line"
+        title="Import from local file"
         description="Restore data from backups or other sources"
       >
         <template #action>
@@ -36,7 +42,11 @@
         </template>
       </setting-item>
 
-      <setting-item icon="ri-play-list-add-line" title="Import 'm3u' Playlist" description="Import m3u format playlist">
+      <setting-item
+        icon="ri-play-list-add-line"
+        title="Import 'm3u' Playlist"
+        description="Import m3u format playlist"
+      >
         <template #action>
           <n-button secondary round>
             <template #icon><i class="ri-play-list-add-line"></i></template>
@@ -45,7 +55,11 @@
         </template>
       </setting-item>
 
-      <setting-item icon="ri-file-list-line" title="Import 'csv' Playlist" description="Import csv format playlist">
+      <setting-item
+        icon="ri-file-list-line"
+        title="Import 'csv' Playlist"
+        description="Import csv format playlist"
+      >
         <template #action>
           <n-button secondary round>
             <template #icon><i class="ri-play-list-add-line"></i></template>

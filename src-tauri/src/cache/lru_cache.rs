@@ -1,209 +1,192 @@
-use rusqlite::Connection;
-use serde::{Deserialize, Serialize};
+use rusqlite::{Connection, Result};
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-/// SQLite-backed LRU cache with TTL and size cap
-///
-/// Replaces 3 IndexedDB `cache_*` stores.
-/// On boot, sweeps orphaned entries (expired TTL).
-pub struct LRUCache {
-  /// Maximum total size in bytes across all cached items
-  max_size: usize,
-  /// Current total size in bytes
-  current_size: usize,
-  /// Cache entries: key → (value, size, expiry_timestamp)
-  entries: HashMap<String, CacheEntry>,
-  /// Database connection for persistence
-  conn: Connection,
+fn now_unix() -> i64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_secs() as i64)
+        .unwrap_or(0)
 }
 
-/// A single cached entry
-#[derive(Debug, Clone)]
+pub struct LRUCache {
+    max_size: usize,
+    current_size: usize,
+    entries: HashMap<String, CacheEntry>,
+    conn: Connection,
+}
+
 struct CacheEntry {
-  value: Vec<u8>,
-  size: usize,
-  expiry: i64, // Unix epoch seconds; 0 = no expiry
+    value: Vec<u8>,
+    size: usize,
+    expiry: i64,
 }
 
 impl LRUCache {
-  /// Create a new LRU cache with a size cap (in bytes)
-  pub fn new(max_size: usize, conn: &Connection) -> Result<Self> {
-    // Ensure table exists
-    conn.execute(
-      "CREATE TABLE IF NOT EXISTS cache (
-        key TEXT PRIMARY KEY,
-        value BLOB,
-        size INTEGER,
-        expiry INTEGER
-      )",
-      [],
-    )?;
+    pub fn new(max_size: usize, conn: Connection) -> Result<Self> {
+        Self::ensure_table(&conn)?;
+        Self::sweep_orphans(&conn)?;
 
-    // Sweep expired entries on init
-    let _ = Self::sweep_orphans(conn);
+        let mut entries: HashMap<String, CacheEntry> = HashMap::new();
+        {
+            let mut stmt = conn.prepare("SELECT key, value, size, expiry FROM cache")?;
+            let rows = stmt.query_map([], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    CacheEntry {
+                        value: row.get::<_, Vec<u8>>(1)?,
+                        size: row.get::<_, i64>(2)?.max(0) as usize,
+                        expiry: row.get::<_, i64>(3)?,
+                    },
+                ))
+            })?;
 
-    // Load existing entries from DB
-    let mut entries = HashMap::new();
-    let mut stmt = conn.prepare("SELECT key, value, size, expiry FROM cache")?;
-    let rows = stmt.query_map([], |row| {
-      Ok((
-        row.get::<_, String>(0)?,
-        CacheEntry {
-          value: row.get::<_, Vec<u8>>(1)?,
-          size: row.get::<_, i64>(2)? as usize,
-          expiry: row.get::<_, i64>(3)?,
-        },
-      ))
-    })?;
-
-    for row in rows.flatten() {
-      entries.insert(row.0, row.1);
-      // Track current size
-      if let Some(entry) = entries.get(&row.0) {
-        // We'll compute current_size from entries after all loaded
-      }
-    }
-
-    Ok(LRUCache {
-      max_size,
-      current_size: 0, // Will be computed after loading
-      entries,
-    })
-  }
-
-  /// Sweep orphaned (expired) entries from the database and in-memory map
-  fn sweep_orphans(conn: &Connection) -> Result<usize> {
-    let now = SystemTime::now()
-      .duration_since(UNIX_EPOCH)
-      .unwrap()
-      .as_secs() as i64;
-
-    let mut stmt = conn.prepare("SELECT key, expiry FROM cache WHERE expiry > 0")?;
-    let rows = stmt.query_map([], |row| {
-      Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
-    })?;
-
-    let mut swept = 0;
-    let keys_to_remove: Vec<String> = rows
-      .filter_map(|r| {
-        let (key, expiry) = r?;
-        if expiry <= now {
-          Some(key)
-        } else {
-          None
+            for row in rows.flatten() {
+                entries.insert(row.0, row.1);
+            }
         }
-      })
-      .collect();
 
-    for key in &keys_to_remove {
-      let _ = conn.execute("DELETE FROM cache WHERE key = ?1", [key.as_str()]);
-      swept += 1;
+        let current_size = entries.values().map(|e| e.size).sum();
+
+        Ok(LRUCache {
+            max_size,
+            current_size,
+            entries,
+            conn,
+        })
     }
 
-    // Remove swept entries from in-memory map too (caller will reload or we can)
-    swept
-  }
+    fn ensure_table(conn: &Connection) -> Result<()> {
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS cache (
+               key TEXT PRIMARY KEY,
+               value BLOB,
+               size INTEGER,
+               expiry INTEGER
+             )",
+            [],
+        )?;
+        Ok(())
+    }
 
-  /// Get a cached value by key, returns None if not found or expired
-  pub fn get(&mut self, key: &str) -> Option<Vec<u8>> {
-    if let Some(entry) = self.entries.get(key) {
-      // Check expiry
-      if entry.expiry > 0 {
-        let now = SystemTime::now()
-          .duration_since(UNIX_EPOCH)
-          .unwrap()
-          .as_secs() as i64;
-        if now >= entry.expiry {
-          // Expired - remove
-          let _ = self.conn.execute("DELETE FROM cache WHERE key = ?1", [key]);
-          self.entries.remove(key);
-          return None;
+    fn sweep_orphans(conn: &Connection) -> Result<usize> {
+        let now = now_unix();
+        Ok(conn.execute("DELETE FROM cache WHERE expiry > 0 AND expiry <= ?1", [now])?)
+    }
+
+    pub fn get(&mut self, key: &str) -> Option<Vec<u8>> {
+        if let Some(entry) = self.entries.get(key) {
+            if entry.expiry > 0 && now_unix() >= entry.expiry {
+                self.remove(key);
+                return None;
+            }
+            return Some(entry.value.clone());
         }
-      }
-      Some(entry.value.clone())
-    } else {
-      // Not in memory - try to load from DB
-      let mut stmt = self.conn.prepare("SELECT value, size, expiry FROM cache WHERE key = ?1")?;
-      let row = stmt.query_row([key], |row| {
-        Ok((
-          row.get::<_, Vec<u8>>(0)?,
-          row.get::<_, i64>(1)? as usize,
-          row.get::<_, i64>(2)?,
-        ))
-      });
-      match row.ok() {
-        Some((value, size, expiry)) => {
-          // Add to memory cache (potentially evicting something if at cap)
-          self.entries.insert(key.to_string(), CacheEntry {
-            value,
-            size,
-            expiry,
-          });
-          // Update current_size
-          self.current_size = self
-            .entries
-            .values()
-            .map(|e| e.size)
-            .sum::<usize>();
-          Some(value)
+
+        let loaded = {
+            let mut stmt = match self
+                .conn
+                .prepare("SELECT value, size, expiry FROM cache WHERE key = ?1")
+            {
+                Ok(s) => s,
+                Err(_) => return None,
+            };
+            stmt.query_row([key], |row| {
+                Ok(CacheEntry {
+                    value: row.get::<_, Vec<u8>>(0)?,
+                    size: row.get::<_, i64>(1)?.max(0) as usize,
+                    expiry: row.get::<_, i64>(2)?,
+                })
+            })
+            .ok()
+        };
+
+        let entry = loaded?;
+        if entry.expiry > 0 && now_unix() >= entry.expiry {
+            self.remove(key);
+            return None;
         }
-        None => None,
-      }
-    }
-  }
 
-  /// Set a cached value, evicting oldest entries if over size cap
-  pub fn set(&mut self, key: String, value: Vec<u8>, ttl_seconds: Option<i64>) {
-    let size = value.len();
-
-    // Check if we need to evict
-    while self.current_size + size > self.max_size && !self.entries.is_empty() {
-      // Remove the first (oldest) entry
-      let first_key = self.entries.keys().next().unwrap().clone();
-      let first_size = self.entries[&first_key].size;
-      let _ = self.conn.execute("DELETE FROM cache WHERE key = ?1", [first_key.as_str()]);
-      self.entries.remove(&first_key);
-      self.current_size -= first_size;
+        let value = entry.value.clone();
+        self.current_size += entry.size;
+        self.entries.insert(key.to_string(), entry);
+        self.evict_to_cap();
+        Some(value)
     }
 
-    // Insert/update in DB
-    let expiry = ttl_seconds.map(|t| {
-      let st = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_secs() as i64 + t;
-      st
-    });
+    pub fn set(&mut self, key: String, value: Vec<u8>, ttl_seconds: Option<i64>) {
+        let size = value.len();
 
-    let expiry_val = expiry.unwrap_or(0); // 0 = no expiry
+        if let Some(old) = self.entries.remove(&key) {
+            self.current_size = self.current_size.saturating_sub(old.size);
+            let _ = self
+                .conn
+                .execute("DELETE FROM cache WHERE key = ?1", [&key]);
+        }
 
-    let _ = self.conn.execute(
-      "INSERT OR REPLACE INTO cache (key, value, size, expiry) VALUES (?1, ?2, ?3, ?4)",
-      [key, value.as_slice(), size as i64, expiry_val],
-    );
+        let expiry = ttl_seconds.map(|t| now_unix() + t).unwrap_or(0);
 
-    // Update in-memory cache
-    self.entries.insert(key.clone(), CacheEntry {
-      value,
-      size,
-      expiry: expiry_val,
-    });
-    self.current_size += size;
-  }
+        let _ = self.conn.execute(
+            "INSERT OR REPLACE INTO cache (key, value, size, expiry) VALUES (?1, ?2, ?3, ?4)",
+            rusqlite::params![key, value.as_slice(), size as i64, expiry],
+        );
 
-  /// Get current cache size in bytes
-  pub fn size(&self) -> usize {
-    self.current_size
-  }
+        self.current_size += size;
+        self.entries.insert(
+            key,
+            CacheEntry {
+                value,
+                size,
+                expiry,
+            },
+        );
+        self.evict_to_cap();
+    }
 
-  /// Get max cache size in bytes
-  pub max_size(&self) -> usize {
-    self.max_size
-  }
+    fn remove(&mut self, key: &str) {
+        if let Some(entry) = self.entries.remove(key) {
+            self.current_size = self.current_size.saturating_sub(entry.size);
+        }
+        let _ = self.conn.execute("DELETE FROM cache WHERE key = ?1", [key]);
+    }
+
+    fn evict_to_cap(&mut self) {
+        while self.current_size > self.max_size {
+            let victim = match self
+                .entries
+                .iter()
+                .min_by_key(|(_, e)| e.expiry)
+                .map(|(k, _)| k.clone())
+            {
+                Some(k) => k,
+                None => break,
+            };
+            self.remove(&victim);
+        }
+    }
+
+    pub fn clear(&mut self) {
+        self.entries.clear();
+        self.current_size = 0;
+        let _ = self.conn.execute("DELETE FROM cache", []);
+    }
+
+    pub fn len(&self) -> usize {
+        self.entries.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.entries.is_empty()
+    }
+
+    pub fn size(&self) -> usize {
+        self.current_size
+    }
+
+    pub fn max_size(&self) -> usize {
+        self.max_size
+    }
 }
-
-/// Factory function to create a cache instance
-pub fn create_cache(max_size: usize, conn: &Connection) -> Result<LRUCache> {
-  LRUCache::new(max_size, conn)
+pub fn create_cache(max_size: usize, conn: Connection) -> Result<LRUCache> {
+    LRUCache::new(max_size, conn)
 }

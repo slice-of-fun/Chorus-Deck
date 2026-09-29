@@ -51,3 +51,10 @@ AGENTS.md
 
 src/renderer/auto-imports.d.ts
 src/renderer/components.d.ts
+
+src-tauri/target/
+target/
+src-tauri/gen/schemas/
+
+.cargo/
+

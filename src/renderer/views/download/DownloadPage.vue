@@ -504,6 +504,7 @@
 </template>
 
 <script setup lang="ts">
+import type { CompletedDownload } from '@shared/download';
 import { useMessage } from 'naive-ui';
 import { computed, onMounted, ref, watch } from 'vue';
 
@@ -511,7 +512,6 @@ import logoImg from '@/assets/logo.png';
 import { useProgressiveRender } from '@/hooks/useProgressiveRender';
 import { useDownloadStore } from '@/store/modules/download';
 import { usePlayerStore } from '@/store/modules/player';
-import type { CompletedDownload } from '@shared/download';
 import type { SongResult } from '@/types/music';
 import { getImgUrl } from '@/utils';
 import { t } from '@/utils/i18n';
@@ -622,7 +622,6 @@ const handlePlayMusic = async (item: CompletedDownload) => {
     const fileExists = await window.api.checkFileExists(filePath);
 
     if (!fileExists) {
-      // eslint-disable-next-line no-undef
       message.error(t('download.delete.fileNotFound', { name: item.displayName || item.filename }));
       return;
     }
@@ -644,11 +643,10 @@ const handlePlayMusic = async (item: CompletedDownload) => {
     playerStore.setPlayMusic(true);
     playerStore.setIsPlay(true);
 
-    // eslint-disable-next-line no-undef
     message.success(t('download.playStarted', { name: item.displayName || item.filename }));
   } catch (error) {
     console.error('Failed to play music:', error);
-    // eslint-disable-next-line no-undef
+
     message.error(t('download.playFailed', { name: item.displayName || item.filename }));
   }
 };

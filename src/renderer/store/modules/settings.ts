@@ -9,9 +9,9 @@ import {
   applyTheme,
   getCurrentTheme,
   getSystemTheme,
-  watchSystemTheme,
-  type ThemeType
-} from '@/utils/theme';
+  type ThemeType,
+  watchSystemTheme} from '@/utils/theme';
+
 import { type AppUpdateState, createDefaultAppUpdateState } from '../../../shared/appUpdate';
 
 export const useSettingsStore = defineStore('settings', () => {

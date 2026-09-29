@@ -47,7 +47,7 @@
             </p>
           </div>
 
-          <SongItem
+          <song-item
             v-for="(song, index) in songs"
             :key="song.id"
             :item="song"

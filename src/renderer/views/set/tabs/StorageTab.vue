@@ -1,7 +1,8 @@
 <template>
   <setting-section v-if="isDesktop()" title="System Management">
     <setting-item
-      icon="ri-hard-drive-2-line" title="Disk Cache"
+      icon="ri-hard-drive-2-line"
+      title="Disk Cache"
       description="Cache played music and lyrics on local disk to speed up repeated playback"
     >
       <n-switch v-model:value="setData.enableDiskCache">
@@ -11,7 +12,8 @@
     </setting-item>
 
     <setting-item
-      icon="ri-folder-2-line" title="Cache Directory"
+      icon="ri-folder-2-line"
+      title="Cache Directory"
       :description="
         setData.diskCacheDir ||
         diskCacheStats.directory ||
@@ -27,7 +29,8 @@
     </setting-item>
 
     <setting-item
-      icon="ri-database-2-line" title="Cache Size Limit"
+      icon="ri-database-2-line"
+      title="Cache Size Limit"
       description="Older cache items are cleaned automatically when limit is reached"
     >
       <template #action>
@@ -44,7 +47,8 @@
     </setting-item>
 
     <setting-item
-      icon="ri-delete-bin-6-line" title="Cleanup Policy"
+      icon="ri-delete-bin-6-line"
+      title="Cleanup Policy"
       description="Auto cleanup rule when cache reaches the size limit"
     >
       <s-select
@@ -55,7 +59,8 @@
     </setting-item>
 
     <setting-item
-      icon="ri-pie-chart-line" title="Cache Status"
+      icon="ri-pie-chart-line"
+      title="Cache Status"
       :description="
         t('settings.system.cacheStatusDesc', {
           used: formatBytes(diskCacheStats.totalSizeBytes),
@@ -81,7 +86,11 @@
       </template>
     </setting-item>
 
-    <setting-item icon="ri-broom-line" title="Manual Disk Cache Cleanup" description="Clean cache by category">
+    <setting-item
+      icon="ri-broom-line"
+      title="Manual Disk Cache Cleanup"
+      description="Clean cache by category"
+    >
       <template #action>
         <div class="flex items-center gap-2 max-md:flex-wrap">
           <s-btn @click="clearDiskCacheByScope('music')"> Clear Music Cache </s-btn>
@@ -198,7 +207,7 @@ const readDiskCacheConfigFromUI = (): DiskCacheConfig => {
 
 const refreshDiskCacheStats = async (silent: boolean = true) => {
   try {
-    const stats = await window.api.invoke('get-disk-cache-stats') as DiskCacheStats;
+    const stats = (await window.api.invoke('get-disk-cache-stats')) as DiskCacheStats;
     if (stats) {
       diskCacheStats.value = stats;
     }
@@ -212,7 +221,7 @@ const refreshDiskCacheStats = async (silent: boolean = true) => {
 
 const loadDiskCacheConfig = async () => {
   try {
-    const config = await window.api.invoke('get-disk-cache-config') as DiskCacheConfig;
+    const config = (await window.api.invoke('get-disk-cache-config')) as DiskCacheConfig;
     if (config) {
       setData.value = {
         ...setData.value,
@@ -231,7 +240,7 @@ const applyDiskCacheConfig = async () => {
   applyingDiskCacheConfig.value = true;
   try {
     const config = readDiskCacheConfigFromUI();
-    const updated = await window.api.invoke('set-disk-cache-config', config) as DiskCacheConfig;
+    const updated = (await window.api.invoke('set-disk-cache-config', config)) as DiskCacheConfig;
 
     if (updated) {
       setData.value = {
@@ -332,10 +341,10 @@ const selectCacheDirectory = async () => {
 
   switchingCacheDirectory.value = true;
   try {
-    const result = await window.api.invoke('switch-disk-cache-directory', {
+    const result = (await window.api.invoke('switch-disk-cache-directory', {
       directory: selectedPath,
       action
-    }) as SwitchCacheDirectoryResult;
+    })) as SwitchCacheDirectoryResult;
 
     if (!result?.success) {
       message.error('Failed to switch cache directory');
@@ -402,5 +411,4 @@ onMounted(async () => {
 });
 </script>
 
-<style scoped>
-</style>
+<style scoped></style>

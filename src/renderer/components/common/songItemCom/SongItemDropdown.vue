@@ -45,9 +45,6 @@ const emits = defineEmits([
   'remove'
 ]);
 
-
-
-
 const isLocalSong = computed(
   () =>
     typeof props.item.playMusicUrl === 'string' && props.item.playMusicUrl.startsWith('local://')

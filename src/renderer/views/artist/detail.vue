@@ -19,7 +19,10 @@
         <p v-if="artist?.subscriberCount" class="text-xs text-gray-500 dark:text-gray-400">
           {{ artist.subscriberCount }} subscribers
         </p>
-        <p v-if="artist?.description" class="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
+        <p
+          v-if="artist?.description"
+          class="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2"
+        >
           {{ artist.description }}
         </p>
       </div>
@@ -51,10 +54,13 @@
       <n-spin :show="loading">
         <n-scrollbar class="h-full pr-4" :size="100">
           <template v-if="activeTab === 'songs'">
-            <p v-if="!loading && songs.length === 0" class="py-20 text-center text-sm text-gray-500">
+            <p
+              v-if="!loading && songs.length === 0"
+              class="py-20 text-center text-sm text-gray-500"
+            >
               No tracks available for this artist.
             </p>
-            <SongItem
+            <song-item
               v-for="(song, index) in songs"
               :key="song.id"
               :item="song"
@@ -65,10 +71,13 @@
           </template>
 
           <template v-else-if="activeTab === 'albums'">
-            <p v-if="!loading && albums.length === 0" class="py-20 text-center text-sm text-gray-500">
+            <p
+              v-if="!loading && albums.length === 0"
+              class="py-20 text-center text-sm text-gray-500"
+            >
               No albums available for this artist.
             </p>
-            <PlaylistItem
+            <playlist-item
               v-for="album in albumItems"
               :key="album.id"
               :item="album"
@@ -83,7 +92,7 @@
             >
               No playlists available for this artist.
             </p>
-            <PlaylistItem
+            <playlist-item
               v-for="playlist in playlistItems"
               :key="playlist.id"
               :item="playlist"
@@ -94,7 +103,7 @@
       </n-spin>
     </div>
 
-    <PlayBottom />
+    <play-bottom />
   </div>
 </template>
 

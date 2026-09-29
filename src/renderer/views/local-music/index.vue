@@ -187,8 +187,8 @@ import SongItem from '@/components/common/SongItem.vue';
 import { useLocalMusicStore } from '@/store/modules/localMusic';
 import { usePlayerStore } from '@/store/modules/player';
 import type { SongResult } from '@/types/music';
-import { t } from '@/utils/i18n';
 import { selectDirectory } from '@/utils/fileOperation';
+import { t } from '@/utils/i18n';
 import { filterByKeyword, toSongResult } from '@/utils/localMusicUtils';
 
 const { message } = createDiscreteApi(['message']);

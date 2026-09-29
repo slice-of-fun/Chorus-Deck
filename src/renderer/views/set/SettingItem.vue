@@ -11,10 +11,16 @@
     @click="handleClick"
   >
     <div class="flex-1 min-w-0 mr-4 flex items-center gap-4">
-      <div v-if="icon" class="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-xl bg-primary/10 text-primary">
+      <div
+        v-if="icon"
+        class="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-xl bg-primary/10 text-primary"
+      >
         <i :class="[icon, 'text-xl']"></i>
       </div>
-      <div v-if="$slots.icon" class="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-xl bg-primary/10 text-primary">
+      <div
+        v-if="$slots.icon"
+        class="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-xl bg-primary/10 text-primary"
+      >
         <slot name="icon"></slot>
       </div>
 

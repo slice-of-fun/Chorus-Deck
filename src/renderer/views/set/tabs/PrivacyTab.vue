@@ -2,7 +2,8 @@
   <div>
     <setting-section title="Listen History">
       <setting-item
-        icon="ri-pause-circle-line" title="Pause Listen History"
+        icon="ri-pause-circle-line"
+        title="Pause Listen History"
         description="Stop recording newly played songs to history"
       >
         <template #action>
@@ -13,7 +14,11 @@
         </template>
       </setting-item>
 
-      <setting-item icon="ri-delete-bin-line" title="Clear Listen History" description="Delete all recorded listen history">
+      <setting-item
+        icon="ri-delete-bin-line"
+        title="Clear Listen History"
+        description="Delete all recorded listen history"
+      >
         <template #action>
           <n-popconfirm
             @positive-click="clearListenHistory"
@@ -34,7 +39,8 @@
 
     <setting-section title="Search History">
       <setting-item
-        icon="ri-pause-circle-line" title="Pause Search History"
+        icon="ri-pause-circle-line"
+        title="Pause Search History"
         description="Stop recording new searches to history"
       >
         <template #action>
@@ -45,7 +51,11 @@
         </template>
       </setting-item>
 
-      <setting-item icon="ri-delete-bin-line" title="Clear Search History" description="Delete all recorded search history">
+      <setting-item
+        icon="ri-delete-bin-line"
+        title="Clear Search History"
+        description="Delete all recorded search history"
+      >
         <template #action>
           <n-popconfirm
             @positive-click="clearSearchHistory"
@@ -66,7 +76,8 @@
 
     <setting-section title="Misc">
       <setting-item
-        icon="ri-screenshot-line" title="Disable Screenshot"
+        icon="ri-screenshot-line"
+        title="Disable Screenshot"
         description="Prevent screenshots and screen recording"
       >
         <template #action>

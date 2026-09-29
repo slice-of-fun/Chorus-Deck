@@ -109,10 +109,8 @@ const hotSearchKeyword = ref('Search music, singers, playlists');
 
 const searchType = ref(searchStore.searchType || 1);
 const searchTypes = computed(() => {
-  // eslint-disable-next-line no-undef
   locale.value;
   return SEARCH_TYPES.map((type) => ({
-    // eslint-disable-next-line no-undef
     label: t(type.label),
     key: type.key
   }));

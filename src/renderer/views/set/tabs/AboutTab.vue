@@ -55,12 +55,19 @@
       </template>
     </setting-item>
 
-    <setting-item icon="ri-user-line" title="Developer" description="pushkar" clickable @click="openDeveloper">
+    <setting-item
+      icon="ri-user-line"
+      title="Developer"
+      description="pushkar"
+      clickable
+      @click="openDeveloper"
+    >
       <s-btn @click.stop="openDeveloper"> <i class="ri-github-line mr-1"></i>GitHub </s-btn>
     </setting-item>
 
     <setting-item
-      icon="ri-github-line" title="App"
+      icon="ri-github-line"
+      title="App"
       description="slice-of-fun/Chorus-Music"
       clickable
       @click="openAppRepo"

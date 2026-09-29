@@ -1,6 +1,4 @@
-import { invoke as tauriInvoke } from '@tauri-apps/api/core';
-import { listen as tauriListen, type UnlistenFn } from '@tauri-apps/api/event';
-
+import type { AppUpdateState } from '@shared/appUpdate';
 import type {
   CompletedDownload,
   DownloadBatchCompleteEvent,
@@ -9,7 +7,9 @@ import type {
   DownloadStateChangeEvent,
   DownloadTask
 } from '@shared/download';
-import type { AppUpdateState } from '@shared/appUpdate';
+import { invoke as tauriInvoke } from '@tauri-apps/api/core';
+import { listen as tauriListen, type UnlistenFn } from '@tauri-apps/api/event';
+
 import type { LocalMusicMeta } from '@/types/localMusic';
 
 /**
@@ -77,7 +77,15 @@ const EVENT_CHANNELS = [
   'mpris-set-position',
   'update-app-shortcuts',
   'receive-lyric',
-  'lyric-mouse-presence'
+  'lyric-mouse-presence',
+  'lyric-window-closed',
+  'lyric-window-ready',
+  'app-update:state',
+  'language-changed',
+  'download:progress',
+  'download:state-change',
+  'download:batch-complete',
+  'download:request-url'
 ] as const;
 
 export type Unlisten = () => void;

@@ -750,22 +750,19 @@ onMounted(() => {
 
   window.api.send('lyric-ready');
 
-  removeMousePresenceListener = window.api.on(
-    'lyric-mouse-presence',
-    (isInside: boolean) => {
-      if (lyricSetting.value.isLock) {
-        if (isInside) {
-          showLockedControls();
-        } else {
-          clearHideTimer();
-          isHovering.value = false;
-          window.api.send('set-ignore-mouse', true);
-        }
+  removeMousePresenceListener = window.api.on('lyric-mouse-presence', (isInside: boolean) => {
+    if (lyricSetting.value.isLock) {
+      if (isInside) {
+        showLockedControls();
       } else {
-        isHovering.value = isInside;
+        clearHideTimer();
+        isHovering.value = false;
+        window.api.send('set-ignore-mouse', true);
       }
+    } else {
+      isHovering.value = isInside;
     }
-  );
+  });
 
   window.api.send('set-lyric-lock-state', lyricSetting.value.isLock);
 });
