@@ -24,9 +24,7 @@
     "baseUrl": ".",
     "types": [
       "naive-ui/volar",
-      "vite/client",
-      "./src/renderer/auto-imports.d.ts",
-      "./src/renderer/components.d.ts"
+      "vite/client"
     ],
     "paths": {
       "@/*": ["src/renderer/*"],

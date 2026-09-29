@@ -1,5 +1,6 @@
 <template>
   <div>
+import { t } from '@/utils/i18n';
     <div v-if="hasActiveSleepTimer" class="sleep-timer-countdown" @click="handleShowTimer">
       <i class="iconfont ri-time-line mr-1"></i>
       <span>{{ formattedRemainingTime }}</span>

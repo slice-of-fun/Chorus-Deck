@@ -12,6 +12,7 @@
           :key="tab.key"
           :ref="(el) => setTabRef(el as HTMLElement, i)"
           class="tab-btn"
+import { locale, t } from '@/utils/i18n';
           :class="isTabActive(tab.path) ? 'tab-btn--on' : 'tab-btn--off'"
           @click="router.push(tab.path)"
         >

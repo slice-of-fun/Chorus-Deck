@@ -6,6 +6,7 @@
       </div>
       <div class="header-keyword">{{ keyword }}</div>
       <div class="header-actions">
+import { locale, t } from '@/utils/i18n';
         <div class="action-btn" @click="openSearch">
           <i class="ri-search-line"></i>
         </div>

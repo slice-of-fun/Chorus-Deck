@@ -252,7 +252,7 @@ const setupAudioListeners = () => {
 
   let interval: number | null = null;
   let recoveryTimer: number | null = null;
-  let lyricThrottleCounter = 0;
+  const lyricThrottleCounter = 0;
   let lastSavedProgress = 0;
 
   const clearInterval = () => {

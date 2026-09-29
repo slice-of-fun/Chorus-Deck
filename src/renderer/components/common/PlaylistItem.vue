@@ -1,6 +1,7 @@
 <template>
   <history-item
     :image-url="getImgUrl(item.coverImgUrl || item.picUrl || '', '100y100')"
+import { t } from '@/utils/i18n';
     :name="item.name"
     :description="getDescription()"
     :count="item.count"

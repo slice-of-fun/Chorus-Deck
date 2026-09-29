@@ -1,6 +1,7 @@
 <template>
   <Teleport to="body">
     <Transition name="settings-drawer">
+import { t } from '@/utils/i18n';
       <div
         v-if="visible"
         class="fixed inset-0 z-[99999] flex items-end justify-center"

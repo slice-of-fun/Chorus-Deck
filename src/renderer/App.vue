@@ -114,10 +114,6 @@ if (!isLyricWindow.value) {
 
 handleSetLanguage(settingsStore.setData.language);
 
-// Mini mode event handling through Tauri preload bridge
-// Window events are now routed through the preload's contextBridge API
-// instead of direct electron.ipcRenderer calls
-
 useAppShortcuts();
 
 const handleOffline = () => {
@@ -211,7 +207,6 @@ onMounted(async () => {
 
     applyColors(theme.value === 'dark');
 
-    // Expose applyColors globally for theme watcher
     window._applyColors = applyColors;
   };
 
@@ -274,11 +269,9 @@ onMounted(async () => {
 
   playerCoreStore.initAudioDeviceListener();
 
-
   if (playerStore.playMusic && playerStore.playMusic.id) {
     await nextTick();
     initAudioListeners();
-    // Send song to main process through Tauri preload bridge
     if (window.api && window.api.sendSong) {
       window.api.sendSong(cloneDeep(playerStore.playMusic));
     }

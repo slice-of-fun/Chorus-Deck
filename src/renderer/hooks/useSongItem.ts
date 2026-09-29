@@ -6,6 +6,7 @@ import type { SongResult } from '@/types/music';
 import { getImgUrl } from '@/utils';
 import { getImageBackground } from '@/utils/linearColor';
 
+import { t } from '@/utils/i18n';
 import { useArtist } from './useArtist';
 import { useDownload } from './useDownload';
 

@@ -117,7 +117,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, useTemplateRef } from 'vue';
 
 import logoImg from '@/assets/logo.png';
 import SongItem from '@/components/common/SongItem.vue';

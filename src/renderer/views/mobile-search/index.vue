@@ -5,6 +5,7 @@
         <i class="ri-arrow-left-s-line"></i>
       </div>
       <div class="search-input-wrapper">
+import { locale, t } from '@/utils/i18n';
         <i class="ri-search-line search-icon"></i>
         <input
           ref="searchInputRef"

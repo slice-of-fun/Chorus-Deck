@@ -1,5 +1,6 @@
 <template>
   <div
+import { t } from '@/utils/i18n';
     v-show="visible"
     class="theme-color-panel"
     :class="{ visible: visible, hidden: !visible }"
