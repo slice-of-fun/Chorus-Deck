@@ -41,7 +41,7 @@
         />
       </template>
     </div>
-    <update-modal v-if="isElectron" />
+    <update-modal v-if="isDesktop()" />
     <sleep-timer-top v-if="!settingsStore.isMobile" />
 
     <playing-list-drawer />
@@ -60,7 +60,7 @@ import otherRouter from '@/router/other';
 import { useMenuStore } from '@/store/modules/menu';
 import { usePlayerStore } from '@/store/modules/player';
 import { useSettingsStore } from '@/store/modules/settings';
-import { isElectron } from '@/utils';
+import { isDesktop } from '@/utils';
 
 import AppMenu from './components/AppMenu.vue';
 import TitleBar from './components/TitleBar.vue';

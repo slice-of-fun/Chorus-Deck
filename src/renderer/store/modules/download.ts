@@ -2,11 +2,12 @@ import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 
 import logoImg from '@/assets/logo.png';
-import { isElectron } from '@/utils';
+import { isDesktop } from '@/utils';
 
 import {
   createDefaultDownloadSettings,
   DOWNLOAD_TASK_STATE,
+  type CompletedDownload,
   type DownloadSettings,
   type DownloadTask
 } from '../../../shared/download';
@@ -22,7 +23,7 @@ export const useDownloadStore = defineStore(
   'download',
   () => {
     const tasks = ref(new Map<string, DownloadTask>());
-    const completedList = ref<any[]>([]);
+    const completedList = ref<CompletedDownload[]>([]);
     const settings = ref<DownloadSettings>(createDefaultDownloadSettings());
     const isLoadingCompleted = ref(false);
 
@@ -51,7 +52,7 @@ export const useDownloadStore = defineStore(
     });
 
     const addDownload = async (songInfo: DownloadTask['songInfo'], url: string, type: string) => {
-      if (!isElectron) return;
+      if (!isDesktop()) return;
       const validatedInfo = {
         ...songInfo,
         picUrl: validatePicUrl(songInfo.picUrl)
@@ -64,7 +65,7 @@ export const useDownloadStore = defineStore(
     const batchDownload = async (
       items: Array<{ songInfo: DownloadTask['songInfo']; url: string; type: string }>
     ) => {
-      if (!isElectron) return;
+      if (!isDesktop()) return;
       const validatedItems = items.map((item) => {
         const validatedInfo = {
           ...item.songInfo,
@@ -78,36 +79,36 @@ export const useDownloadStore = defineStore(
     };
 
     const pauseTask = async (taskId: string) => {
-      if (!isElectron) return;
+      if (!isDesktop()) return;
       await window.api.downloadPause(taskId);
     };
 
     const resumeTask = async (taskId: string) => {
-      if (!isElectron) return;
+      if (!isDesktop()) return;
       await window.api.downloadResume(taskId);
     };
 
     const cancelTask = async (taskId: string) => {
-      if (!isElectron) return;
+      if (!isDesktop()) return;
       await window.api.downloadCancel(taskId);
       tasks.value.delete(taskId);
     };
 
     const cancelAll = async () => {
-      if (!isElectron) return;
+      if (!isDesktop()) return;
       await window.api.downloadCancelAll();
       tasks.value.clear();
     };
 
     const updateConcurrency = async (n: number) => {
-      if (!isElectron) return;
+      if (!isDesktop()) return;
       const clamped = Math.min(5, Math.max(1, n));
       settings.value = { ...settings.value, maxConcurrent: clamped };
       await window.api.downloadSetConcurrency(clamped);
     };
 
     const refreshCompleted = async () => {
-      if (!isElectron) return;
+      if (!isDesktop()) return;
       isLoadingCompleted.value = true;
       try {
         const list = await window.api.downloadGetCompleted();
@@ -118,19 +119,19 @@ export const useDownloadStore = defineStore(
     };
 
     const deleteCompleted = async (filePath: string) => {
-      if (!isElectron) return;
+      if (!isDesktop()) return;
       await window.api.downloadDeleteCompleted(filePath);
       completedList.value = completedList.value.filter((item) => item.filePath !== filePath);
     };
 
     const clearCompleted = async () => {
-      if (!isElectron) return;
+      if (!isDesktop()) return;
       await window.api.downloadClearCompleted();
       completedList.value = [];
     };
 
     const loadPersistedQueue = async () => {
-      if (!isElectron) return;
+      if (!isDesktop()) return;
       const queue = await window.api.downloadGetQueue();
       tasks.value.clear();
       for (const task of queue) {
@@ -139,7 +140,7 @@ export const useDownloadStore = defineStore(
     };
 
     const initListeners = () => {
-      if (!isElectron || listenersInitialised) return;
+      if (!isDesktop() || listenersInitialised) return;
       listenersInitialised = true;
 
       window.api.onDownloadProgress((event) => {
@@ -186,7 +187,7 @@ export const useDownloadStore = defineStore(
     };
 
     const cleanup = () => {
-      if (!isElectron) return;
+      if (!isDesktop()) return;
       window.api.removeDownloadListeners();
       listenersInitialised = false;
     };

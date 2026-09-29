@@ -9,7 +9,7 @@ export function useZoom() {
 
   const initZoomFactor = async () => {
     try {
-      const currentZoom = await window.ipcRenderer.invoke('get-content-zoom');
+      const currentZoom = await window.api.invoke<number>('get-content-zoom');
       zoomFactor.value = currentZoom;
     } catch (error) {
       console.error('Failed to get zoom ratio:', error);
@@ -53,7 +53,7 @@ export function useZoom() {
   };
 
   const setZoomFactor = (zoom: number) => {
-    window.ipcRenderer.send('set-content-zoom', zoom);
+    window.api.send('set-content-zoom', zoom);
     zoomFactor.value = zoom;
   };
 

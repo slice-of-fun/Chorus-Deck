@@ -892,7 +892,7 @@ onBeforeUnmount(() => {
 
 const { navigateToArtist } = useArtist();
 
-const handleArtistClick = (id: number) => {
+const handleArtistClick = (id: string | undefined) => {
   isVisible.value = false;
   navigateToArtist(id);
 };

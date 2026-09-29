@@ -65,7 +65,7 @@
 import { computed, inject, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
-import { getSearch } from '@/api/search';
+import { getSearch, toSongResult, type SearchFilter } from '@/api/search';
 import SearchItem from '@/components/common/SearchItem.vue';
 import SongItem from '@/components/common/SongItem.vue';
 import { SEARCH_TYPE, SEARCH_TYPES } from '@/const/bar-const';
@@ -122,11 +122,7 @@ const performSearch = async (isLoadMore = false) => {
         offset: (page.value - 1) * ITEMS_PER_PAGE
       });
 
-      const songs = (data.result.songs || []).map((item: any) => ({
-        ...item,
-        picUrl: item.al?.picUrl,
-        artists: item.ar
-      }));
+      const songs = (data.songs || []).map((item) => toSongResult(item));
 
       if (isLoadMore) {
         results.value = [...results.value, ...songs];
@@ -143,9 +139,11 @@ const performSearch = async (isLoadMore = false) => {
         offset: (page.value - 1) * ITEMS_PER_PAGE
       });
 
-      const albums = (data.result.albums || []).map((item: any) => ({
-        ...item,
-        desc: `${item.artist?.name || ''} ${item.company || ''}`,
+      const albums = (data.albums || []).map((item) => ({
+        id: item.id,
+        name: item.title,
+        picUrl: item.thumbnail,
+        desc: item.subtitle || '',
         type: 'album'
       }));
 
@@ -164,11 +162,11 @@ const performSearch = async (isLoadMore = false) => {
         offset: (page.value - 1) * ITEMS_PER_PAGE
       });
 
-      const playlists = (data.result.playlists || []).map((item: any) => ({
-        ...item,
-        picUrl: item.coverImgUrl,
-        playCount: item.playCount,
-        desc: item.creator?.nickname || '',
+      const playlists = (data.playlists || []).map((item) => ({
+        id: item.id,
+        name: item.title,
+        picUrl: item.thumbnail,
+        desc: item.subtitle || '',
         type: 'playlist'
       }));
 
@@ -191,7 +189,7 @@ const performSearch = async (isLoadMore = false) => {
   }
 };
 
-const selectType = (type: number) => {
+const selectType = (type: SearchFilter) => {
   if (searchType.value === type) return;
 
   searchType.value = type;

@@ -82,7 +82,7 @@
             <!-- Items grid -->
             <div
               class="home-section-scroll overflow-x-auto pb-2"
-              :ref="(el) => (sectionRefs[si] = el)"
+              :ref="(el) => (sectionRefs[si] = el as HTMLElement | null)"
             >
               <div class="flex gap-5" :style="{ width: 'max-content' }">
                 <div
@@ -228,7 +228,7 @@ function playSong(item: YTMSong | YTMPlaylist) {
   if (!isYTMSong(item)) return;
   // Queue single song for playback via ytm video id
   // The actual playback is handled by the existing Howler/yt service
-  const track = {
+  const track: SongResult = {
     id: item.id,
     name: item.title,
     picUrl: item.thumbnail,

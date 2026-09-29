@@ -185,7 +185,9 @@ export const rsaDecrypt = (buffer: Uint8Array, privateKey: string): Uint8Array =
   }
 };
 
-const getModeFromString = (mode: string): CryptoJS.lib.Mode => {
+type CryptoMode = (typeof CryptoJS.mode)[keyof typeof CryptoJS.mode];
+
+const getModeFromString = (mode: string): CryptoMode => {
   const modeStr = mode.toLowerCase().split('-').pop() || mode.toLowerCase();
   switch (modeStr) {
     case 'cbc':

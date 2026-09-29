@@ -179,6 +179,7 @@ import {
 } from '@/api/ytmusic';
 import logoImg from '@/assets/logo.png';
 import { usePlaylistStore } from '@/store/modules/playlist';
+import type { SongResult } from '@/types/music';
 
 defineOptions({ name: 'Charts' });
 
@@ -208,7 +209,7 @@ function onImgError(event: Event, title: string) {
 
 function playSong(item: YTMSong | YTMPlaylist) {
   if (!isYTMSong(item)) return;
-  const track = {
+  const track: SongResult = {
     id: item.id,
     name: item.title,
     picUrl: item.thumbnail,

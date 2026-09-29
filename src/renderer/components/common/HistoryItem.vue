@@ -1,7 +1,7 @@
 <template>
   <div
     class="flex items-center gap-3 px-2 py-2 mb-2 rounded-xl cursor-pointer transition-colors duration-200 bg-light-100 dark:bg-dark-100 hover:bg-light-200 dark:hover:bg-dark-200"
-    @click="$emit('')"
+    @click="$emit('click')"
   >
     <n-image
       :src="imageUrl"
@@ -24,7 +24,7 @@
     <div
       v-if="showDelete"
       class="cursor-pointer rounded-full border-2 w-8 h-8 flex flex-shrink-0 justify-center items-center border-gray-400 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-red-500 hover:text-red-500 transition-colors duration-200"
-      @click.stop="$emit('')"
+      @click.stop="$emit('delete')"
     >
       <i class="iconfont icon-close" />
     </div>

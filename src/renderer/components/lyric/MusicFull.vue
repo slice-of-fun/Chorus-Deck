@@ -617,7 +617,7 @@ const settingsStore = useSettingsStore();
 
 const { navigateToArtist } = useArtist();
 
-const handleArtistClick = (id: number) => {
+const handleArtistClick = (id: string | undefined) => {
   isVisible.value = false;
   navigateToArtist(id);
 };
@@ -635,10 +635,10 @@ watch(
       return;
     }
 
-    if (newFont === 'system-ui') {
+    if (!newFont || newFont === 'system-ui') {
       document.documentElement.style.setProperty('--current-font-family', defaultFonts);
     } else {
-      const fontList = newFont.split(',').map((font) => {
+      const fontList = newFont.split(',').map((font: string) => {
         const trimmedFont = font.trim();
 
         return /[\s'"()]/.test(trimmedFont) && !/^['"].*['"]$/.test(trimmedFont)

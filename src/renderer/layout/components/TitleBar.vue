@@ -7,7 +7,7 @@
     <div id="title">Chorus Deck</div>
     <div id="buttons" class="flex gap-4">
       <n-button
-        v-if="!isElectron"
+        v-if="!isDesktop()"
         type="primary"
         size="small"
         text
@@ -17,7 +17,7 @@
         <i class="ri-download-line"></i>
         Download desktop version
       </n-button>
-      <template v-if="isElectron">
+      <template v-if="isDesktop()">
         <div class="text-gray-600 dark:text-gray-400 hover:text-primary" @click="miniWindow">
           <i class="iconfont ri-picture-in-picture-line"></i>
         </div>
@@ -119,27 +119,27 @@
 import { ref } from 'vue';
 
 import { useSettingsStore } from '@/store/modules/settings';
-import { isElectron } from '@/utils';
+import { isDesktop } from '@/utils';
 
 const settingsStore = useSettingsStore();
 const showCloseModal = ref(false);
 const rememberChoice = ref(false);
 
 const openDownloadPage = () => {
-  if (!isElectron) {
+  if (!isDesktop()) {
     window.open('https://github.com/Chorus-Deck/Chorus-Deck/releases', '_blank');
   }
 };
 
 const minimize = () => {
-  if (!isElectron) {
+  if (!isDesktop()) {
     return;
   }
   window.api.minimize();
 };
 
 const miniWindow = () => {
-  if (!isElectron) return;
+  if (!isDesktop()) return;
   window.api.miniWindow();
 };
 
@@ -175,7 +175,7 @@ const handleClose = () => {
 };
 
 const drag = (event: MouseEvent) => {
-  if (!isElectron) {
+  if (!isDesktop()) {
     return;
   }
   window.api.dragStart(event as unknown as string);

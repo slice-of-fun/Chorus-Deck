@@ -1,36 +1,37 @@
 {
-  "extends": "@electron-toolkit/tsconfig/tsconfig.web.json",
   "include": [
-    "src/preload/*.d.ts",
     "src/renderer/**/*",
     "src/renderer/**/*.vue",
-    "src/shared/**/*",
-    "src/i18n/**/*",
-    "src/main/modules/config.ts",
-    "src/main/modules/shortcuts.ts"
+    "src/shared/**/*"
   ],
   "compilerOptions": {
     "composite": true,
     "target": "esnext",
     "module": "esnext",
     "moduleResolution": "node",
+    "lib": ["esnext", "dom", "dom.iterable"],
     "strict": true,
     "jsx": "preserve",
     "sourceMap": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "useDefineForClassFields": true,
     "baseUrl": ".",
     "types": [
       "naive-ui/volar",
+      "vite/client",
       "./src/renderer/auto-imports.d.ts",
       "./src/renderer/components.d.ts"
     ],
     "paths": {
       "@/*": ["src/renderer/*"],
       "@renderer/*": ["src/renderer/*"],
-      "@main/*": ["src/main/*"],
-      "@i18n/*": ["src/i18n/*"]
+      "@shared/*": ["src/shared/*"]
     }
   }
 }

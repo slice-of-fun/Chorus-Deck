@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { t } from '@/utils/i18n';
+
 const props = defineProps<{
   correctionTime: number;
 }>();

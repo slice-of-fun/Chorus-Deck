@@ -12,7 +12,7 @@ interface ToastOptions {
 
 export function showShortcutToast(message: string, iconName = '', options: ToastOptions = {}) {
   if (!container) {
-    container = document.createElement('');
+    container = document.createElement('div');
     document.body.appendChild(container);
   }
 

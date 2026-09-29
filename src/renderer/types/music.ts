@@ -57,6 +57,8 @@ export interface SongResult {
    */
   ar?: Artist[];
   al?: Album;
+  /** Cover image used by some cache/playlist entry shapes. */
+  coverImgUrl?: string;
   dt?: number;
   count?: number;
 

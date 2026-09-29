@@ -264,7 +264,12 @@ const tempDiscordToken = ref('');
 
 const loginDiscordWebView = async () => {
   try {
-    const userInfo = await window.electron.ipcRenderer.invoke('discord-webview-login');
+    const userInfo = await window.api.invoke<{
+      token: string;
+      username?: string;
+      name?: string;
+      avatarUrl?: string;
+    } | null>('discord-webview-login');
     if (userInfo && userInfo.token) {
       // Persist immediately via the settings store (no debounce race)
       settingsStore.setSetData({
@@ -311,7 +316,7 @@ const logoutDiscord = () => {
     discordAvatarUrl: ''
   };
 
-  window.electron.ipcRenderer.send('discord-logout');
+  window.api.send('discord-logout');
   message.success('Logged out of Discord.');
 };
 
@@ -333,7 +338,7 @@ const activityTypeOptions = [
 ];
 
 const activityTypeHeader = computed(() => {
-  const currentType = setData.discordActivityType || 'LISTENING';
+  const currentType = setData.value.discordActivityType || 'LISTENING';
   const type = activityTypeOptions.find(opt => opt.value === currentType);
   return type ? type.label.toUpperCase() : 'LISTENING TO';
 });
@@ -364,26 +369,26 @@ const getPlaceholderText = (source: string) => {
   }
 };
 
-const previewName = computed(() => previewSourceValue(setData.discordActivityName));
-const previewDetails = computed(() => previewSourceValue(setData.discordActivityDetails));
-const previewState = computed(() => previewSourceValue(setData.discordActivityState));
+const previewName = computed(() => previewSourceValue(setData.value.discordActivityName));
+const previewDetails = computed(() => previewSourceValue(setData.value.discordActivityDetails));
+const previewState = computed(() => previewSourceValue(setData.value.discordActivityState));
 
 const largeImagePreview = computed(() => {
-  const type = setData.discordLargeImageType;
+  const type = setData.value.discordLargeImageType;
   const albumArt = playerCore.currentSong?.al?.picUrl;
   
   if (type === 'thumbnail' && albumArt) return albumArt;
-  if (type === 'custom') return setData.discordLargeImageCustomUrl || 'https://raw.githubusercontent.com/slice-of-fun/Chorus-Music/main/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png';
+  if (type === 'custom') return setData.value.discordLargeImageCustomUrl || 'https://raw.githubusercontent.com/slice-of-fun/Chorus-Music/main/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png';
   return 'https://raw.githubusercontent.com/slice-of-fun/Chorus-Music/main/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png';
 });
 
 const smallImagePreview = computed(() => {
-  const type = setData.discordSmallImageType;
+  const type = setData.value.discordSmallImageType;
   const albumArt = playerCore.currentSong?.al?.picUrl;
   
   if (type === 'dontshow') return null;
   if (type === 'thumbnail' && albumArt) return albumArt;
-  if (type === 'custom') return setData.discordSmallImageCustomUrl || 'https://raw.githubusercontent.com/slice-of-fun/Chorus-Music/main/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png';
+  if (type === 'custom') return setData.value.discordSmallImageCustomUrl || 'https://raw.githubusercontent.com/slice-of-fun/Chorus-Music/main/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png';
   return 'https://raw.githubusercontent.com/slice-of-fun/Chorus-Music/main/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png';
 });
 

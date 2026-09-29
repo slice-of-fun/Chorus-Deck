@@ -34,7 +34,7 @@
         <span
           v-if="item.tns?.length || item.alia?.length"
           class="text-neutral-400 dark:text-neutral-500 font-normal"
-          >（{{ item.tns?.[0] || item.alia?.[0] }}）</span
+          >ï¼ˆ{{ item.tns?.[0] || item.alia?.[0] }}ï¼‰</span
         >
       </n-ellipsis>
       <n-ellipsis
@@ -57,7 +57,7 @@
     </button>
 
     <song-item-dropdown
-      v-if="isElectron"
+      v-if="isDesktop()"
       :item="item"
       :show="showDropdown"
       :x="dropdownX"
@@ -81,7 +81,7 @@ import { NEllipsis, NImage } from 'naive-ui';
 
 import { useSongItem } from '@/hooks/useSongItem';
 import type { SongResult } from '@/types/music';
-import { getImgUrl, isElectron } from '@/utils';
+import { getImgUrl, isDesktop } from '@/utils';
 
 import SongItemDropdown from './SongItemDropdown.vue';
 
@@ -129,7 +129,9 @@ const onPlayMusic = () => {
   emit('play', props.item);
 };
 
-const onArtistClick = (id: number) => handleArtistClick(id);
+const onArtistClick = (id: string | undefined) => {
+  if (id) handleArtistClick(id);
+};
 const onMenuClick = (event: MouseEvent) => handleMenuClick(event);
 </script>
 

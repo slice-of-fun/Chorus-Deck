@@ -19,6 +19,27 @@ export interface YTMSection {
   items: (YTMSong | YTMPlaylist)[];
 }
 
+export interface YTMPlaylistDetail {
+  id: string;
+  title: string;
+  author?: string;
+  description?: string;
+  thumbnail?: string;
+  songCount?: number;
+  songs: YTMSong[];
+}
+
+export interface YTMArtistDetail {
+  id: string;
+  title: string;
+  description?: string;
+  thumbnail?: string;
+  subscriberCount?: string;
+  albums: YTMPlaylist[];
+  playlists: YTMPlaylist[];
+  songs: YTMSong[];
+}
+
 export interface YTMHomePage {
   sections: YTMSection[];
 }
@@ -70,25 +91,20 @@ export interface YTMStreamResult {
   attempts?: any[];
 }
 
-// ─── IPC Bridge ───────────────────────────────────────────────────────────────
+// ─── Tauri Bridge ─────────────────────────────────────────────────────────────
 
-// In Tauri, IPC is handled through the contextBridge in src/preload/index.ts.
-// The public API functions (getYTMHome, getYTMCharts, etc.) are called directly
-// via window.api.<functionName>() from the renderer.
-// This file is kept for type definitions and internal use only.
-// The ipc() function below is a placeholder - actual IPC routing is handled
-// by the preload script's contextBridge API.
-
-// The following ipc function is kept for backward compatibility but will
-// route through the Tauri preload bridge in production:
-function ipc<T>(channel: string, ...args: any[]): Promise<T> {
-  // In Tauri, IPC is available through window.api (exposed by contextBridge)
-  // The actual implementation routes through the preload script.
-  // This placeholder maintains the interface for type consistency.
-  if (typeof window !== 'undefined' && window.api) {
-    return window.api[channel](...args).then((r: any) => r as T);
+/**
+ * Routes a YouTube Music channel to the Rust backend.
+ *
+ * Tauri has no `contextBridge`/preload layer, so the renderer talks to the
+ * `#[tauri::command]` handlers in `src-tauri` directly through `window.api.invoke`.
+ * Channels are validated against the bridge allowlist.
+ */
+function ipc<T>(channel: string, ...args: unknown[]): Promise<T> {
+  if (typeof window === 'undefined' || !window.api) {
+    return Promise.reject(new Error('IPC not available (Tauri bridge is not installed)'));
   }
-  return Promise.reject(new Error('IPC not available (not in Tauri)'));
+  return window.api.invoke<T>(channel, ...args);
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
@@ -163,6 +179,9 @@ export async function getYTMArtist(
   if (!res.success) throw new Error(res.error || 'YTM artist failed');
   return res.data!;
 }
+
+/** Alias kept for callers that use the longer name. */
+export const getYTMPlaylistDetail = getYTMPlaylist;
 
 // ─── Type Guards ─────────────────────────────────────────────────────────────
 

@@ -5,7 +5,7 @@ import useIndexedDB from '@/hooks/IndexDBHook';
 import { audioService } from '@/services/audioService';
 import type { usePlayerStore } from '@/store';
 import type { Artist, ILyricText, SongResult } from '@/types/music';
-import { isElectron } from '@/utils';
+import { isDesktop } from '@/utils';
 import { getTextColors } from '@/utils/linearColor';
 import { parseLyrics } from '@/utils/yrcParser';
 
@@ -25,6 +25,7 @@ export const initMusicHook = (store: ReturnType<typeof usePlayerStore>) => {
   setupMusicWatchers();
   setupCorrectionTimeWatcher();
   setupPlayStateWatcher();
+  void initPlatform();
 };
 
 const getPlayerStore = () => {
@@ -48,7 +49,21 @@ export let artistList: ComputedRef<Artist[]>;
 
 let lastIndex = -1;
 
-const cachedPlatform = isElectron ? window.electron.ipcRenderer.sendSync('get-platform') : 'web';
+// Tauri has no synchronous IPC, so the platform is resolved once at startup.
+let cachedPlatform = 'web';
+
+/**
+ * Resolve the host platform via the Tauri backend.
+ * Linux-only features (tray lyrics) depend on this.
+ */
+export const initPlatform = async (): Promise<void> => {
+  if (!isDesktop()) return;
+  try {
+    cachedPlatform = await window.api.getPlatform();
+  } catch (error) {
+    console.error('Failed to resolve host platform:', error);
+  }
+};
 
 export const musicDB = await useIndexedDB(
   'musicDB',
@@ -171,7 +186,7 @@ const ensureLyricsLoaded = async (force = false) => {
       console.error('Failed to translate lyrics, use original lyrics:', e);
       lrcArray.value = rawLrc as any;
     }
-  } else if (isElectron && playMusic.value.playMusicUrl?.startsWith('local://')) {
+  } else if (playMusic.value.playMusicUrl?.startsWith('local://')) {
     try {
       let filePath = decodeURIComponent(playMusic.value.playMusicUrl.replace('local://', ''));
 
@@ -196,7 +211,7 @@ const ensureLyricsLoaded = async (force = false) => {
     }
   }
 
-  if (isElectron && isLyricWindowOpen.value) {
+  if (isLyricWindowOpen.value) {
     sendLyricToWin();
     setTimeout(() => sendLyricToWin(), 500);
   }
@@ -236,7 +251,6 @@ const setupAudioListeners = () => {
   audioListenersInitialized = true;
 
   let interval: number | null = null;
-
   let recoveryTimer: number | null = null;
   let lyricThrottleCounter = 0;
   let lastSavedProgress = 0;
@@ -280,11 +294,11 @@ const setupAudioListeners = () => {
         if (newIndex !== nowIndex.value) {
           nowIndex.value = newIndex;
           currentLrcProgress.value = 0;
-          if (isElectron && isLyricWindowOpen.value) {
+          if (isLyricWindowOpen.value) {
             sendLyricToWin();
           }
         }
-        if (isElectron && lrcArray.value[nowIndex.value]) {
+        if (lrcArray.value[nowIndex.value]) {
           if (lastIndex !== nowIndex.value) {
             sendTrayLyric(nowIndex.value);
             lastIndex = nowIndex.value;
@@ -301,7 +315,7 @@ const setupAudioListeners = () => {
 
         let lyricLastSend = 0;
         const now = Date.now();
-        if (isElectron && isLyricWindowOpen.value && now - lyricLastSend >= 50) {
+        if (now - lyricLastSend >= 50) {
           try {
             window.api.sendLyric(
               JSON.stringify({
@@ -330,12 +344,6 @@ const setupAudioListeners = () => {
             );
           }
         }
-
-        if (isElectron && lyricThrottleCounter % 20 === 0) {
-          try {
-            window.electron.ipcRenderer.send('mpris-position-update', currentTime);
-          } catch { /* empty */ }
-        }
       } catch (error) {
         console.error('progress update interval Error:', error);
       }
@@ -360,7 +368,7 @@ const setupAudioListeners = () => {
 
   startRecoveryMonitor();
 
-  audioService.on('seek_start', (time) => {
+  audioService.on('seek_start', (time: number) => {
     nowTime.value = time;
   });
 
@@ -372,14 +380,17 @@ const setupAudioListeners = () => {
         if (typeof currentTime === 'number' && !Number.isNaN(currentTime)) {
           nowTime.value = currentTime;
 
-          if (isElectron) {
-            window.electron.ipcRenderer.send('mpris-position-update', currentTime);
+          if (lrcArray.value[nowIndex.value]) {
+            if (lastIndex !== nowIndex.value) {
+              sendTrayLyric(nowIndex.value);
+              lastIndex = nowIndex.value;
+            }
           }
 
           const newIndex = getLrcIndex(nowTime.value);
           if (newIndex !== nowIndex.value) {
             nowIndex.value = newIndex;
-            if (isElectron && isLyricWindowOpen.value) {
+            if (isLyricWindowOpen.value) {
               sendLyricToWin();
             }
           }
@@ -409,9 +420,7 @@ const setupAudioListeners = () => {
 
   audioService.on('play', () => {
     getPlayerStore().setPlayMusic(true);
-    if (isElectron) {
-      window.api.sendSong(cloneDeep(getPlayerStore().playMusic));
-    }
+    window.api.sendSong(cloneDeep(getPlayerStore().playMusic));
 
     if (lrcArray.value.length === 0 && playMusic.value?.id) {
       ensureLyricsLoaded();
@@ -423,7 +432,7 @@ const setupAudioListeners = () => {
     console.log('Audio pause event triggered');
     getPlayerStore().setPlayMusic(false);
     clearInterval();
-    if (isElectron && isLyricWindowOpen.value) {
+    if (isLyricWindowOpen.value) {
       sendLyricToWin();
     }
   });
@@ -640,17 +649,13 @@ export const getLrcTimeRange = (index: number) => ({
 watch(
   () => lrcArray.value,
   (newLrcArray) => {
-    if (newLrcArray.length > 0 && isElectron && isLyricWindowOpen.value) {
+    if (newLrcArray.length > 0 && isLyricWindowOpen.value) {
       sendLyricToWin();
     }
   }
 );
 
 export const sendLyricToWin = () => {
-  if (!isElectron || !isLyricWindowOpen.value) {
-    return;
-  }
-
   if (!playMusic.value || !playMusic.value.id) {
     return;
   }
@@ -696,7 +701,7 @@ export const sendLyricToWin = () => {
 };
 
 const sendTrayLyric = (index: number) => {
-  if (!isElectron || cachedPlatform !== 'linux') return;
+  if (cachedPlatform !== 'linux') return;
 
   try {
     const lyric = lrcArray.value[index];
@@ -712,7 +717,7 @@ const sendTrayLyric = (index: number) => {
       sender: 'ChorusDeck'
     });
 
-    window.electron.ipcRenderer.send('tray-lyric-update', lrcObj);
+    window.api.send('tray-lyric-update', lrcObj);
   } catch (error) {
     console.error('[TrayLyric] Failed to send:', error);
   }
@@ -726,7 +731,7 @@ const startLyricSync = () => {
   }
 
   lyricSyncInterval = setInterval(() => {
-    if (isElectron && isLyricWindowOpen.value && getPlayerStore().play && playMusic.value?.id) {
+    if (getPlayerStore().play && playMusic.value?.id) {
       try {
         const updateData = {
           type: 'update',
@@ -750,13 +755,6 @@ const stopLyricSync = () => {
 };
 
 export const openLyric = async () => {
-  if (!isElectron) return;
-
-  if (!playMusic.value || !playMusic.value.id) {
-    console.log('There is no song playing and the lyrics window cannot be opened');
-    return;
-  }
-
   isLyricWindowOpen.value = !isLyricWindowOpen.value;
   if (isLyricWindowOpen.value) {
     window.api.openLyric();
@@ -796,15 +794,12 @@ export const openLyric = async () => {
 };
 
 export const closeLyric = () => {
-  if (!isElectron) return;
   isLyricWindowOpen.value = false;
-  windowData.electron.ipcRenderer.send('close-lyric');
-
+  windowData.api.onLyricWindowClosed?.();
   stopLyricSync();
 };
 
 const sendDiscordPresence = () => {
-  if (!isElectron) return;
   const store = getPlayerStore();
   const music = store.playMusic;
   if (!music || !music.id) return;
@@ -817,7 +812,7 @@ const sendDiscordPresence = () => {
   const songId = music.id || '';
   const artistId = music.ar?.[0]?.id || '';
   const albumId = music.al?.id || '';
-  
+
   try {
     const currentSound = audioService.getCurrentSound();
     let currentPlaybackTimeMillis = 0;
@@ -827,7 +822,7 @@ const sendDiscordPresence = () => {
       duration = (currentSound.duration || 0) * 1000;
     }
     
-    windowData.electron.ipcRenderer.send('update-discord-presence', {
+    window.api.send('update-discord-presence', {
       title,
       artist: artistName,
       album: albumName,
@@ -849,7 +844,7 @@ const setupPlayStateWatcher = () => {
     () => getPlayerStore().play,
     (isPlaying) => {
       sendDiscordPresence();
-      if (isElectron && isLyricWindowOpen.value) {
+      if (isLyricWindowOpen.value) {
         if (isPlaying) {
           startLyricSync();
         } else {
@@ -869,30 +864,6 @@ onUnmounted(() => {
 });
 
 export { parseLyricsString };
-
-if (isElectron) {
-  windowData.electron.ipcRenderer.on('lyric-control-back', (_, command: string) => {
-    switch (command) {
-      case 'playpause':
-        if (getPlayerStore().playMusic?.id) {
-          void getPlayerStore().setPlay({ ...getPlayerStore().playMusic });
-        }
-        break;
-      case 'prev':
-        getPlayerStore().prevPlay();
-        break;
-      case 'next':
-        getPlayerStore().nextPlay();
-        break;
-      case 'close':
-        isLyricWindowOpen.value = false;
-        break;
-      default:
-        console.log('Unknown command:', command);
-        break;
-    }
-  });
-}
 
 export const initAudioListeners = async () => {
   try {
@@ -924,7 +895,7 @@ export const initAudioListeners = async () => {
 
     setupAudioListeners();
 
-    if (isElectron) {
+    if (isDesktop()) {
       window.api.onLyricWindowClosed(() => {
         isLyricWindowOpen.value = false;
       });

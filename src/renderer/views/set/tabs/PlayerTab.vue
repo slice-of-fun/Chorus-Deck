@@ -438,7 +438,7 @@
 <script setup lang="ts">
 import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
-import { isElectron } from '@/utils';
+import { isDesktop } from '@/utils';
 import { LYRIC_CONFIG_CHANGE_EVENT, readLyricConfig, writeLyricConfig } from '@/utils/lyricConfig';
 
 import { SETTINGS_DATA_KEY } from '../keys';
@@ -453,7 +453,7 @@ const memberLinks = [
 ];
 
 const setData = inject(SETTINGS_DATA_KEY)!;
-const platform = window.electron ? window.electron.ipcRenderer.sendSync('get-platform') : 'web';
+const platform = await window.api.invoke('get-platform') || 'web';
 
 const pureModeEnabled = ref(readLyricConfig().pureModeEnabled);
 

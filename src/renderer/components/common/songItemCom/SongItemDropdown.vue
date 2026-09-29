@@ -1,6 +1,6 @@
 <template>
   <n-dropdown
-    v-if="isElectron"
+    v-if="isDesktop()"
     :show="show"
     :x="x"
     :y="y"
@@ -19,7 +19,7 @@ import { createDiscreteApi, NDropdown, NEllipsis, NImage } from 'naive-ui';
 import { computed, h } from 'vue';
 
 import type { SongResult } from '@/types/music';
-import { getImgUrl, isElectron } from '@/utils';
+import { getImgUrl, isDesktop } from '@/utils';
 
 const { message } = createDiscreteApi(['message']);
 

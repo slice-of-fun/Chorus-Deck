@@ -32,7 +32,7 @@ export const usePlayerCoreStore = defineStore(
     const setIsPlay = (value: boolean) => {
       isPlay.value = value;
       play.value = value;
-      window.electron?.ipcRenderer.send('update-play-state', value);
+      window.api.send('update-play-state', value);
     };
 
     const setMusicFull = (value: boolean) => {
@@ -132,7 +132,7 @@ export const usePlayerCoreStore = defineStore(
 
     // Discord Rich Presence Integration
     watch([playMusic, isPlay], ([newSong, newIsPlay]) => {
-      if (window.electron) {
+      if (window.api) {
         if (newSong && newSong.name) {
           const artist = newSong.ar?.map((a: any) => a.name).join(' / ') || 'Unknown Artist';
           const album = newSong.al?.name || 'Unknown Album';
@@ -140,7 +140,7 @@ export const usePlayerCoreStore = defineStore(
           const songId = newSong.id || '';
           const artistId = newSong.ar?.[0]?.id || '';
           const albumId = newSong.al?.id || '';
-          
+
           let currentTime = 0;
           let duration = newSong.dt || 0;
           const currentSound = audioService.getCurrentSound();
@@ -156,7 +156,7 @@ export const usePlayerCoreStore = defineStore(
             startTimestamp = Date.now() - currentTime;
           }
 
-          window.electron.ipcRenderer.send('update-discord-presence', {
+          window.api.send('update-discord-presence', {
             title: newSong.name,
             artist: artist,
             album: album,
@@ -169,7 +169,7 @@ export const usePlayerCoreStore = defineStore(
             startTimestamp
           });
         } else {
-          window.electron.ipcRenderer.send('clear-discord-presence');
+          window.api.send('clear-discord-presence');
         }
       }
     }, { deep: true });

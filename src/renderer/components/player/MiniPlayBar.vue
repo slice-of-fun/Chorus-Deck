@@ -215,10 +215,10 @@ const handleDeleteSong = (song: SongResult) => {
   if (song.id === playMusic.value.id) {
     playerStore.nextPlay();
   }
-  playerStore.removeFromPlayList(song.id as number);
+  playerStore.removeFromPlayList(song.id);
 };
 
-const handleArtistClick = (id: number) => {
+const handleArtistClick = (id: string | undefined) => {
   navigateToArtist(id);
 };
 

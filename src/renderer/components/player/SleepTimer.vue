@@ -110,6 +110,7 @@
 import { storeToRefs } from 'pinia';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
+import { t } from '@/utils/i18n';
 import { usePlayerStore } from '@/store/modules/player';
 
 const playerStore = usePlayerStore();

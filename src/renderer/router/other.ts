@@ -1,4 +1,6 @@
-const otherRouter = [
+import type { RouteRecordRaw } from 'vue-router';
+
+const otherRouter: RouteRecordRaw[] = [
   {
     path: '/downloads',
     name: 'downloads',

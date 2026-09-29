@@ -136,7 +136,7 @@
         </template>
         Like
       </n-tooltip>
-      <n-tooltip v-if="isElectron" class="music-lyric" trigger="hover" :z-index="9999999">
+      <n-tooltip v-if="isDesktop()" class="music-lyric" trigger="hover" :z-index="9999999">
         <template #trigger>
           <i
             class="iconfont ri-music-2-line"
@@ -146,13 +146,7 @@
         </template>
         {{ playMusic?.id ? 'Lyric' : 'No song playing' }}
       </n-tooltip>
-      <n-tooltip v-if="playMusic?.id && isElectron" trigger="hover" :z-index="9999999">
-        <template #trigger>
-          <reparse-popover v-if="playMusic?.id" />
-        </template>
-        Reparse
-      </n-tooltip>
-      <n-tooltip v-if="playMusic?.id && isElectron" trigger="hover" :z-index="9999999">
+      <n-tooltip v-if="playMusic?.id && isDesktop()" trigger="hover" :z-index="9999999">
         <template #trigger>
           <i
             class="iconfont ri-download-line"
@@ -187,7 +181,6 @@ import { computed, ref, watch } from 'vue';
 
 import MusicFullWrapper from '@/components/lyric/MusicFullWrapper.vue';
 import AdvancedControlsPopover from '@/components/player/AdvancedControlsPopover.vue';
-import ReparsePopover from '@/components/player/ReparsePopover.vue';
 import {
   allTime,
   artistList,
@@ -206,7 +199,7 @@ import { useVolumeControl } from '@/hooks/useVolumeControl';
 import { audioService } from '@/services/audioService';
 import { usePlayerStore } from '@/store/modules/player';
 import { useSettingsStore } from '@/store/modules/settings';
-import { getImgUrl, isElectron, isMobile, secondToMinute, setAnimationClass } from '@/utils';
+import { getImgUrl, isDesktop, isMobile, secondToMinute, setAnimationClass } from '@/utils';
 
 const playerStore = usePlayerStore();
 const settingsStore = useSettingsStore();
@@ -317,7 +310,7 @@ const openLyricWindow = () => {
 
 const { navigateToArtist } = useArtist();
 
-const handleArtistClick = (id: number) => {
+const handleArtistClick = (id: string | undefined) => {
   musicFullVisible.value = false;
   navigateToArtist(id);
 };

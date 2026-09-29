@@ -149,8 +149,9 @@ export const useSleepTimerStore = defineStore('sleepTimer', () => {
       audioService.pause();
     }
 
-    if (window.electron?.ipcRenderer) {
-      window.electron.ipcRenderer.send('show-notification', {
+    // Use Tauri api bridge for notification instead of electron
+    if (window.api) {
+      window.api.send('show-notification', {
         title: 'Sleep timer ended',
         body: 'Music playback stopped'
       });

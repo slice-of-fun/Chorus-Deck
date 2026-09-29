@@ -111,7 +111,7 @@
           <div class="menu-row" @click="selectItem('set')">
             <i class="ri-settings-3-line" /><span>Settings</span>
           </div>
-          <div v-if="isElectron" class="menu-row">
+          <div v-if="isDesktop()" class="menu-row">
             <i class="ri-zoom-in-line" /><span>Zoom</span>
             <div class="zoom-ctrl ml-auto">
               <button class="zoom-btn" @click.stop="decreaseZoom">
@@ -171,7 +171,7 @@ import { useDownloadStore } from '@/store/modules/download';
 import { useNavTitleStore } from '@/store/modules/navTitle';
 import { useSearchStore } from '@/store/modules/search';
 import { useSettingsStore } from '@/store/modules/settings';
-import { getImgUrl, isElectron } from '@/utils';
+import { getImgUrl, isDesktop } from '@/utils';
 import { checkUpdate, UpdateResult } from '@/utils/update';
 
 import config from '../../../../package.json';
@@ -188,7 +188,7 @@ const navigateToDownloads = () => {
 };
 const showDownloadButton = computed(
   () =>
-    isElectron && (settingsStore.setData?.alwaysShowDownloadButton || downloadingCount.value > 0)
+    isDesktop() && (settingsStore.setData?.alwaysShowDownloadButton || downloadingCount.value > 0)
 );
 const { zoomFactor, initZoomFactor, increaseZoom, decreaseZoom, resetZoom, isZoom100 } = useZoom();
 
@@ -217,10 +217,10 @@ const tabs = computed(() => {
       label: 'Local Music',
       path: '/local-music',
       icon: 'ri-folder-music-fill',
-      electronOnly: true
+      desktopOnly: true
     }
   ];
-  return items.filter((tab) => !tab.electronOnly || isElectron);
+  return items.filter((tab) => !tab.desktopOnly || isDesktop());
 });
 const isTabActive = (path: string) => route.path === path;
 
@@ -297,7 +297,7 @@ const searchTypeOptions = computed(() => {
   locale.value;
   return (
     rawSearchTypes.value
-      .filter(() => isElectron)
+      .filter(() => isDesktop())
       // eslint-disable-next-line no-undef
       .map((type) => ({ label: t(type.label), key: type.key }))
   );
@@ -361,7 +361,7 @@ const handleKeydown = (e: KeyboardEvent) => {
   }
 };
 
-const restartApp = () => window.electron.ipcRenderer.send('restart');
+const restartApp = () => window.api.send('restart');
 
 const isDark = computed({
   get: () => settingsStore.theme === 'dark',
@@ -396,7 +396,7 @@ const checkForUpdates = async () => {
 
 onMounted(() => {
   checkForUpdates();
-  isElectron && initZoomFactor();
+  isDesktop() && initZoomFactor();
 });
 </script>
 

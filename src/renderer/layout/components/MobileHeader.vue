@@ -28,6 +28,8 @@
 import { computed, inject } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
+import { t } from '@/utils/i18n';
+
 const route = useRoute();
 const router = useRouter();
 

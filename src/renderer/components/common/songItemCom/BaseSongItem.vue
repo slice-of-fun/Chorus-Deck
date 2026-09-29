@@ -13,7 +13,7 @@
     <slot name="operating"></slot>
 
     <song-item-dropdown
-      v-if="isElectron"
+      v-if="isDesktop()"
       :item="item"
       :show="showDropdown"
       :x="dropdownX"
@@ -35,7 +35,7 @@
 <script lang="ts" setup>
 import { useSongItem } from '@/hooks/useSongItem';
 import type { SongResult } from '@/types/music';
-import { isElectron } from '@/utils';
+import { isDesktop } from '@/utils';
 
 import SongItemDropdown from './SongItemDropdown.vue';
 

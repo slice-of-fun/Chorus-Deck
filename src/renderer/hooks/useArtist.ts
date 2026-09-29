@@ -7,7 +7,7 @@ import { useRouter } from 'vue-router';
 export const useArtist = () => {
   const router = useRouter();
 
-  const navigateToArtist = (id: string) => {
+  const navigateToArtist = (id: string | undefined) => {
     if (!id) return;
 
     const channelId = id.startsWith('UC') ? id : `UC${id.replace(/^UC/, '')}`;

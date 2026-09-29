@@ -243,8 +243,7 @@ onMounted(async () => {
     () => playerStore.playMusic,
     async (newMusic) => {
       if (newMusic) {
-        const picUrl =
-          newMusic.al?.picUrl || newMusic.album?.picUrl || newMusic.picUrl || newMusic.coverImgUrl;
+        const picUrl = newMusic.al?.picUrl || newMusic.picUrl || newMusic.coverImgUrl;
         if (picUrl) {
           try {
             const img = new Image();

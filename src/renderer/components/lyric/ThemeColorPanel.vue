@@ -146,12 +146,12 @@ const getPreviewStyle = () => {
 
 const handleClose = () => {
   showColorPicker.value = false;
-  emit('');
+  emit('close');
 };
 
 const handleReset = () => {
   showColorPicker.value = false;
-  emit('');
+  emit('reset');
 };
 
 const handlePresetColorSelect = (color: LyricThemeColor) => {

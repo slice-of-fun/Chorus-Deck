@@ -205,7 +205,6 @@ export const useLocalMusicStore = defineStore(
         musicList.value = await localDB.getAllData(LOCAL_MUSIC_STORE);
       } catch (error) {
         console.error('Loading local music from cache failed:', error);
-
         musicList.value = [];
       }
     }
@@ -231,10 +230,7 @@ export const useLocalMusicStore = defineStore(
         const existsMap: Record<string, boolean> = {};
         for (const entry of allEntries) {
           try {
-            const exists = await window.electron.ipcRenderer.invoke(
-              'check-file-exists',
-              entry.filePath
-            );
+            const exists = await window.api.invoke('check-file-exists', entry.filePath);
             existsMap[entry.filePath] = exists !== false;
           } catch {
             existsMap[entry.filePath] = true;

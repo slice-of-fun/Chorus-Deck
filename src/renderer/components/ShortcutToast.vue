@@ -29,7 +29,7 @@ defineProps({
 const visible = ref(false);
 const text = ref('');
 const icon = ref('');
-let timer: NodeJS.Timeout | null = null;
+let timer: ReturnType<typeof setTimeout> | null = null;
 
 const show = (message: string, iconName = '') => {
   if (timer) {
@@ -44,7 +44,7 @@ const show = (message: string, iconName = '') => {
     visible.value = false;
 
     setTimeout(() => {
-      emit('');
+      emit('destroy');
     }, 300);
   }, 1500);
 };

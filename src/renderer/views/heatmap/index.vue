@@ -141,6 +141,7 @@ import { usePlayerStore } from '@/store/modules/player';
 import { usePlayHistoryStore } from '@/store/modules/playHistory';
 import type { SongResult } from '@/types/music';
 import { setAnimationClass } from '@/utils';
+import { t } from '@/utils/i18n';
 import type { MusicHistoryItem } from '@/utils/persistedSong';
 
 const playHistoryStore = usePlayHistoryStore();

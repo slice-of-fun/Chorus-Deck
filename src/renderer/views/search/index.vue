@@ -643,6 +643,7 @@ import {
 } from '@/api/ytmusic';
 import logoImg from '@/assets/logo.png';
 import { usePlaylistStore } from '@/store/modules/playlist';
+import type { SongResult } from '@/types/music';
 
 defineOptions({ name: 'Search' });
 
@@ -655,7 +656,7 @@ const SEARCH_TABS = [
   { key: 'albums', label: 'Albums' },
   { key: 'artists', label: 'Artists' },
   { key: 'playlists', label: 'Playlists' }
-];
+] as const;
 
 const HISTORY_KEY = 'ytm_search_history';
 const MAX_HISTORY = 20;
@@ -782,7 +783,7 @@ async function doSearch(clearResults = true) {
     if (activeTab.value === 'all') {
       results.value = res;
     } else {
-      results.value[activeTab.value] = res[activeTab.value];
+      results.value[activeTab.value] = res[activeTab.value] as never;
     }
   } catch (e) {
     console.error(e);
@@ -797,7 +798,7 @@ function searchByMood(title: string) {
 }
 
 function playSong(song: YTMSong) {
-  const track = {
+  const track: SongResult = {
     id: song.id,
     name: song.title,
     picUrl: song.thumbnail,

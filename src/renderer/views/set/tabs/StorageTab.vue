@@ -1,5 +1,5 @@
 <template>
-  <setting-section v-if="isElectron" title="System Management">
+  <setting-section v-if="isDesktop()" title="System Management">
     <setting-item
       icon="ri-hard-drive-2-line" title="Disk Cache"
       description="Cache played music and lyrics on local disk to speed up repeated playback"
@@ -101,9 +101,9 @@
 import { useDebounceFn } from '@vueuse/core';
 import { computed, inject, onMounted, ref, watch } from 'vue';
 
-import localData from '@/../main/set.json';
+import localData from '@/../shared/set.json';
 import { usePlayHistoryStore } from '@/store/modules/playHistory';
-import { isElectron } from '@/utils';
+import { isDesktop } from '@/utils';
 import { openDirectory, selectDirectory } from '@/utils/fileOperation';
 import { t } from '@/utils/i18n';
 
@@ -197,11 +197,8 @@ const readDiskCacheConfigFromUI = (): DiskCacheConfig => {
 };
 
 const refreshDiskCacheStats = async (silent: boolean = true) => {
-  if (!window.electron) return;
   try {
-    const stats = (await window.electron.ipcRenderer.invoke(
-      'get-disk-cache-stats'
-    )) as DiskCacheStats;
+    const stats = await window.api.invoke('get-disk-cache-stats') as DiskCacheStats;
     if (stats) {
       diskCacheStats.value = stats;
     }
@@ -214,12 +211,8 @@ const refreshDiskCacheStats = async (silent: boolean = true) => {
 };
 
 const loadDiskCacheConfig = async () => {
-  if (!window.electron) return;
-
   try {
-    const config = (await window.electron.ipcRenderer.invoke(
-      'get-disk-cache-config'
-    )) as DiskCacheConfig;
+    const config = await window.api.invoke('get-disk-cache-config') as DiskCacheConfig;
     if (config) {
       setData.value = {
         ...setData.value,
@@ -235,15 +228,10 @@ const loadDiskCacheConfig = async () => {
 };
 
 const applyDiskCacheConfig = async () => {
-  if (!window.electron || applyingDiskCacheConfig.value) return;
-
   applyingDiskCacheConfig.value = true;
   try {
     const config = readDiskCacheConfigFromUI();
-    const updated = (await window.electron.ipcRenderer.invoke(
-      'set-disk-cache-config',
-      config
-    )) as DiskCacheConfig;
+    const updated = await window.api.invoke('set-disk-cache-config', config) as DiskCacheConfig;
 
     if (updated) {
       setData.value = {
@@ -274,7 +262,7 @@ watch(
     setData.value.diskCacheCleanupPolicy
   ],
   () => {
-    if (!window.electron || applyingDiskCacheConfig.value || switchingCacheDirectory.value) return;
+    if (applyingDiskCacheConfig.value || switchingCacheDirectory.value) return;
     applyDiskCacheConfigDebounced();
   }
 );
@@ -323,8 +311,6 @@ const askCacheSwitchDestroy = (): Promise<boolean> => {
 };
 
 const selectCacheDirectory = async () => {
-  if (!window.electron) return;
-
   const selectedPath = await selectDirectory(message);
   if (!selectedPath) return;
 
@@ -346,10 +332,10 @@ const selectCacheDirectory = async () => {
 
   switchingCacheDirectory.value = true;
   try {
-    const result = (await window.electron.ipcRenderer.invoke('switch-disk-cache-directory', {
+    const result = await window.api.invoke('switch-disk-cache-directory', {
       directory: selectedPath,
       action
-    })) as SwitchCacheDirectoryResult;
+    }) as SwitchCacheDirectoryResult;
 
     if (!result?.success) {
       message.error('Failed to switch cache directory');
@@ -392,10 +378,8 @@ const openCacheDirectory = () => {
 };
 
 const clearDiskCacheByScope = async (scope: DiskCacheScope) => {
-  if (!window.electron) return;
-
   try {
-    const success = await window.electron.ipcRenderer.invoke('clear-disk-cache', scope);
+    const success = await window.api.invoke('clear-disk-cache', scope);
     if (success) {
       await refreshDiskCacheStats();
       message.success('Disk cache cleaned');
@@ -408,9 +392,8 @@ const clearDiskCacheByScope = async (scope: DiskCacheScope) => {
   }
 };
 
-
 const restartApp = () => {
-  window.electron.ipcRenderer.send('restart');
+  window.api.send('restart');
 };
 
 onMounted(async () => {
@@ -418,3 +401,6 @@ onMounted(async () => {
   await refreshDiskCacheStats();
 });
 </script>
+
+<style scoped>
+</style>

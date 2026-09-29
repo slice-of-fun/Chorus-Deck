@@ -1,6 +1,6 @@
 import type { AudioOutputDevice } from '@/types/audio';
 import type { SongResult } from '@/types/music';
-import { getImgUrl, isElectron } from '@/utils';
+import { getImgUrl, isDesktop } from '@/utils';
 
 class AudioService {
   private audio: HTMLAudioElement;
@@ -208,7 +208,7 @@ class AudioService {
   private setupEQ() {
     if (this.sourceNode) return;
 
-    if (!isElectron) {
+    if (!isDesktop()) {
       console.log('WebSkip in environmentEQset, avoidCORSquestion');
       this.bypass = true;
       return;

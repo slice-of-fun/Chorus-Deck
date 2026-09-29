@@ -60,6 +60,23 @@ export type DownloadSettings = {
   maxConcurrent: number;
 };
 
+/**
+ * A finished download as reported by the backend `download:get-completed`
+ * command. `path` mirrors `filePath`; both are accepted by the UI.
+ */
+export type CompletedDownload = {
+  filePath: string;
+  path?: string;
+  filename: string;
+  displayName?: string;
+  picUrl?: string;
+  size: number;
+  mimeType?: string;
+  songId?: string;
+  ar?: { name: string }[];
+  createdAt?: number;
+};
+
 export type DownloadProgressEvent = {
   taskId: string;
   progress: number;

@@ -1,6 +1,6 @@
 import { playbackRequestManager } from '@/services/playbackRequestManager';
 import type { ILyric, ILyricText, IWordData, SongResult } from '@/types/music';
-import { isElectron } from '@/utils';
+import { isDesktop } from '@/utils';
 import { parseLyrics as parseYrcLyrics } from '@/utils/yrcParser';
 
 export type ResolvedStream = {
@@ -114,12 +114,11 @@ export const loadLrc = async (id: string | number): Promise<ILyric> => {
   try {
     let lyricData: any;
 
-    if (isElectron) {
-      try {
-        lyricData = await window.electron.ipcRenderer.invoke('get-cached-lyric', id);
-      } catch (error) {
-        console.warn('Failed to read disk lyrics cache:', error);
-      }
+    // Use window.api for Tauri bridge instead of window.electron.ipcRenderer
+    try {
+      lyricData = await window.api.invoke('get-cached-lyric', id);
+    } catch (error) {
+      console.warn('Failed to read disk lyrics cache:', error);
     }
 
     const data = lyricData ?? {};

@@ -11,7 +11,6 @@ import {
   shortcutActionOrder,
   type ShortcutsConfig
 } from '../../shared/shortcuts';
-import { isElectron } from '.';
 import { isEditableTarget, keyboardEventToAccelerator } from './shortcutKeyboard';
 import { showShortcutToast } from './shortcutToast';
 
@@ -23,7 +22,7 @@ let appShortcuts: ShortcutsConfig = normalizeShortcutsConfig(null);
 let appShortcutsSuspended = false;
 let appShortcutsInitialized = false;
 
-const onGlobalShortcut = (_event: unknown, action: string) => {
+const onGlobalShortcut = (action: string) => {
   if (!hasShortcutAction(action)) {
     return;
   }
@@ -31,11 +30,11 @@ const onGlobalShortcut = (_event: unknown, action: string) => {
   void handleShortcutAction(action);
 };
 
-const onUpdateAppShortcuts = (_event: unknown, shortcuts: unknown) => {
+const onUpdateAppShortcuts = (shortcuts: unknown) => {
   updateAppShortcuts(shortcuts);
 };
 
-const onMprisSeekOrSetPosition = (_event: unknown, position: number) => {
+const onMprisSeekOrSetPosition = (position: number) => {
   if (audioService) {
     audioService.seek(position);
   }
@@ -183,46 +182,38 @@ export function setAppShortcutsSuspended(suspended: boolean) {
   appShortcutsSuspended = suspended;
 }
 
-export function initAppShortcuts() {
-  if (!isElectron || appShortcutsInitialized) {
-    return;
-  }
-
+export async function initAppShortcuts() {
   appShortcutsInitialized = true;
 
-  window.electron.ipcRenderer.on('global-shortcut', onGlobalShortcut);
-  window.electron.ipcRenderer.on('update-app-shortcuts', onUpdateAppShortcuts);
-  window.electron.ipcRenderer.on('mpris-seek', onMprisSeekOrSetPosition);
-  window.electron.ipcRenderer.on('mpris-set-position', onMprisSeekOrSetPosition);
-  window.electron.ipcRenderer.on('mpris-play', onMprisPlay);
-  window.electron.ipcRenderer.on('mpris-pause', onMprisPause);
+  window.api.on('global-shortcut', onGlobalShortcut);
+  window.api.on('update-app-shortcuts', onUpdateAppShortcuts);
+  window.api.on('mpris-seek', onMprisSeekOrSetPosition);
+  window.api.on('mpris-set-position', onMprisSeekOrSetPosition);
+  window.api.on('mpris-play', onMprisPlay);
+  window.api.on('mpris-pause', onMprisPause);
 
-  const storedShortcuts = window.electron.ipcRenderer.sendSync('get-store-value', 'shortcuts');
+  const storedShortcuts = await window.api.getStoreValue('shortcuts');
   updateAppShortcuts(storedShortcuts);
 
   document.addEventListener('keydown', handleKeyDown);
 }
 
 export function cleanupAppShortcuts() {
-  if (!isElectron || !appShortcutsInitialized) {
-    return;
-  }
-
   appShortcutsInitialized = false;
 
-  window.electron.ipcRenderer.removeListener('global-shortcut', onGlobalShortcut);
-  window.electron.ipcRenderer.removeListener('update-app-shortcuts', onUpdateAppShortcuts);
-  window.electron.ipcRenderer.removeListener('mpris-seek', onMprisSeekOrSetPosition);
-  window.electron.ipcRenderer.removeListener('mpris-set-position', onMprisSeekOrSetPosition);
-  window.electron.ipcRenderer.removeListener('mpris-play', onMprisPlay);
-  window.electron.ipcRenderer.removeListener('mpris-pause', onMprisPause);
+  window.api.removeListener('global-shortcut', onGlobalShortcut);
+  window.api.removeListener('update-app-shortcuts', onUpdateAppShortcuts);
+  window.api.removeListener('mpris-seek', onMprisSeekOrSetPosition);
+  window.api.removeListener('mpris-set-position', onMprisSeekOrSetPosition);
+  window.api.removeListener('mpris-play', onMprisPlay);
+  window.api.removeListener('mpris-pause', onMprisPause);
 
   document.removeEventListener('keydown', handleKeyDown);
 }
 
 export function useAppShortcuts() {
   onMounted(() => {
-    initAppShortcuts();
+    void initAppShortcuts();
   });
 
   onUnmounted(() => {

@@ -74,7 +74,7 @@
 import { computed, inject, ref } from 'vue';
 
 import { useSettingsStore } from '@/store/modules/settings';
-import { isElectron } from '@/utils';
+import { isDesktop } from '@/utils';
 import { checkUpdate, UpdateResult } from '@/utils/update';
 
 import config from '../../../../../package.json';
@@ -100,11 +100,11 @@ const webUpdateInfo = ref<UpdateResult>({
 const appUpdateState = computed(() => settingsStore.appUpdateState);
 const hasAppUpdate = computed(() => hasAvailableAppUpdate(appUpdateState.value));
 const hasManualUpdateFallback = computed(
-  () => isElectron && appUpdateState.value.status === APP_UPDATE_STATUS.error
+  () => isDesktop() && appUpdateState.value.status === APP_UPDATE_STATUS.error
 );
 
 const updateInfo = computed<UpdateResult>(() => {
-  if (!isElectron) {
+  if (!isDesktop()) {
     return webUpdateInfo.value;
   }
 
@@ -126,7 +126,7 @@ const updateInfo = computed<UpdateResult>(() => {
 const checkForUpdates = async (isClick = false) => {
   checking.value = true;
   try {
-    if (isElectron) {
+    if (isDesktop()) {
       const result = await window.api.checkAppUpdate(isClick);
       settingsStore.setAppUpdateState(result);
 
@@ -163,7 +163,7 @@ const checkForUpdates = async (isClick = false) => {
 };
 
 const openReleasePage = () => {
-  if (isElectron) {
+  if (isDesktop()) {
     settingsStore.setShowUpdateModal(true);
     return;
   }
@@ -172,7 +172,7 @@ const openReleasePage = () => {
 };
 
 const openManualUpdatePage = async () => {
-  if (isElectron) {
+  if (isDesktop()) {
     await window.api.openAppUpdatePage();
     return;
   }

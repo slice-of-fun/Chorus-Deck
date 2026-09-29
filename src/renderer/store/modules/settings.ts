@@ -2,19 +2,16 @@ import { isArray, mergeWith } from 'lodash';
 import { defineStore } from 'pinia';
 import { ref, watch } from 'vue';
 
-import setDataDefault from '@/../main/set.json';
+import setDataDefault from '@/../shared/set.json';
 import homeRouter from '@/router/home';
 import { useMenuStore } from '@/store/modules/menu';
-import { getStore, getSharedStore } from '@/main/modules/config';
-import { isElectron } from '@/utils';
 import {
   applyTheme,
   getCurrentTheme,
   getSystemTheme,
-  ThemeType,
-  watchSystemTheme
+  watchSystemTheme,
+  type ThemeType
 } from '@/utils/theme';
-
 import { type AppUpdateState, createDefaultAppUpdateState } from '../../../shared/appUpdate';
 
 export const useSettingsStore = defineStore('settings', () => {
@@ -42,59 +39,28 @@ export const useSettingsStore = defineStore('settings', () => {
 
     setData.value = mergedData;
 
-    if (isElectron) {
-      // Use Tauri invoke instead of direct electron-store
-      try {
-        await window.tauri.invoke('set-store-value', 'set', mergedData);
-      } catch (error) {
-        console.error('[settings] Failed to write config via Tauri:', error);
-      }
-    } else {
-      // localStorage fallback for non-Electron
-      const stored = localStorage.getItem('appSettings');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        // Merge incrementally, not full deep clone
-        const partial = { ...parsed, ...mergedData };
-        localStorage.setItem('appSettings', JSON.stringify(partial));
-      } else {
-        localStorage.setItem('appSettings', JSON.stringify(mergedData));
-      }
+    // Use Tauri invoke via the api bridge
+    try {
+      await window.api.invoke('set-store-value', 'set', mergedData);
+    } catch (error) {
+      console.error('[settings] Failed to write config via Tauri:', error);
     }
   };
 
   const getInitialSettings = async () => {
-    if (isElectron) {
-      try {
-        const sharedStore = getSharedStore();
-        const savedSettings = sharedStore.get('set') || {};
-        const customizer = (_objValue: any, srcValue: any) => {
-          if (isArray(srcValue)) {
-            return srcValue;
-          }
-          return undefined;
-        };
-        const mergedSettings = mergeWith({}, setDataDefault, savedSettings, customizer);
-        setSetData(mergedSettings);
-        return mergedSettings;
-      } catch (error) {
-        console.error('[settings] Failed to read config via Tauri:', error);
-        return getInitialSettingsFallback();
-      }
-    } else {
-      const stored = localStorage.getItem('appSettings');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        const customizer = (_objValue: any, srcValue: any) => {
-          if (isArray(srcValue)) {
-            return srcValue;
-          }
-          return undefined;
-        };
-        const mergedSettings = mergeWith({}, setDataDefault, parsed, customizer);
-        setSetData(mergedSettings);
-        return mergedSettings;
-      }
+    try {
+      const savedSettings = (await window.api.getStoreValue('set')) ?? {};
+      const customizer = (_objValue: any, srcValue: any) => {
+        if (isArray(srcValue)) {
+          return srcValue;
+        }
+        return undefined;
+      };
+      const mergedSettings = mergeWith({}, setDataDefault, savedSettings, customizer);
+      setSetData(mergedSettings);
+      return mergedSettings;
+    } catch (error) {
+      console.error('[settings] Failed to read config via Tauri:', error);
       return getInitialSettingsFallback();
     }
   };
@@ -110,8 +76,6 @@ export const useSettingsStore = defineStore('settings', () => {
     setSetData(mergedSettings);
     return mergedSettings;
   };
-
-  setData.value = getInitialSettings();
 
   const toggleTheme = () => {
     if (setData.value.autoTheme) {
@@ -198,11 +162,20 @@ export const useSettingsStore = defineStore('settings', () => {
     showDownloadDrawer.value = show;
   };
 
-  const setLanguage = (language: string) => {
+  const setLanguage = async (language: string) => {
     setSetData({ language });
-    if (isElectron) {
-      window.tauri.invoke('change-language', language);
+    try {
+      await window.api.invoke('change-language', language);
+    } catch (error) {
+      console.error('[settings] Failed to change language via Tauri:', error);
     }
+  };
+
+  const setCustomApiPlugin = (plugin: { name: string; content: string }) => {
+    setSetData({
+      customApiPlugin: plugin.content,
+      customApiPluginName: plugin.name
+    });
   };
 
   const initializeSettings = () => {};
@@ -218,11 +191,9 @@ export const useSettingsStore = defineStore('settings', () => {
   };
 
   const initializeSystemFonts = async () => {
-    if (!isElectron) return;
-    if (systemFonts.value.length > 1) return;
-
+    // Use Tauri invoke via the api bridge
     try {
-      const fonts = await window.tauri.invoke('get-system-fonts');
+      const fonts = await window.api.getSystemFonts();
       setSystemFonts(fonts);
     } catch (error) {
       console.error('Failed to obtain system font:', error);
@@ -245,7 +216,7 @@ export const useSettingsStore = defineStore('settings', () => {
     const shouldUseMobileStyle = calculateMobileStatus();
 
     if (shouldUseMobileStyle) {
-      menuStore.setMenus(homeRouter.filter((item) => item.meta.isMobile));
+      menuStore.setMenus(homeRouter.filter((item) => item.meta?.isMobile));
     } else {
       menuStore.setMenus(homeRouter);
     }

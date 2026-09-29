@@ -27,7 +27,7 @@ export const cleanupLegacyPlayHistoryStorage = (): void => {
 };
 
 export type PlaylistHistoryItem = {
-  id: number;
+  id: string | number;
   name: string;
   coverImgUrl?: string;
   picUrl?: string;

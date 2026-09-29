@@ -1,31 +1,17 @@
 {
-  "extends": "@electron-toolkit/tsconfig/tsconfig.node.json",
-  "include": [
-    "electron.vite.config.*",
-    "src/main/**/*",
-    "src/preload/**/*",
-    "src/shared/**/*",
-    "src/i18n/**/*"
-  ],
+  "include": ["vite.config.ts", "tailwind.config.js", "postcss.config.js", "prettier.config.js"],
   "compilerOptions": {
     "composite": true,
-    "types": [
-      "electron-vite/node"
-    ],
+    "target": "esnext",
+    "module": "esnext",
     "moduleResolution": "bundler",
-  },
-  "paths": {
-    "@/*": [
-      "src/renderer/*"
-    ],
-    "@renderer/*": [
-      "src/renderer/*"
-    ],
-    "@main/*": [
-      "src/main/*"
-    ],
-    "@i18n/*": [
-      "src/i18n/*"
-    ]
+    "lib": ["esnext"],
+    "types": ["node"],
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "isolatedModules": true,
+    "noEmit": true
   }
 }

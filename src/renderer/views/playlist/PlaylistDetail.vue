@@ -68,7 +68,7 @@ import { useMessage } from 'naive-ui';
 import { onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
-import { getYTMPlaylist } from '@/api/ytmusic';
+import { getYTMPlaylistDetail, type YTMPlaylistDetail } from '@/api/ytmusic';
 import SongItem from '@/components/common/SongItem.vue';
 import { useDownload } from '@/hooks/useDownload';
 import { playTrack } from '@/services/playbackController';
@@ -115,7 +115,7 @@ const loadPlaylist = async () => {
 
 const playAll = () => {
   if (!songs.value.length) return;
-  playerStore.setPlayList(songs.value, 0, true);
+  playerStore.setPlayList(songs.value, false, true);
 };
 
 const batchDownload = async () => {

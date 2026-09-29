@@ -25,14 +25,8 @@
   max-width: 85vw !important;
 }
 
-/* 深色模式下的 message */
-.mobile.noElectron .n-message {
-  background: rgba(50, 50, 50, 0.95) !important;
-  color: #fff !important;
-}
-
 /* 浅色模式下的 message */
-.mobile:not(.noElectron) .n-message,
+.mobile .n-message,
 .mobile .theme-light .n-message {
   background: rgba(255, 255, 255, 0.5) !important;
   color: #333 !important;

@@ -187,6 +187,8 @@ import SongItem from '@/components/common/SongItem.vue';
 import { useLocalMusicStore } from '@/store/modules/localMusic';
 import { usePlayerStore } from '@/store/modules/player';
 import type { SongResult } from '@/types/music';
+import { t } from '@/utils/i18n';
+import { selectDirectory } from '@/utils/fileOperation';
 import { filterByKeyword, toSongResult } from '@/utils/localMusicUtils';
 
 const { message } = createDiscreteApi(['message']);
@@ -207,9 +209,9 @@ const filteredSongResults = computed(() => {
 
 async function handleAddFolder(): Promise<void> {
   try {
-    const result = await window.electron.ipcRenderer.invoke('select-directory');
-    if (result && !result.canceled && result.filePaths?.length > 0) {
-      localMusicStore.addFolder(result.filePaths[0]);
+    const folderPath = await selectDirectory(message);
+    if (folderPath) {
+      localMusicStore.addFolder(folderPath);
 
       await localMusicStore.scanFolders();
     }
@@ -257,7 +259,7 @@ async function handlePlayAll(): Promise<void> {
     const firstSong = filteredSongResults.value[0];
     const entry = filteredList.value[0];
 
-    const exists = await window.electron.ipcRenderer.invoke('check-file-exists', entry.filePath);
+    const exists = await window.api.invoke('check-file-exists', entry.filePath);
     if (!exists) {
       message.error('File not found or has been moved');
       return;

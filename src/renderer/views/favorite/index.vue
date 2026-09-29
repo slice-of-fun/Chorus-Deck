@@ -13,7 +13,7 @@
         </div>
       </div>
 
-      <div v-if="!isComponent && isElectron" class="flex items-center gap-3">
+      <div v-if="!isComponent && isDesktop()" class="flex items-center gap-3">
         <template v-if="!isSelecting">
           <div class="flex items-center bg-gray-100 dark:bg-neutral-800 rounded-full p-1 h-9">
             <button
@@ -153,7 +153,8 @@ import { useDownload } from '@/hooks/useDownload';
 import { useProgressiveRender } from '@/hooks/useProgressiveRender';
 import { usePlayerStore } from '@/store';
 import type { SongResult } from '@/types/music';
-import { isElectron, setAnimationClass, setAnimationDelay } from '@/utils';
+import { isDesktop, setAnimationClass, setAnimationDelay } from '@/utils';
+import { t } from '@/utils/i18n';
 
 const playerStore = usePlayerStore();
 const favoriteList = computed(() => playerStore.favoriteList);

@@ -155,6 +155,7 @@ import { usePlayerStore } from '@/store/modules/player';
 import { usePlayHistoryStore } from '@/store/modules/playHistory';
 import type { SongResult } from '@/types/music';
 import { isMobile, setAnimationClass, setAnimationDelay } from '@/utils';
+import { t } from '@/utils/i18n';
 
 
 const message = useMessage();

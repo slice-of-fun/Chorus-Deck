@@ -1,4 +1,6 @@
-const layoutRouter = [
+import type { RouteRecordRaw } from 'vue-router';
+
+const layoutRouter: RouteRecordRaw[] = [
   {
     path: '/',
     name: 'home',
@@ -52,9 +54,7 @@ const layoutRouter = [
       title: 'comp.localMusic',
       icon: 'ri-folder-music-fill',
       keepAlive: true,
-      isMobile: false,
-      electronOnly: true,
-      hideInSidebar: true
+      isMobile: false
     },
     component: () => import('@/views/local-music/index.vue')
   },

@@ -90,7 +90,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 
-import { isElectron, isLyricWindow } from '@/utils';
+import { isDesktop, isLyricWindow } from '@/utils';
 
 const DISCLAIMER_AGREED_KEY = 'disclaimer_agreed_timestamp';
 
@@ -117,7 +117,7 @@ const handleDisagree = () => {
   if (isTransitioning.value) return;
   isTransitioning.value = true;
 
-  if (isElectron) {
+  if (isDesktop()) {
     window.api?.quitApp?.();
   } else {
     window.close();

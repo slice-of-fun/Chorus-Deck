@@ -92,7 +92,7 @@ import { computed, inject, nextTick, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 import { getHotSearch, getSearchKeyword } from '@/api/home';
-import { getSearchSuggestions } from '@/api/search';
+import { getSearchSuggestions, type SearchFilter } from '@/api/search';
 import { SEARCH_TYPES } from '@/const/bar-const';
 import { useSearchStore } from '@/store/modules/search';
 
@@ -126,8 +126,8 @@ const hotSearchList = ref<any[]>([]);
 
 const loadHotSearchKeyword = async () => {
   try {
-    const { data } = await getSearchKeyword();
-    hotSearchKeyword.value = data.data.showKeyword;
+    const data = await getSearchKeyword();
+    hotSearchKeyword.value = data.showKeyword;
   } catch (e) {
     console.error('Failed to load popular search keywords:', e);
   }
@@ -135,8 +135,8 @@ const loadHotSearchKeyword = async () => {
 
 const loadHotSearchList = async () => {
   try {
-    const { data } = await getHotSearch();
-    hotSearchList.value = data.data || [];
+    const data = await getHotSearch();
+    hotSearchList.value = data || [];
   } catch (e) {
     console.error('Failed to load popular searches:', e);
   }
@@ -184,7 +184,7 @@ const clearSearch = () => {
   suggestions.value = [];
 };
 
-const selectType = (type: number) => {
+const selectType = (type: SearchFilter) => {
   searchType.value = type;
   searchStore.searchType = type;
 };

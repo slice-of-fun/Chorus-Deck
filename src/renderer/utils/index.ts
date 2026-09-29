@@ -89,19 +89,23 @@ export const isMobile = computed(() => {
   return settingsStore.isMobile;
 });
 
-export const isElectron = (window as any).electron !== undefined;
+/**
+ * True when the Tauri bridge has been installed, i.e. we are running inside the
+ * desktop shell rather than a plain browser (`npm run dev:web`).
+ *
+ * Evaluated lazily because the bridge is installed from `main.ts` after the
+ * module graph has already been evaluated.
+ */
+export const isDesktop = (): boolean => typeof window !== 'undefined' && Boolean(window.api);
 
 export const isLyricWindow = computed(() => {
   return window.location.hash.includes('lyric');
 });
 
-export const getSetData = (): any => {
-  let setData = null;
-  if (window.electron) {
-    setData = window.electron.ipcRenderer.sendSync('get-store-value', 'set');
-  } else {
-    const settingsStore = useSettingsStore();
-    setData = settingsStore.setData;
+export const getSetData = async (): Promise<any> => {
+  if (window.api) {
+    return window.api.getStoreValue('set');
   }
-  return setData;
+  const settingsStore = useSettingsStore();
+  return settingsStore.setData;
 };

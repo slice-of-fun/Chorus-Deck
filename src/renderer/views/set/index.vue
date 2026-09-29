@@ -62,7 +62,7 @@
 
         <!-- Sub Tabs -->
         <div v-show="currentSection === 'account'" class="animate-fade-in">
-          <account-tab @navigate="(section) => currentSection = section" />
+          <account-tab @navigate="(section: string) => currentSection = section" />
         </div>
         <div v-show="currentSection === 'discord'" class="animate-fade-in">
           <discord-tab />
@@ -109,13 +109,12 @@ import { computed, onMounted, onUnmounted, provide, ref, watch } from 'vue';
 
 import PlayBottom from '@/components/common/PlayBottom.vue';
 import { useSettingsStore } from '@/store/modules/settings';
-import { isElectron } from '@/utils';
+import { isDesktop } from '@/utils';
 
 import config from '../../../../package.json';
 import { createDefaultAppUpdateState } from '../../../shared/appUpdate';
 import { SETTINGS_DATA_KEY, SETTINGS_DIALOG_KEY, SETTINGS_MESSAGE_KEY } from './keys';
 import AboutTab from './tabs/AboutTab.vue';
-import AccountTab from './tabs/AccountTab.vue';
 import DiscordTab from './tabs/DiscordTab.vue';
 import AiTab from './tabs/AiTab.vue';
 import AppearanceTab from './tabs/AppearanceTab.vue';
@@ -251,7 +250,7 @@ const currentSectionTitle = computed(() => {
 });
 
 onMounted(() => {
-  if (isElectron && settingsStore.appUpdateState.currentVersion === '') {
+  if (isDesktop() && settingsStore.appUpdateState.currentVersion === '') {
     settingsStore.setAppUpdateState(createDefaultAppUpdateState(config.version));
   }
   if (setData.value.enableRealIP === undefined) {

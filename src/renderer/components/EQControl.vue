@@ -3,7 +3,7 @@
     <div class="eq-header flex justify-between items-center mb-4">
       <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-200">
         Equalizer
-        <n-tag type="warning" size="small" round v-if="!isElectron">
+        <n-tag type="warning" size="small" round v-if="!isDesktop()">
           The desktop version is available, but the web version is not supported.
         </n-tag>
       </h3>
@@ -71,7 +71,7 @@
 import { onMounted, ref } from 'vue';
 
 import { audioService } from '@/services/audioService';
-import { isElectron } from '@/utils';
+import { isDesktop } from '@/utils';
 
 const frequencies = [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
 const eqValues = ref<{ [key: string]: number }>({});

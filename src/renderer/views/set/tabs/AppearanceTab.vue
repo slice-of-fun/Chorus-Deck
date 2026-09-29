@@ -45,7 +45,7 @@
       </setting-item>
 
       <setting-item
-        v-if="!isElectron"
+        v-if="!isDesktop()"
         icon="ri-tablet-line" title="Tablet Mode"
         description="Enabling tablet mode allows using PC-style interface on mobile devices"
       >
@@ -56,7 +56,7 @@
       </setting-item>
 
       <setting-item
-        v-if="isElectron"
+        v-if="isDesktop()"
         icon="ri-font-size" title="Font Settings"
         description="Select fonts, prioritize fonts in order"
       >
@@ -80,7 +80,7 @@
       </setting-item>
 
       <div
-        v-if="isElectron && selectedFonts.length > 0"
+        v-if="isDesktop() && selectedFonts.length > 0"
         class="p-4 border-b border-gray-100 dark:border-gray-800"
       >
         <div class="text-base font-bold mb-4 text-gray-900 dark:text-white">Font Preview</div>
@@ -392,7 +392,7 @@
 import { computed, h, inject, onMounted, onUnmounted, ref, watch } from 'vue';
 
 import { useSettingsStore } from '@/store/modules/settings';
-import { isElectron, isMobile } from '@/utils';
+import { isDesktop, isMobile } from '@/utils';
 import { applyTheme } from '@/utils/theme';
 import { t } from '@/utils/i18n';
 

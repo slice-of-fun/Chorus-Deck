@@ -109,7 +109,7 @@ export const getProxyNodes = async (): Promise<string[]> => {
 export const getLatestReleaseInfo = async (): Promise<GithubReleaseInfo | null> => {
   try {
     const token = '';
-    const headers = {};
+    const headers: Record<string, string> = {};
 
     const apiUrls = [
       'https://api.github.com/repos/algerkong/AlgerMusicPlayer/releases/latest',

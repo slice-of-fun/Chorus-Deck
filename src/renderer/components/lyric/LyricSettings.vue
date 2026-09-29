@@ -280,28 +280,9 @@
 <script setup lang="ts">
 import { inject, reactive, ref } from 'vue';
 
-const config = inject(
-  'lyricSetting',
-  reactive({
-    pureModeEnabled: false,
-    hideCover: false,
-    centerLyrics: false,
-    showTranslation: true,
-    hideLyrics: false,
-    focusCurrentLyric: true,
-    contentWidth: 80,
-    fontSize: 20,
-    letterSpacing: 0,
-    fontWeight: 400,
-    lineHeight: 1.5,
-    useCustomBackground: false,
-    theme: 'default',
-    backgroundMode: 'solid',
-    solidColor: '#000000',
-    gradientColors: { colors: ['#000000', '#333333'], direction: 'to right' },
-    backgroundImage: ''
-  })
-);
+import { DEFAULT_LYRIC_CONFIG, type LyricConfig } from '@/types/lyric';
+
+const config = inject<LyricConfig>('lyricSetting', reactive<LyricConfig>({ ...DEFAULT_LYRIC_CONFIG }));
 
 const activeTab = ref('display');
 const tabs = [
@@ -342,6 +323,9 @@ const handleImageUpload = (e: Event) => {
     reader.readAsDataURL(file);
   }
 };
+
+// Exposed so MusicFull / MusicFullMobile can read and persist lyric config.
+defineExpose({ config });
 </script>
 
 <style scoped>

@@ -5,12 +5,14 @@ import 'remixicon/fonts/remixicon.css';
 
 import { createApp } from 'vue';
 
+import { installBridge } from '@/api/bridge';
 import router from '@/router';
 import pinia from '@/store';
-import { isElectron } from '@/utils';
 
 import App from './App.vue';
 import directives from './directive';
+
+installBridge();
 
 const app = createApp(App);
 

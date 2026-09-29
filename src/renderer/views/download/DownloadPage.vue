@@ -254,7 +254,7 @@
                             <i class="ri-file-copy-line" />
                           </button>
                         </template>
-                        {{ 'Copy Path' || 'copy path' }}
+                        Copy Path
                       </n-tooltip>
                       <n-tooltip trigger="hover">
                         <template #trigger>
@@ -511,8 +511,10 @@ import logoImg from '@/assets/logo.png';
 import { useProgressiveRender } from '@/hooks/useProgressiveRender';
 import { useDownloadStore } from '@/store/modules/download';
 import { usePlayerStore } from '@/store/modules/player';
+import type { CompletedDownload } from '@shared/download';
 import type { SongResult } from '@/types/music';
 import { getImgUrl } from '@/utils';
+import { t } from '@/utils/i18n';
 
 import type { DownloadTask } from '../../../shared/download';
 import { filePathToLocalUrl } from '../../../shared/localUrl';
@@ -544,7 +546,6 @@ const getStatusText = (item: DownloadTask) => {
     downloading: 'Downloading',
     paused: 'Paused',
     completed: 'Completed',
-    error: 'Failed',
     cancelled: 'Cancelled'
   };
   return statusMap[item.state] || 'Unknown';
@@ -612,13 +613,13 @@ const getLocalFilePath = (path: string) => {
 };
 
 const openDirectory = (path: string) => {
-  window.electron.ipcRenderer.send('open-directory', path);
+  window.api.send('open-directory', path);
 };
 
-const handlePlayMusic = async (item: any) => {
+const handlePlayMusic = async (item: CompletedDownload) => {
   try {
     const filePath = item.path || item.filePath;
-    const fileExists = await window.electron.ipcRenderer.invoke('check-file-exists', filePath);
+    const fileExists = await window.api.checkFileExists(filePath);
 
     if (!fileExists) {
       // eslint-disable-next-line no-undef
@@ -627,31 +628,13 @@ const handlePlayMusic = async (item: any) => {
     }
 
     const song: SongResult = {
-      id: item.id,
+      id: item.songId || item.filePath,
       name: item.displayName || item.filename,
-      ar:
-        item.ar?.map((a: { name: string }) => ({
-          id: 0,
-          name: a.name,
-          picId: 0,
-          img1v1Id: 0,
-          briefDesc: '',
-          picUrl: '',
-          img1v1Url: '',
-          albumSize: 0,
-          alias: [],
-          trans: '',
-          musicSize: 0,
-          topicPerson: 0
-        })) || [],
-      al: {
-        name: item.filename,
-        id: 0,
-        picUrl: item.picUrl,
-        pic: 0,
-        picId: 0
-      } as any,
-      picUrl: item.picUrl,
+      ar: item.ar?.map((a) => ({ name: a.name })) || [],
+      artists: item.ar?.map((a) => ({ name: a.name })) || [],
+      al: { name: item.filename, picUrl: item.picUrl },
+      album: item.filename,
+      picUrl: item.picUrl || '',
       playMusicUrl: getLocalFilePath(filePath),
       source: 'ytmusic' as const,
       count: 0
@@ -671,9 +654,9 @@ const handlePlayMusic = async (item: any) => {
 };
 
 const showDeleteConfirm = ref(false);
-const itemToDelete = ref<any>(null);
+const itemToDelete = ref<CompletedDownload | null>(null);
 
-const handleDelete = (item: any) => {
+const handleDelete = (item: CompletedDownload) => {
   itemToDelete.value = item;
   showDeleteConfirm.value = true;
 };
@@ -817,7 +800,9 @@ const formatNamePreview = computed(() => {
 });
 
 const selectDownloadPath = async () => {
-  const result = await window.electron.ipcRenderer.invoke('select-directory');
+  const result = await window.api.invoke<{ canceled: boolean; filePaths: string[] }>(
+    'select-directory'
+  );
   if (result && !result.canceled && result.filePaths.length > 0) {
     downloadSettings.value.path = result.filePaths[0];
   }
@@ -825,33 +810,17 @@ const selectDownloadPath = async () => {
 
 const openDownloadPath = () => {
   if (downloadSettings.value.path) {
-    window.electron.ipcRenderer.send('open-directory', downloadSettings.value.path);
+    window.api.send('open-directory', downloadSettings.value.path);
   } else {
     message.warning('Please select download path first');
   }
 };
 
 const saveDownloadSettings = () => {
-  window.electron.ipcRenderer.send(
-    'set-store-value',
-    'set.downloadPath',
-    downloadSettings.value.path
-  );
-  window.electron.ipcRenderer.send(
-    'set-store-value',
-    'set.downloadNameFormat',
-    downloadSettings.value.nameFormat
-  );
-  window.electron.ipcRenderer.send(
-    'set-store-value',
-    'set.downloadSeparator',
-    downloadSettings.value.separator
-  );
-  window.electron.ipcRenderer.send(
-    'set-store-value',
-    'set.downloadSaveLyric',
-    downloadSettings.value.saveLyric
-  );
+  window.api.send('set-store-value', 'set.downloadPath', downloadSettings.value.path);
+  window.api.send('set-store-value', 'set.downloadNameFormat', downloadSettings.value.nameFormat);
+  window.api.send('set-store-value', 'set.downloadSeparator', downloadSettings.value.separator);
+  window.api.send('set-store-value', 'set.downloadSaveLyric', downloadSettings.value.saveLyric);
 
   if (tabName.value === 'downloaded') {
     downloadStore.refreshCompleted();
@@ -864,22 +833,13 @@ const saveDownloadSettings = () => {
 };
 
 const initDownloadSettings = async () => {
-  const path = window.electron.ipcRenderer.sendSync('get-store-value', 'set.downloadPath');
-  const nameFormat = window.electron.ipcRenderer.sendSync(
-    'get-store-value',
-    'set.downloadNameFormat'
-  );
-  const separator = window.electron.ipcRenderer.sendSync(
-    'get-store-value',
-    'set.downloadSeparator'
-  );
-  const saveLyric = window.electron.ipcRenderer.sendSync(
-    'get-store-value',
-    'set.downloadSaveLyric'
-  );
+  const path = await window.api.invoke<string>('get-store-value', 'set.downloadPath');
+  const nameFormat = await window.api.invoke<string>('get-store-value', 'set.downloadNameFormat');
+  const separator = await window.api.invoke<string>('get-store-value', 'set.downloadSeparator');
+  const saveLyric = await window.api.invoke<boolean>('get-store-value', 'set.downloadSaveLyric');
 
   downloadSettings.value = {
-    path: path || (await window.electron.ipcRenderer.invoke('get-downloads-path')),
+    path: path || (await window.api.invoke<string>('get-downloads-path')),
     nameFormat: nameFormat || '{songName} - {artistName}',
     separator: separator || ' - ',
     saveLyric: saveLyric || false

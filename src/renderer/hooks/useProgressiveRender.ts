@@ -3,8 +3,8 @@ import { computed, type ComputedRef, type Ref, ref } from 'vue';
 import { usePlayerStore } from '@/store';
 import { isMobile } from '@/utils';
 
-type ProgressiveRenderOptions = {
-  items: ComputedRef<any[]> | Ref<any[]>;
+type ProgressiveRenderOptions<T> = {
+  items: ComputedRef<T[]> | Ref<T[]>;
 
   itemHeight: ComputedRef<number> | number;
 
@@ -15,7 +15,7 @@ type ProgressiveRenderOptions = {
   onReachEnd?: () => void;
 };
 
-export const useProgressiveRender = (options: ProgressiveRenderOptions) => {
+export const useProgressiveRender = <T>(options: ProgressiveRenderOptions<T>) => {
   const { items, itemHeight, listSelector, initialCount = 40, onReachEnd } = options;
 
   const playerStore = usePlayerStore();

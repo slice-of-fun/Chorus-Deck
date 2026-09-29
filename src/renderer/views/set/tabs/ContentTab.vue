@@ -1,5 +1,5 @@
 <template>
-  <setting-section v-if="isElectron" title="Application Settings">
+  <setting-section v-if="isDesktop()" title="Application Settings">
     <setting-item icon="ri-close-circle-line" title="Close Action" description="Choose action when closing window">
       <s-select
         v-model="setData.closeAction"
@@ -8,7 +8,7 @@
       />
     </setting-item>
 
-    <setting-item v-if="isElectron" icon="ri-download-cloud-2-line" title="Download Management">
+    <setting-item v-if="isDesktop()" icon="ri-download-cloud-2-line" title="Download Management">
       <template #description>
         <n-switch v-model:value="setData.alwaysShowDownloadButton" class="mr-2">
           <template #checked>Show</template>
@@ -139,7 +139,7 @@
 import { computed, inject, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
-import { isElectron } from '@/utils';
+import { isDesktop } from '@/utils';
 import { openDirectory, selectDirectory } from '@/utils/fileOperation';
 
 import { SETTINGS_DATA_KEY, SETTINGS_MESSAGE_KEY } from '../keys';
