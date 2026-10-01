@@ -3,9 +3,10 @@ pub mod commands;
 pub mod db;
 pub mod downloads;
 pub mod smtc;
+pub mod lyrics;
 
-use commands::AppState;
 use commands::audio::AudioState;
+use commands::AppState;
 use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -204,6 +205,7 @@ pub fn run() {
             commands::integrations::app_update_quit_and_install,
             commands::integrations::app_update_open_release_page,
             commands::integrations::ytm_request,
+            commands::integrations::ytm_validate_stream,
             commands::integrations::spotify_login,
             commands::integrations::spotify_exchange_token,
             commands::integrations::spotify_fetch_playlists,
@@ -225,6 +227,7 @@ pub fn run() {
             commands::audio::audio_set_eq_band,
             commands::audio::audio_set_playback_rate,
             commands::audio::audio_clear_cache,
+            commands::lyrics::fetch_best_lyrics,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Chorus Deck");

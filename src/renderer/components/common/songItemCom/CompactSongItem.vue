@@ -71,7 +71,7 @@
           :class="{ 'opacity-0': !isHovering && !isFavorite }"
         >
           <i
-            class="iconfont icon-likefill"
+            class="ri-heart-fill"
             :class="{ 'like-active': isFavorite }"
             @click.stop="onToggleFavorite"
           ></i>
@@ -85,15 +85,15 @@
           }"
           @click="onPlayMusic"
         >
-          <i v-if="isPlaying && play" class="iconfont icon-stop"></i>
-          <i v-else class="iconfont icon-playfill"></i>
+          <i v-if="isPlaying && play" class="ri-pause-fill"></i>
+          <i v-else class="ri-play-fill"></i>
         </div>
         <div
           class="song-item-operating-menu"
           @click.stop="onMenuClick"
           :class="{ 'opacity-0': !isHovering && !isPlaying }"
         >
-          <i class="iconfont ri-more-fill"></i>
+          <i class="ri-more-fill"></i>
         </div>
       </div>
     </template>

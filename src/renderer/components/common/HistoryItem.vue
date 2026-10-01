@@ -26,7 +26,7 @@
       class="cursor-pointer rounded-full border-2 w-8 h-8 flex flex-shrink-0 justify-center items-center border-gray-400 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-red-500 hover:text-red-500 transition-colors duration-200"
       @click.stop="$emit('delete')"
     >
-      <i class="iconfont icon-close" />
+      <i class="ri-close-line" />
     </div>
   </div>
 </template>

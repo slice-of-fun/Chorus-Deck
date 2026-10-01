@@ -134,12 +134,12 @@ const dropdownOptions = computed<MenuOption[]>(() => {
     {
       label: 'Play',
       key: 'play',
-      icon: () => h('i', { class: 'iconfont ri-play-circle-line' })
+      icon: () => h('i', { class: 'ri-play-circle-line' })
     },
     {
       label: 'Play Next',
       key: 'playNext',
-      icon: () => h('i', { class: 'iconfont ri-play-list-2-line' })
+      icon: () => h('i', { class: 'ri-play-list-2-line' })
     },
     {
       type: 'divider',
@@ -148,19 +148,19 @@ const dropdownOptions = computed<MenuOption[]>(() => {
     {
       label: 'Download',
       key: 'download',
-      icon: () => h('i', { class: 'iconfont ri-download-line' })
+      icon: () => h('i', { class: 'ri-download-line' })
     },
     {
       label: 'Download Lyrics',
       key: 'downloadLyric',
-      icon: () => h('i', { class: 'iconfont ri-file-text-line' })
+      icon: () => h('i', { class: 'ri-file-text-line' })
     },
     {
       label: props.isFavorite ? 'Unlike' : 'Like',
       key: 'favorite',
       icon: () =>
         h('i', {
-          class: `iconfont ${props.isFavorite ? 'ri-heart-fill text-red-500' : 'ri-heart-line'}`
+          class: `${props.isFavorite ? 'ri-heart-fill text-red-500' : 'ri-heart-line'}`
         })
     },
     {
@@ -168,7 +168,7 @@ const dropdownOptions = computed<MenuOption[]>(() => {
       key: 'dislike',
       icon: () =>
         h('i', {
-          class: `iconfont ${props.isDislike ? 'ri-dislike-fill text-primary' : 'ri-dislike-line'}`
+          class: `${props.isDislike ? 'ri-dislike-fill text-primary' : 'ri-dislike-line'}`
         })
     }
   ];
@@ -182,7 +182,7 @@ const dropdownOptions = computed<MenuOption[]>(() => {
       {
         label: isLocalSong.value ? 'Remove from Library' : 'Remove from Playlist',
         key: 'remove',
-        icon: () => h('i', { class: 'iconfont ri-delete-bin-line' })
+        icon: () => h('i', { class: 'ri-delete-bin-line' })
       }
     );
   }

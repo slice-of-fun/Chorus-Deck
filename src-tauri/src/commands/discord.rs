@@ -1,7 +1,7 @@
-use std::sync::Mutex;
-use lazy_static::lazy_static;
 use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
+use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
+use std::sync::Mutex;
 
 #[derive(Debug, Deserialize, Serialize, Clone, Default)]
 #[serde(rename_all = "camelCase")]
@@ -40,7 +40,7 @@ fn ensure_connection() -> bool {
 #[tauri::command(rename = "update-discord-presence")]
 pub fn update_discord_presence(presence: DiscordPresence) -> Result<(), String> {
     if !ensure_connection() {
-        return Err("Failed to connect to Discord".to_string());
+        return Ok(());
     }
 
     if let Ok(mut current) = CURRENT_PRESENCE.lock() {
@@ -70,17 +70,17 @@ pub fn update_discord_presence_internal(presence: &DiscordPresence) -> Result<()
     if let Ok(mut client_lock) = DISCORD_CLIENT.lock() {
         if let Some(client) = client_lock.as_mut() {
             let mut assets = activity::Assets::new();
-            
+
             if let Some(ref album_art) = presence.album_art {
                 assets = assets.large_image(album_art);
             } else {
                 assets = assets.large_image("chorus_logo"); // Default fallback
             }
-            
+
             if let Some(ref album) = presence.album {
                 assets = assets.large_text(album);
             }
-            
+
             let is_playing = presence.is_playing.unwrap_or(false);
             if is_playing {
                 assets = assets.small_image("play_icon");
@@ -101,7 +101,6 @@ pub fn update_discord_presence_internal(presence: &DiscordPresence) -> Result<()
 
             if is_playing {
                 if let Some(start) = presence.start_timestamp {
-                    // Start timestamp is in milliseconds in JS, Discord expects seconds for the epoch
                     let start_secs = start / 1000;
                     let timestamps = activity::Timestamps::new().start(start_secs);
                     act = act.timestamps(timestamps);
@@ -148,7 +147,5 @@ pub struct DiscordUserInfo {
 
 #[tauri::command(rename = "discord-webview-login")]
 pub fn discord_webview_login() -> Result<Option<DiscordUserInfo>, String> {
-    // Returning an error here matches the frontend's handling of closed window before login.
-    // We would implement the OAuth flow inside a Tauri window here later.
     Err("Window closed before login".to_string())
 }

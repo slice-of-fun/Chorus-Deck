@@ -1,8 +1,9 @@
-use std::sync::Mutex;
 use lazy_static::lazy_static;
-use souvlaki::{MediaControlEvent, MediaControls, MediaMetadata, MediaPlayback, MediaPosition, PlatformConfig};
+use souvlaki::{
+    MediaControlEvent, MediaControls, MediaMetadata, MediaPlayback, MediaPosition, PlatformConfig,
+};
+use std::sync::Mutex;
 use tauri::{AppHandle, Emitter, Manager};
-use raw_window_handle::HasRawWindowHandle;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PlaybackState {
@@ -22,7 +23,10 @@ static PLAYBACK: Mutex<Option<PlaybackState>> = Mutex::new(None);
 
 pub fn set_now_playing(title: String, artist: String) {
     if let Ok(mut slot) = NOW_PLAYING.lock() {
-        *slot = Some(NowPlaying { title: title.clone(), artist: artist.clone() });
+        *slot = Some(NowPlaying {
+            title: title.clone(),
+            artist: artist.clone(),
+        });
     }
     update_smtc();
 }
@@ -59,7 +63,8 @@ lazy_static! {
 }
 
 pub fn init_smtc(app: &AppHandle) {
-    let hwnd = app.get_webview_window("main")
+    let hwnd = app
+        .get_webview_window("main")
         .and_then(|w| w.hwnd().ok())
         .map(|h| h.0 as *mut std::ffi::c_void);
 
@@ -71,24 +76,22 @@ pub fn init_smtc(app: &AppHandle) {
 
     if let Ok(mut controls) = MediaControls::new(config) {
         let app_handle = app.clone();
-        let _ = controls.attach(move |event| {
-            match event {
-                MediaControlEvent::Play => {
-                    let _ = app_handle.emit("mpris-play", ());
-                }
-                MediaControlEvent::Pause => {
-                    let _ = app_handle.emit("mpris-pause", ());
-                }
-                MediaControlEvent::Next => {
-                    let _ = app_handle.emit("mpris-next", ());
-                }
-                MediaControlEvent::Previous => {
-                    let _ = app_handle.emit("mpris-previous", ());
-                }
-                _ => {}
+        let _ = controls.attach(move |event| match event {
+            MediaControlEvent::Play => {
+                let _ = app_handle.emit("mpris-play", ());
             }
+            MediaControlEvent::Pause => {
+                let _ = app_handle.emit("mpris-pause", ());
+            }
+            MediaControlEvent::Next => {
+                let _ = app_handle.emit("mpris-next", ());
+            }
+            MediaControlEvent::Previous => {
+                let _ = app_handle.emit("mpris-previous", ());
+            }
+            _ => {}
         });
-        
+
         if let Ok(mut slot) = CONTROLS.lock() {
             *slot = Some(controls);
         }

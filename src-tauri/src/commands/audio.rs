@@ -1,14 +1,11 @@
-use rodio::{Decoder, OutputStream, Sink};
-use std::io::{Cursor, Read, Seek, SeekFrom};
-use std::fs::{File, OpenOptions};
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use std::sync::{Arc, Mutex};
-use std::thread;
-use std::time::Duration;
-use tauri::{AppHandle, Manager, State};
-use sha2::{Sha256, Digest};
+﻿use crate::commands::stream_decoder::StreamDecoder;
 use futures_util::StreamExt;
-use std::io::Write;
+use rodio::{Decoder, OutputStream, Sink, Source};
+use std::collections::VecDeque;
+use std::io::{Read, Seek, SeekFrom};
+use std::sync::{Arc, Condvar, Mutex};
+use std::thread;
+use tauri::{AppHandle, Manager, State};
 
 use crate::commands::eq::{EqCommand, EqSource, FREQUENCIES};
 use std::sync::mpsc::Sender;
@@ -17,6 +14,7 @@ pub struct AudioPlayer {
     pub sink: Sink,
     pub duration: Option<f32>,
     pub eq_tx: Option<Sender<EqCommand>>,
+    stream: Option<Arc<StreamShared>>,
 }
 
 pub struct EqState {
@@ -27,36 +25,41 @@ pub struct EqState {
 
 impl Default for EqState {
     fn default() -> Self {
-        Self { bypass: false, gains: [0.0; 10], playback_rate: 1.0 }
+        Self {
+            bypass: false,
+            gains: [0.0; 10],
+            playback_rate: 1.0,
+        }
     }
 }
 
 impl AudioPlayer {
     pub fn new() -> Result<Self, String> {
         let (tx, rx) = std::sync::mpsc::channel();
-        thread::spawn(move || {
-            match OutputStream::try_default() {
-                Ok((_stream, handle)) => {
-                    match Sink::try_new(&handle) {
-                        Ok(sink) => {
-                            let _ = tx.send(Ok(sink));
-                            loop {
-                                thread::park();
-                            }
-                        }
-                        Err(e) => {
-                            let _ = tx.send(Err(format!("Sink error: {}", e)));
-                        }
+        thread::spawn(move || match OutputStream::try_default() {
+            Ok((_stream, handle)) => match Sink::try_new(&handle) {
+                Ok(sink) => {
+                    let _ = tx.send(Ok(sink));
+                    loop {
+                        thread::park();
                     }
                 }
                 Err(e) => {
-                    let _ = tx.send(Err(format!("OutputStream error: {}", e)));
+                    let _ = tx.send(Err(format!("Sink error: {}", e)));
                 }
+            },
+            Err(e) => {
+                let _ = tx.send(Err(format!("OutputStream error: {}", e)));
             }
         });
-        
+
         let sink = rx.recv().map_err(|e| e.to_string())??;
-        Ok(Self { sink, duration: None, eq_tx: None })
+        Ok(Self {
+            sink,
+            duration: None,
+            eq_tx: None,
+            stream: None,
+        })
     }
 }
 
@@ -65,202 +68,415 @@ pub struct AudioState {
     pub eq: Mutex<EqState>,
 }
 
-pub struct StreamingReader {
-    file: File,
-    downloaded_bytes: Arc<AtomicU64>,
-    is_finished: Arc<AtomicBool>,
-    pos: u64,
-    file_size: Option<u64>,
+const STREAM_BUFFER_LIMIT: usize = 4 * 1024 * 1024;
+
+struct StreamState {
+    buf: VecDeque<u8>,
+    buf_start: u64,
+    eof: bool,
+    error: Option<String>,
+    total: Option<u64>,
+    generation: u64,
+    alive: bool,
 }
 
-impl Read for StreamingReader {
-    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        loop {
-            let available = self.downloaded_bytes.load(Ordering::Acquire);
-            let finished = self.is_finished.load(Ordering::Acquire);
-            
-            if self.pos < available {
-                let to_read = (available - self.pos).min(buf.len() as u64) as usize;
-                self.file.seek(SeekFrom::Start(self.pos))?;
-                let n = self.file.read(&mut buf[..to_read])?;
-                self.pos += n as u64;
-                return Ok(n);
-            } else if finished {
-                return Ok(0); // EOF
-            } else {
-                // If we reach the end of what's currently downloaded but it's not finished, wait.
-                // It might block the decoder thread, which is fine since we are buffering.
-                std::thread::sleep(Duration::from_millis(10));
-            }
+struct StreamShared {
+    state: Mutex<StreamState>,
+    cond: Condvar,
+    url: String,
+    cookie: Option<String>,
+    user_agent: Option<String>,
+}
+
+const DEFAULT_STREAM_USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
+
+fn abort_stream(shared: &StreamShared) {
+    let mut s = shared.state.lock().unwrap();
+    s.alive = false;
+    s.generation += 1;
+    drop(s);
+    shared.cond.notify_all();
+}
+fn stream_length(shared: &StreamShared) -> Option<u64> {
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(15);
+    let mut s = shared.state.lock().unwrap();
+
+    while s.total.is_none() && !s.eof && s.error.is_none() && s.alive {
+        let remaining = deadline.saturating_duration_since(std::time::Instant::now());
+        if remaining.is_zero() {
+            break;
         }
+        let (guard, _) = shared.cond.wait_timeout(s, remaining).unwrap();
+        s = guard;
     }
+
+    s.total
 }
 
-impl Seek for StreamingReader {
-    fn seek(&mut self, pos: SeekFrom) -> std::io::Result<u64> {
-        let new_pos = match pos {
-            SeekFrom::Start(p) => p,
-            SeekFrom::End(p) => {
-                let end = self.file_size.unwrap_or_else(|| self.downloaded_bytes.load(Ordering::Acquire));
-                (end as i64 + p).max(0) as u64
+fn spawn_producer(shared: Arc<StreamShared>, generation: u64) {
+    tauri::async_runtime::spawn(async move {
+        let client = reqwest::Client::new();
+
+        let (start, total) = {
+            let s = shared.state.lock().unwrap();
+            if !s.alive || s.generation != generation {
+                return;
             }
-            SeekFrom::Current(p) => (self.pos as i64 + p).max(0) as u64,
+            (s.buf_start + s.buf.len() as u64, s.total)
         };
-        self.pos = new_pos;
-        Ok(self.pos)
-    }
-}
 
-fn manage_audio_cache(app: AppHandle, cache_dir: std::path::PathBuf, max_bytes: u64) {
-    tauri::async_runtime::spawn_blocking(move || {
-        let app_state = app.state::<crate::commands::AppState>();
-        
-        let mut total_size = 0;
-        
-        if let Ok(entries) = std::fs::read_dir(&cache_dir) {
-            for entry in entries.flatten() {
-                let path = entry.path();
-                if !path.is_file() { continue; }
-                
-                if path.extension().and_then(|s| s.to_str()) == Some("tmp") {
-                    if let Ok(metadata) = entry.metadata() {
-                        if let Ok(modified) = metadata.modified() {
-                            if let Ok(age) = modified.elapsed() {
-                                if age.as_secs() > 86400 {
-                                    let _ = std::fs::remove_file(&path);
-                                }
-                            }
-                        }
-                    }
-                    continue;
-                }
-                
-                if path.extension().and_then(|s| s.to_str()) == Some("audio") {
-                    if let Ok(metadata) = entry.metadata() {
-                        total_size += metadata.len();
-                    }
-                }
+        if total.map(|total| start >= total).unwrap_or(false) {
+            let mut s = shared.state.lock().unwrap();
+            if s.alive && s.generation == generation {
+                s.eof = true;
             }
-        }
-        
-        if total_size <= max_bytes {
+            drop(s);
+            shared.cond.notify_all();
             return;
         }
-        
-        let mut current_size = total_size;
-        let db = app_state.db.lock().unwrap();
-        
-        if let Ok(candidates) = crate::db::music_db::get_audio_cache_eviction_candidates(&db) {
-            for (hash, size) in candidates {
-                if current_size <= max_bytes {
-                    break;
+
+        let mut req = client.get(&shared.url);
+        if let Some(c) = &shared.cookie {
+            req = req.header(reqwest::header::COOKIE, c);
+        }
+        if let Some(ua) = &shared.user_agent {
+            req = req.header(reqwest::header::USER_AGENT, ua);
+        }
+        req = req.header(reqwest::header::RANGE, format!("bytes={}-", start));
+
+        let response = match req.send().await {
+            Ok(r) => r,
+            Err(e) => {
+                let mut s = shared.state.lock().unwrap();
+                if s.alive && s.generation == generation {
+                    s.error = Some(format!("Request failed: {}", e));
                 }
-                
-                let file_path = cache_dir.join(format!("{}.audio", hash));
-                if std::fs::remove_file(&file_path).is_ok() || !file_path.exists() {
-                    current_size = current_size.saturating_sub(size);
-                    let _ = crate::db::music_db::delete_audio_cache_record(&db, &hash);
-                    println!("Evicted cache file: {:?}", file_path);
-                }
+                drop(s);
+                shared.cond.notify_all();
+                return;
+            }
+        };
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let mut s = shared.state.lock().unwrap();
+            if s.alive && s.generation == generation {
+                s.error = Some(format!(
+                    "Stream request failed with status {} (URL expired or rate limited)",
+                    status
+                ));
+            }
+            drop(s);
+            shared.cond.notify_all();
+            return;
+        }
+
+        let total = response
+            .headers()
+            .get(reqwest::header::CONTENT_RANGE)
+            .and_then(|v| v.to_str().ok())
+            .and_then(|v| v.rsplit('/').next())
+            .and_then(|v| v.trim().parse::<u64>().ok())
+            .or_else(|| response.content_length().map(|len| len + start));
+
+        {
+            let mut s = shared.state.lock().unwrap();
+            if s.alive && s.generation == generation && s.total.is_none() {
+                s.total = total;
             }
         }
+        shared.cond.notify_all();
+
+        let mut stream = response.bytes_stream();
+        while let Some(chunk) = stream.next().await {
+            let chunk = match chunk {
+                Ok(c) => c,
+                Err(e) => {
+                    let mut s = shared.state.lock().unwrap();
+                    if s.alive && s.generation == generation {
+                        s.error = Some(format!("Stream read failed: {}", e));
+                    }
+                    drop(s);
+                    shared.cond.notify_all();
+                    return;
+                }
+            };
+
+            let mut s = shared.state.lock().unwrap();
+            while s.buf.len() >= STREAM_BUFFER_LIMIT && s.alive && s.generation == generation {
+                s = shared.cond.wait(s).unwrap();
+            }
+
+            if !s.alive || s.generation != generation {
+                return;
+            }
+
+            s.buf.extend(chunk);
+            drop(s);
+            shared.cond.notify_all();
+        }
+
+        let mut s = shared.state.lock().unwrap();
+        if s.alive && s.generation == generation {
+            s.eof = true;
+        }
+        drop(s);
+        shared.cond.notify_all();
     });
+}
+struct HttpStreamSource {
+    shared: Arc<StreamShared>,
+    pos: u64,
+}
+
+impl HttpStreamSource {
+    fn start(url: String, cookie: Option<String>, user_agent: Option<String>) -> Self {
+        let shared = Arc::new(StreamShared {
+            state: Mutex::new(StreamState {
+                buf: VecDeque::new(),
+                buf_start: 0,
+                eof: false,
+                error: None,
+                total: None,
+                generation: 0,
+                alive: true,
+            }),
+            cond: Condvar::new(),
+            url,
+            cookie,
+            user_agent: Some(
+                user_agent
+                    .filter(|ua| !ua.trim().is_empty())
+                    .unwrap_or_else(|| DEFAULT_STREAM_USER_AGENT.to_string()),
+            ),
+        });
+
+        spawn_producer(shared.clone(), 0);
+
+        Self { shared, pos: 0 }
+    }
+
+    fn rebase(&self, target: u64) -> u64 {
+        let mut s = self.shared.state.lock().unwrap();
+        s.buf.clear();
+        s.buf_start = target;
+        s.eof = false;
+        s.error = None;
+        s.generation += 1;
+        s.generation
+    }
+}
+
+impl Read for HttpStreamSource {
+    fn read(&mut self, out: &mut [u8]) -> std::io::Result<usize> {
+        if out.is_empty() {
+            return Ok(0);
+        }
+
+        let mut s = self.shared.state.lock().unwrap();
+
+        loop {
+            if !s.alive {
+                return Ok(0);
+            }
+
+            let end = s.buf_start + s.buf.len() as u64;
+
+            if self.pos < end {
+                let offset = (self.pos - s.buf_start) as usize;
+                let n = ((end - self.pos) as usize).min(out.len());
+                let buf = s.buf.make_contiguous();
+                out[..n].copy_from_slice(&buf[offset..offset + n]);
+                self.pos += n as u64;
+
+                if self.pos > s.buf_start {
+                    let drop_n = (self.pos - s.buf_start) as usize;
+                    s.buf.drain(..drop_n);
+                    s.buf_start = self.pos;
+                }
+                drop(s);
+                self.shared.cond.notify_all();
+
+                return Ok(n);
+            }
+
+            if let Some(err) = s.error.clone() {
+                return Err(std::io::Error::new(std::io::ErrorKind::Other, err));
+            }
+
+            if s.eof {
+                if s.total.is_none() {
+                    s.total = Some(self.pos);
+                }
+                return Ok(0);
+            }
+
+            s = self.shared.cond.wait(s).unwrap();
+        }
+    }
+}
+
+impl Seek for HttpStreamSource {
+    fn seek(&mut self, to: SeekFrom) -> std::io::Result<u64> {
+        let target = {
+            let mut s = self.shared.state.lock().unwrap();
+
+            if matches!(to, SeekFrom::End(_)) && s.total.is_none() {
+                let deadline = std::time::Instant::now() + std::time::Duration::from_secs(15);
+                while s.total.is_none() && !s.eof && s.error.is_none() && s.alive {
+                    let remaining = deadline.saturating_duration_since(std::time::Instant::now());
+                    if remaining.is_zero() {
+                        break;
+                    }
+                    let (guard, _) = self.shared.cond.wait_timeout(s, remaining).unwrap();
+                    s = guard;
+                }
+            }
+
+            match to {
+                SeekFrom::Start(p) => p,
+                SeekFrom::End(p) => {
+                    let end = s.total.ok_or_else(|| {
+                        std::io::Error::new(
+                            std::io::ErrorKind::Unsupported,
+                            "stream length is not known until the first response headers arrive",
+                        )
+                    })?;
+                    (end as i64 + p).max(0) as u64
+                }
+                SeekFrom::Current(p) => (self.pos as i64 + p).max(0) as u64,
+            }
+        };
+
+        {
+            let mut s = self.shared.state.lock().unwrap();
+            let end = s.buf_start + s.buf.len() as u64;
+            if target >= s.buf_start && target <= end {
+                self.pos = target;
+                return Ok(target);
+            }
+
+            if s.total.map(|total| target >= total).unwrap_or(false) {
+                s.buf.clear();
+                s.buf_start = target;
+                s.eof = true;
+                s.error = None;
+                s.generation += 1;
+                self.pos = target;
+                drop(s);
+                self.shared.cond.notify_all();
+                return Ok(target);
+            }
+        }
+
+        let generation = self.rebase(target);
+
+        self.pos = target;
+        self.shared.cond.notify_all();
+        spawn_producer(self.shared.clone(), generation);
+
+        Ok(target)
+    }
+}
+
+enum ContainerPlan {
+    Mp4,
+    Sniff,
+}
+fn container_plan(hint: Option<&str>) -> Result<ContainerPlan, String> {
+    let normalized = hint.map(|c| {
+        let subtype = c.split(';').next().unwrap_or(c).trim();
+        subtype
+            .rsplit('/')
+            .next()
+            .unwrap_or(subtype)
+            .trim()
+            .to_ascii_lowercase()
+    });
+
+    match normalized.as_deref() {
+        None => Ok(ContainerPlan::Mp4),
+        Some("m4a") | Some("mp4") | Some("m4v") | Some("aac") | Some("mp4a") => {
+            Ok(ContainerPlan::Mp4)
+        }
+        Some("webm") | Some("opus") | Some("ogg") => {
+            Err("audio/webm (Opus) is not supported by the decoder".to_string())
+        }
+        Some(_) => Ok(ContainerPlan::Sniff),
+    }
 }
 
 #[tauri::command(rename = "audio-play")]
-pub async fn audio_play(app: AppHandle, state: State<'_, AudioState>, url: String) -> Result<(), String> {
-    println!("Loading audio from URL: {}", url);
-    let mut hasher = Sha256::new();
-    hasher.update(url.as_bytes());
-    let hash = hex::encode(hasher.finalize());
-    
-    let cache_dir = app.path().app_cache_dir().map_err(|e| e.to_string())?.join("audio_cache");
-    std::fs::create_dir_all(&cache_dir).map_err(|e| e.to_string())?;
-    
-    manage_audio_cache(app.clone(), cache_dir.clone(), 1024 * 1024 * 1024);
-    
-    let file_path = cache_dir.join(format!("{}.audio", hash));
-    let tmp_file_path = cache_dir.join(format!("{}.tmp", hash));
-    
-    let downloaded_bytes = Arc::new(AtomicU64::new(0));
-    let is_finished = Arc::new(AtomicBool::new(false));
-    let expected_size;
+pub async fn audio_play(
+    state: State<'_, AudioState>,
+    url: String,
+    cookie: Option<String>,
+    duration_ms: Option<f64>,
+    container: Option<String>,
+    user_agent: Option<String>,
+) -> Result<(), String> {
+    println!("Streaming audio from URL: {}", url);
 
-    let read_file_path = if file_path.exists() && std::fs::metadata(&file_path).map(|m| m.len()).unwrap_or(0) > 0 {
-        let size = std::fs::metadata(&file_path).map(|m| m.len()).unwrap_or(0);
-        downloaded_bytes.store(size, Ordering::Release);
-        is_finished.store(true, Ordering::Release);
-        expected_size = Some(size);
-        println!("Playing from local cache: {:?}", file_path);
-        file_path.clone()
-    } else {
-        let response = reqwest::get(&url).await.map_err(|e| e.to_string())?;
-        expected_size = response.content_length();
-        
-        let mut file = OpenOptions::new().create(true).write(true).truncate(true).open(&tmp_file_path).map_err(|e| e.to_string())?;
-        
-        let downloaded_bytes_clone = downloaded_bytes.clone();
-        let is_finished_clone = is_finished.clone();
-        let final_path = file_path.clone();
-        let tmp_path = tmp_file_path.clone();
-        
-        tauri::async_runtime::spawn(async move {
-            let mut stream = response.bytes_stream();
-            let mut total = 0;
-            let mut success = true;
-            while let Some(chunk) = stream.next().await {
-                match chunk {
-                    Ok(data) => {
-                        if let Ok(_) = file.write_all(&data) {
-                            total += data.len() as u64;
-                            downloaded_bytes_clone.store(total, Ordering::Release);
-                        } else {
-                            success = false;
-                            break;
-                        }
-                    }
-                    Err(_) => {
-                        success = false;
-                        break;
-                    }
-                }
+    {
+        let mut player_lock = state.player.lock().unwrap();
+        if let Some(prev) = player_lock.as_ref() {
+            if let Some(shared) = &prev.stream {
+                abort_stream(shared);
             }
-            is_finished_clone.store(true, Ordering::Release);
-            if success {
-                let _ = std::fs::rename(tmp_path, final_path);
-            }
-        });
-        
-        println!("Streaming from network to cache: {:?}", tmp_file_path);
-        tokio::time::sleep(Duration::from_millis(200)).await;
-        tmp_file_path.clone()
-    };
-    
-    let accessed_at = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs() as i64;
-    let size_to_record = expected_size.unwrap_or(0);
-    if size_to_record > 0 {
-        let app_state = app.state::<crate::commands::AppState>();
-        if let Ok(db) = app_state.db.lock() {
-            let _ = crate::db::music_db::record_audio_cache_access(&db, &hash, size_to_record, accessed_at);
-        };
+        }
+        *player_lock = None;
     }
 
-    let read_file = OpenOptions::new().read(true).open(&read_file_path).map_err(|e| e.to_string())?;
-    let reader = StreamingReader {
-        file: read_file,
-        downloaded_bytes,
-        is_finished,
-        pos: 0,
-        file_size: expected_size,
+    let hint_container = container.map(|c| c.to_ascii_lowercase());
+
+    let (source, shared) = tauri::async_runtime::spawn_blocking(move || {
+        let reader = HttpStreamSource::start(url, cookie, user_agent);
+        let shared = reader.shared.clone();
+
+        let plan = match container_plan(hint_container.as_deref()) {
+            Ok(plan) => plan,
+            Err(msg) => {
+                let mut s = shared.state.lock().unwrap();
+                s.error = Some(msg.clone());
+                drop(s);
+                shared.cond.notify_all();
+                return Err(msg);
+            }
+        };
+
+        let is_mp4 = matches!(plan, ContainerPlan::Mp4);
+
+        let built: Result<Box<dyn Source<Item = i16> + Send>, String> = if is_mp4 {
+            let for_length = shared.clone();
+            StreamDecoder::new(reader, "m4a", move || stream_length(&for_length))
+                .map(|d| Box::new(d) as Box<dyn Source<Item = i16> + Send>)
+                .map_err(|e| format!("Decode error: {}", e))
+        } else {
+            Decoder::new(reader)
+                .map(|d| Box::new(d) as Box<dyn Source<Item = i16> + Send>)
+                .map_err(|e| format!("Decode error: {}", e))
+        };
+
+        match built {
+            Ok(source) => Ok((source, shared)),
+            Err(e) => {
+                abort_stream(&shared);
+                Err(e)
+            }
+        }
+    })
+    .await
+    .map_err(|e| e.to_string())??;
+
+    let duration = match duration_ms {
+        Some(ms) if ms > 0.0 => Some((ms / 1000.0) as f32),
+        _ => source.total_duration().map(|d| d.as_secs_f32()),
     };
-    
-    let source = Decoder::new(reader).map_err(|e| e.to_string())?;
-    use rodio::Source;
-    let duration = source.total_duration().map(|d| d.as_secs_f32());
-    
+
     let mut player_lock = state.player.lock().unwrap();
     let mut player = AudioPlayer::new()?;
     player.duration = duration;
+    player.stream = Some(shared);
 
     let (eq_tx, eq_rx) = std::sync::mpsc::channel();
     let eq_source = EqSource::new(source.convert_samples::<f32>(), eq_rx);
@@ -275,16 +491,19 @@ pub async fn audio_play(app: AppHandle, state: State<'_, AudioState>, url: Strin
         for (i, &freq) in FREQUENCIES.iter().enumerate() {
             let gain = eq_state.gains[i];
             if gain.abs() > 0.001 {
-                let _ = eq_tx.send(EqCommand::Band { frequency: freq, gain });
+                let _ = eq_tx.send(EqCommand::Band {
+                    frequency: freq,
+                    gain,
+                });
             }
         }
         player.sink.set_speed(eq_state.playback_rate);
     }
-    
+
     *player_lock = Some(player);
 
     crate::smtc::windows_smtc::update_smtc_position(0.0);
-    println!("Playback started via Rust Native Engine!");
+    println!("Playback started via Rust Native Engine (streaming, no disk cache)");
     Ok(())
 }
 
@@ -315,6 +534,9 @@ pub fn audio_stop(state: State<'_, AudioState>) -> Result<(), String> {
     let mut player_lock = state.player.lock().unwrap();
     if let Some(player) = player_lock.as_ref() {
         player.sink.stop();
+        if let Some(shared) = &player.stream {
+            abort_stream(shared);
+        }
         let _ = crate::commands::discord::clear_discord_presence();
     }
     *player_lock = None;
@@ -370,10 +592,17 @@ pub fn audio_set_eq_bypass(state: State<'_, AudioState>, bypass: bool) -> Result
 }
 
 #[tauri::command(rename = "audio-set-eq-band")]
-pub fn audio_set_eq_band(state: State<'_, AudioState>, frequency: f32, gain: f32) -> Result<(), String> {
+pub fn audio_set_eq_band(
+    state: State<'_, AudioState>,
+    frequency: f32,
+    gain: f32,
+) -> Result<(), String> {
     {
         let mut eq = state.eq.lock().unwrap();
-        if let Some(idx) = FREQUENCIES.iter().position(|&f| (f - frequency).abs() < 1.0) {
+        if let Some(idx) = FREQUENCIES
+            .iter()
+            .position(|&f| (f - frequency).abs() < 1.0)
+        {
             eq.gains[idx] = gain;
         }
     }
@@ -399,7 +628,11 @@ pub fn audio_set_playback_rate(state: State<'_, AudioState>, rate: f32) -> Resul
 
 #[tauri::command(rename = "audio-clear-cache")]
 pub fn audio_clear_cache(app: AppHandle) -> Result<(), String> {
-    let cache_dir = app.path().app_cache_dir().map_err(|e| e.to_string())?.join("audio_cache");
+    let cache_dir = app
+        .path()
+        .app_cache_dir()
+        .map_err(|e| e.to_string())?
+        .join("audio_cache");
     if cache_dir.exists() {
         let _ = std::fs::remove_dir_all(&cache_dir);
         let _ = std::fs::create_dir_all(&cache_dir);
@@ -407,3 +640,4 @@ pub fn audio_clear_cache(app: AppHandle) -> Result<(), String> {
     }
     Ok(())
 }
+

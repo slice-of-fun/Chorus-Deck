@@ -68,7 +68,7 @@ import { useMessage } from 'naive-ui';
 import { onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
-import { getYTMPlaylistDetail, type YTMPlaylistDetail } from '@/api/ytmusic';
+import { getYTMPlaylistDetail, type YTMPlaylistDetail, type YTMSong } from '@/api/ytmusic';
 import SongItem from '@/components/common/SongItem.vue';
 import { useDownload } from '@/hooks/useDownload';
 import { playTrack } from '@/services/playbackController';
@@ -76,9 +76,18 @@ import { usePlayerStore } from '@/store/modules/player';
 import type { SongResult } from '@/types/music';
 import { getImgUrl, setAnimationClass } from '@/utils';
 
-import { toSongResult } from '../../api/search';
-
 defineOptions({ name: 'PlaylistDetail' });
+
+// `YTMSong` carries artists as plain names, so map it onto the shared
+// `SongResult` shape the player and stores already expect.
+const toSongResult = (song: YTMSong): SongResult => ({
+  id: song.id,
+  name: song.title,
+  picUrl: song.thumbnail,
+  source: 'ytmusic',
+  artists: song.artists.map((a) => ({ name: a.name })),
+  album: song.album
+});
 
 const route = useRoute();
 const playerStore = usePlayerStore();

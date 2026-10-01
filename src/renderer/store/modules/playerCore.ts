@@ -32,7 +32,7 @@ export const usePlayerCoreStore = defineStore(
     const setIsPlay = (value: boolean) => {
       isPlay.value = value;
       play.value = value;
-      window.api.send('update-play-state', value);
+      window.api.updatePlayState(value);
     };
 
     const setMusicFull = (value: boolean) => {
@@ -126,8 +126,6 @@ export const usePlayerCoreStore = defineStore(
         });
       }
     };
-
-    // Discord Rich Presence Integration
     watch(
       [playMusic, isPlay],
       ([newSong, newIsPlay]) => {
@@ -151,7 +149,7 @@ export const usePlayerCoreStore = defineStore(
                   startTimestamp = Date.now() - currentTime;
                 }
 
-                window.api.send('update-discord-presence', {
+                return window.api.updateDiscordPresence({
                   title: newSong.name,
                   artist: artist,
                   album: album,
@@ -164,11 +162,11 @@ export const usePlayerCoreStore = defineStore(
                   startTimestamp
                 });
               })
-              .catch(() => {
-                window.api.send('clear-discord-presence');
+              .catch((e) => {
+                console.debug('Discord presence unavailable:', e?.message || e);
               });
           } else {
-            window.api.send('clear-discord-presence');
+            window.api.clearDiscordPresence();
           }
         }
       },

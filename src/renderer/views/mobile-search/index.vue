@@ -92,8 +92,8 @@ import { computed, inject, nextTick, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 import { getHotSearch, getSearchKeyword } from '@/api/home';
-import { getProvider } from '@/api/providers';
 import type { SearchFilter } from '@/api/provider';
+import { getProvider } from '@/api/providers';
 import { SEARCH_TYPES } from '@/const/bar-const';
 import { useSearchStore } from '@/store/modules/search';
 import { locale, t } from '@/utils/i18n';
@@ -172,7 +172,7 @@ const debouncedGetSuggestions = useDebounceFn(async (keyword: string) => {
     suggestions.value = [];
     return;
   }
-  suggestions.value = await ytmProvider.getSuggestions(keyword);
+  suggestions.value = await getProvider().getSuggestions(keyword);
 }, 300);
 
 const handleInput = () => {

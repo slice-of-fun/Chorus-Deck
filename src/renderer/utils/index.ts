@@ -71,31 +71,13 @@ export const formatNumber = (num: string | number) => {
   return num.toString();
 };
 
-export const getImgUrl = (url: string | undefined, size: string = '') => {
-  if (!url) return '';
-
-  if (url.startsWith('data:') || url.startsWith('local://')) return url;
-
-  if (url.includes('thumbnail')) {
-    return url.replace(/thumbnail=\d+y\d+(?!.*thumbnail)/, `thumbnail=${size}`);
-  }
-
-  const imgUrl = `${url}?param=${size}`;
-  return imgUrl;
-};
+export { getImgUrl } from './thumbnail';
 
 export const isMobile = computed(() => {
   const settingsStore = useSettingsStore();
   return settingsStore.isMobile;
 });
 
-/**
- * True when the Tauri bridge has been installed, i.e. we are running inside the
- * desktop shell rather than a plain browser (`npm run dev:web`).
- *
- * Evaluated lazily because the bridge is installed from `main.ts` after the
- * module graph has already been evaluated.
- */
 export const isDesktop = (): boolean => typeof window !== 'undefined' && Boolean(window.api);
 
 export const isLyricWindow = computed(() => {

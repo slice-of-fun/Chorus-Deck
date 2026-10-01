@@ -44,11 +44,22 @@ unm_engine = "0.4.0"
 unm_types = "0.4.0"
 unm_request = "0.4.0"
 unm_selector = "0.4.0"
-rodio = "0.19.0"
+# YouTube Music only offers Opus-in-WebM (itag 251/250/249) and AAC-in-MP4
+# (itag 140/139). symphonia 0.5 has no Opus decoder and rodio 0.19 exposes no
+# Matroska demuxer, so WebM cannot be decoded at all. `symphonia-aac` +
+# `symphonia-isomp4` enable the itag 140 formats, which are also the highest
+# bitrate YouTube serves.
+rodio = { version = "0.19.0", features = ["symphonia-aac", "symphonia-isomp4"] }
+# Used directly by `StreamDecoder` for remote MP4/M4A. rodio wraps its reader in
+# a `ReadSeekSource` whose `byte_len()` is always `None`, which makes symphonia's
+# MP4 probe fail with a seek error, so this crate decodes those streams itself.
+symphonia = { version = "0.5", features = ["aac", "isomp4"] }
 biquad = "0.6.0"
 hmac = "0.12.1"
 data-encoding = "2.11.1"
 urlencoding = "2.1.3"
+strsim = "0.11"
+regex = "1"
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.58", features = [

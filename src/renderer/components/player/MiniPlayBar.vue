@@ -29,20 +29,20 @@
 
       <div class="control-buttons">
         <div class="control-button previous" @click="handlePrev">
-          <i class="iconfont icon-prev"></i>
+          <i class="ri-skip-back-fill"></i>
         </div>
         <div class="control-button play" @click="playMusicEvent">
-          <i class="iconfont" :class="play ? 'icon-stop' : 'icon-play'"></i>
+          <i class="" :class="play ? 'ri-pause-fill' : 'ri-play-fill'"></i>
         </div>
         <div class="control-button next" @click="handleNext">
-          <i class="iconfont icon-next"></i>
+          <i class="ri-skip-forward-fill"></i>
         </div>
       </div>
 
       <div class="function-buttons">
         <div class="function-button">
           <i
-            class="iconfont icon-likefill"
+            class="ri-heart-fill"
             :class="{ 'like-active': isFavorite }"
             @click="toggleFavorite"
           ></i>
@@ -57,7 +57,7 @@
         >
           <template #trigger>
             <div class="function-button" @click="mute" @wheel.prevent="handleVolumeWheel">
-              <i class="iconfont" :class="getVolumeIcon"></i>
+              <i class="" :class="getVolumeIcon"></i>
             </div>
           </template>
           <div class="volume-slider-wrapper transparent-popover">
@@ -73,12 +73,12 @@
         </n-popover>
 
         <div v-if="!component" class="function-button" @click="togglePlaylist">
-          <i class="iconfont icon-list"></i>
+          <i class="ri-play-list-fill"></i>
         </div>
       </div>
 
       <div v-if="!component" class="close-button" @click="handleClose">
-        <i class="iconfont ri-close-line"></i>
+        <i class="ri-close-line"></i>
       </div>
     </div>
 
@@ -105,7 +105,7 @@
               <song-item :key="item.id" class="flex-1" :item="item" mini></song-item>
               <div class="delete-btn" @click.stop="handleDeleteSong(item)">
                 <i
-                  class="iconfont ri-delete-bin-line text-gray-400 hover:text-red-500 transition-colors"
+                  class="ri-delete-bin-line text-gray-400 hover:text-red-500 transition-colors"
                 ></i>
               </div>
             </div>
@@ -118,6 +118,7 @@
 
 <script setup lang="ts">
 import { computed, ref, useTemplateRef } from 'vue';
+import { useRouter } from 'vue-router';
 
 import logoImg from '@/assets/logo.png';
 import SongItem from '@/components/common/SongItem.vue';
@@ -133,6 +134,7 @@ import { getImgUrl } from '@/utils';
 
 const playerStore = usePlayerStore();
 const settingsStore = useSettingsStore();
+const router = useRouter();
 const { navigateToArtist } = useArtist();
 
 const { isPlaying: play, playMusicEvent, handleNext, handlePrev } = usePlaybackControl();
@@ -157,8 +159,19 @@ withDefaults(
   }
 );
 
-const handleClose = () => {
+const handleClose = async () => {
+  try {
+    const { stopAll } = await import('@/services/playbackController');
+    await stopAll();
+  } catch (error) {
+    console.error('Failed to stop playback:', error);
+  }
+
   if (settingsStore.isMiniMode) {
+    settingsStore.setMiniMode(false);
+    try {
+      router.push('/');
+    } catch(e) {}
     window.api.restore();
   }
 };

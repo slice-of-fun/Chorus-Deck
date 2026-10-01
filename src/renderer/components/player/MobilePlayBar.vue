@@ -42,9 +42,10 @@
 
       <div class="mini-playback-controls">
         <div class="mini-control-btn play" @click="playMusicEvent">
-          <i class="iconfont icon" :class="play ? 'icon-stop' : 'icon-play'"></i>
+          <i class="icon" :class="play ? 'ri-pause-fill' : 'ri-play-fill'"></i>
         </div>
-        <i class="iconfont icon-list mini-list-icon" @click="openPlayListDrawer"></i>
+        <i class="ri-play-list-fill mini-list-icon" @click="openPlayListDrawer"></i>
+        <i class="ri-close-line mini-list-icon" @click="handleCloseBar"></i>
       </div>
     </div>
 
@@ -93,6 +94,15 @@ watch(
 
 const openPlayListDrawer = () => {
   playerStore.setPlayListDrawerVisible(true);
+};
+
+const handleCloseBar = async () => {
+  try {
+    const { stopAll } = await import('@/services/playbackController');
+    await stopAll();
+  } catch (error) {
+    console.error('Failed to stop playback:', error);
+  }
 };
 
 const playBarRef = ref<HTMLElement | null>(null);

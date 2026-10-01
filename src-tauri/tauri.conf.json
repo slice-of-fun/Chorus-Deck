@@ -23,8 +23,8 @@
         "center": true,
         "focus": true,
         "visible": true,
-        "decorations": true,
-        "transparent": false
+        "decorations": false,
+        "transparent": true
       }
     ],
     "security": {

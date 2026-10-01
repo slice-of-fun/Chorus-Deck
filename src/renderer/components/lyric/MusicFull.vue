@@ -37,9 +37,25 @@
           <lyric-settings ref="lyricSettingsRef" />
         </n-popover>
 
+        <div v-if="isDesktop()" class="control-btn" @click="miniWindow">
+          <i class="ri-picture-in-picture-line"></i>
+        </div>
+
         <div class="control-btn" @click="toggleFullScreen">
           <i :class="isFullScreen ? 'ri-fullscreen-exit-line' : 'ri-fullscreen-line'"></i>
         </div>
+
+        <template v-if="isDesktop()">
+          <div class="control-btn" @click="maximizeWindow">
+            <i class="ri-checkbox-blank-line"></i>
+          </div>
+          <div class="control-btn" @click="minimizeWindow">
+            <i class="ri-subtract-line"></i>
+          </div>
+          <div class="control-btn" @click="handleCloseApp">
+            <i class="ri-close-line"></i>
+          </div>
+        </template>
       </div>
 
       <transition name="fade">
@@ -108,7 +124,7 @@
           <div class="img-container">
             <cover3-d
               ref="PicImgRef"
-              :src="getImgUrl(playMusic?.picUrl, '500y500')"
+              :src="thumbPlayer(playMusic?.picUrl)"
               :loading="playMusic?.playLoading"
               :max-tilt="12"
               :scale="1.03"
@@ -202,13 +218,16 @@
                 >
                   <template v-for="(word, wordIndex) in item.words" :key="wordIndex">
                     <span class="lyric-word" :style="getWordStyle(index, wordIndex, word)">
-                      {{ word.text }} </span
+                      {{ word.text.replace('{bg}', '') }} </span
                     ><span class="lyric-word" v-if="word.space">&nbsp;</span></template
                   >
                 </div>
 
-                <span v-else :style="getLrcStyle(index)">{{ item.text }}</span>
-                <div v-show="config.showTranslation" class="music-lrc-text-tr">
+                <span v-else :style="getLrcStyle(index)" :class="{ 'bg-vocal': item.text.startsWith('{bg}') }">{{ item.text.replace('{bg}', '') }}</span>
+                <div v-show="config.showRoma && item.romaText" class="music-lrc-text-roma">
+                  {{ item.romaText }}
+                </div>
+                <div v-show="config.showTranslation && item.trText" class="music-lrc-text-tr">
                   {{ item.trText }}
                 </div>
               </div>
@@ -255,7 +274,9 @@ import { useLyricBackground } from '@/hooks/useLyricBackground';
 import { usePlayerStore } from '@/store/modules/player';
 import { useSettingsStore } from '@/store/modules/settings';
 import { DEFAULT_LYRIC_CONFIG, LyricConfig } from '@/types/lyric';
-import { getImgUrl, isMobile } from '@/utils';
+import { isMobile, isDesktop } from '@/utils';
+import { thumbPlayer } from '@/utils/thumbnail';
+import { useRouter } from 'vue-router';
 import { getTextColors } from '@/utils/linearColor';
 import { LYRIC_CONFIG_CHANGE_EVENT, readLyricConfig, writeLyricConfig } from '@/utils/lyricConfig';
 
@@ -584,6 +605,10 @@ const getWordStyle = (lineIndex: number, _wordIndex: number, word: any) => {
   const wordStartTime = word.startTime;
   const wordEndTime = word.startTime + word.duration;
 
+  const bgOffset = word.text.startsWith('{bg}') ? 0.8 : 1;
+  const isBg = word.text.startsWith('{bg}');
+  const scale = isBg ? '0.85' : '1.05';
+
   if (currentTime >= wordStartTime && currentTime < wordEndTime) {
     const progress = Math.max(0, Math.min((currentTime - wordStartTime) / word.duration, 1));
     const progressPercent = progress * 100;
@@ -596,35 +621,39 @@ const getWordStyle = (lineIndex: number, _wordIndex: number, word: any) => {
       backgroundClip: 'text',
       WebkitBackgroundClip: 'text',
       WebkitTextFillColor: 'transparent',
-      textShadow: `0 0 16px ${colors.active}60`,
-      opacity: 1,
-      transform: 'scale(1.05)',
+      textShadow: isBg ? `0 0 10px ${colors.active}40` : `0 0 16px ${colors.active}60`,
+      opacity: bgOffset,
+      transform: `scale(${scale})`,
       transformOrigin: 'left center',
       display: 'inline-block',
+      fontStyle: isBg ? 'italic' : 'normal',
       transition: 'background-image 0.05s linear, transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
     };
   } else if (currentTime >= wordEndTime) {
     return {
       color: colors.active,
       WebkitTextFillColor: 'initial',
-      opacity: 1,
+      opacity: bgOffset,
       transform: 'scale(1)',
       display: 'inline-block',
+      fontStyle: isBg ? 'italic' : 'normal',
       transition: 'color 0.3s ease-out, transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
     };
   } else {
     return {
       color: colors.primary,
       WebkitTextFillColor: 'initial',
-      opacity: 0.5,
+      opacity: bgOffset * 0.5,
       transform: 'scale(1)',
       display: 'inline-block',
+      fontStyle: isBg ? 'italic' : 'normal',
       transition: 'color 0.3s ease-out, transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
     };
   }
 };
 
 const settingsStore = useSettingsStore();
+const router = useRouter();
 
 const { navigateToArtist } = useArtist();
 
@@ -680,6 +709,39 @@ const closeMusicFull = () => {
   }
   isVisible.value = false;
   playerStore.setMusicFull(false);
+};
+
+const miniWindow = () => {
+  if (!isDesktop()) return;
+  closeMusicFull();
+  settingsStore.setMiniMode(true);
+  router.push('/mini');
+  window.api.miniWindow();
+};
+
+const minimizeWindow = () => {
+  if (!isDesktop()) return;
+  window.api.minimize();
+};
+
+const maximizeWindow = () => {
+  if (!isDesktop()) return;
+  window.api.maximize();
+};
+
+const handleCloseApp = () => {
+  if (!isDesktop()) return;
+  const { closeAction } = settingsStore.setData;
+  if (closeAction === 'minimize') {
+    window.api.miniTray();
+  } else if (closeAction === 'close') {
+    window.api.close();
+  } else {
+    // If modal is required, we can just close the app for now or trigger the modal.
+    // In MusicFull we might just minimize to tray as a safe default if no action is set, 
+    // or call window.api.close() which handles it.
+    window.api.close(); 
+  }
 };
 
 const toggleFullScreen = async () => {
@@ -1229,5 +1291,10 @@ defineExpose({
     opacity: 1 !important;
     pointer-events: auto !important;
   }
+}
+.bg-vocal {
+  font-size: 0.85em !important;
+  font-style: italic !important;
+  opacity: 0.85 !important;
 }
 </style>

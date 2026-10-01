@@ -5,7 +5,7 @@
     @mousedown="drag"
   >
     <div id="title">Chorus Deck</div>
-    <div id="buttons" class="flex gap-4">
+    <div id="buttons" class="flex gap-4" @mousedown.stop>
       <n-button
         v-if="!isDesktop()"
         type="primary"
@@ -18,14 +18,29 @@
         Download desktop version
       </n-button>
       <template v-if="isDesktop()">
-        <div class="text-gray-600 dark:text-gray-400 hover:text-primary" @click="miniWindow">
-          <i class="iconfont ri-picture-in-picture-line"></i>
+        <div
+          class="text-gray-600 dark:text-gray-400 hover:text-primary cursor-pointer"
+          @click="miniWindow"
+        >
+          <i class="ri-picture-in-picture-line"></i>
         </div>
-        <div class="text-gray-600 dark:text-gray-400 hover:text-primary" @click="minimize">
-          <i class="iconfont icon-minisize"></i>
+        <div
+          class="text-gray-600 dark:text-gray-400 hover:text-primary cursor-pointer"
+          @click="maximize"
+        >
+          <i class="ri-checkbox-blank-line"></i>
         </div>
-        <div class="text-gray-600 dark:text-gray-400 hover:text-primary" @click="handleClose">
-          <i class="iconfont icon-close"></i>
+        <div
+          class="text-gray-600 dark:text-gray-400 hover:text-primary cursor-pointer"
+          @click="minimize"
+        >
+          <i class="ri-subtract-line"></i>
+        </div>
+        <div
+          class="text-gray-600 dark:text-gray-400 hover:text-primary cursor-pointer"
+          @click="handleClose"
+        >
+          <i class="ri-close-line"></i>
         </div>
       </template>
     </div>
@@ -117,11 +132,13 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
+import { useRouter } from 'vue-router';
 
 import { useSettingsStore } from '@/store/modules/settings';
 import { isDesktop } from '@/utils';
 
 const settingsStore = useSettingsStore();
+const router = useRouter();
 const showCloseModal = ref(false);
 const rememberChoice = ref(false);
 
@@ -138,8 +155,17 @@ const minimize = () => {
   window.api.minimize();
 };
 
+const maximize = () => {
+  if (!isDesktop()) {
+    return;
+  }
+  window.api.maximize();
+};
+
 const miniWindow = () => {
   if (!isDesktop()) return;
+  settingsStore.setMiniMode(true);
+  router.push('/mini');
   window.api.miniWindow();
 };
 

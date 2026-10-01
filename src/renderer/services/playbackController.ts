@@ -4,7 +4,7 @@ import { loadLrc, useSongDetail } from '@/hooks/usePlayerHooks';
 import { audioService } from '@/services/audioService';
 import { playbackRequestManager } from '@/services/playbackRequestManager';
 import type { SongResult } from '@/types/music';
-import { getImgUrl } from '@/utils';
+import { thumbTiny } from '@/utils/thumbnail';
 import { getImageLinearBackground } from '@/utils/linearColor';
 
 const { message } = createDiscreteApi(['message']);
@@ -51,7 +51,7 @@ const loadMetadata = async (
       if (music.backgroundColor && music.primaryColor) {
         return { backgroundColor: music.backgroundColor, primaryColor: music.primaryColor };
       }
-      return await getImageLinearBackground(getImgUrl(music?.picUrl, '30y30'));
+      return await getImageLinearBackground(thumbTiny(music?.picUrl));
     })()
   ]);
 
@@ -187,6 +187,10 @@ export const playTrack = async (
     playerCore.playMusicUrl = updatedPlayMusic.playMusicUrl as string;
     music.playMusicUrl = updatedPlayMusic.playMusicUrl as string;
 
+    if (originalMusic.urlRejectedAt) {
+      playerCore.playMusic.urlRejectedAt = originalMusic.urlRejectedAt;
+    }
+
     applyLoadedMetadata();
   } catch (error) {
     if (gen !== generation) return false;
@@ -261,6 +265,32 @@ const resetUrlExpiredRetry = (): void => {
   urlExpiredRetryCount = 0;
 };
 
+
+export const stopAll = async (): Promise<void> => {
+  generation++;
+  resetUrlExpiredRetry();
+
+  audioService.stop();
+
+  const playerCore = await getPlayerCoreStore();
+  playerCore.setIsPlay(false);
+  playerCore.userPlayIntent = false;
+  playerCore.isFmPlaying = false;
+  playerCore.playMusic = {} as SongResult;
+  playerCore.playMusicUrl = '';
+
+  try {
+    const { nowTime, allTime, nowIndex } = await import('@/hooks/MusicHook');
+    nowTime.value = 0;
+    allTime.value = 0;
+    nowIndex.value = 0;
+  } catch (error) {
+    console.error('[playbackController] Failed to reset the progress display:', error);
+  }
+
+  localStorage.removeItem('playProgress');
+};
+
 export const setupUrlExpiredHandler = (): void => {
   audioService.on('url_expired', async (expiredTrack: SongResult) => {
     if (!expiredTrack) return;
@@ -322,13 +352,25 @@ export const setupUrlExpiredHandler = (): void => {
         );
         return;
       }
-    } catch {}
+    } catch (error) {
+      // No position yet (fresh source); recovering from 0 is still correct.
+      console.warn('[playbackController] Could not read playback position', error);
+    }
 
     try {
       const trackToPlay: SongResult = {
         ...expiredTrack,
         isFirstPlay: true,
-        playMusicUrl: undefined
+        playMusicUrl: undefined,
+        // Cleared alongside the URL: the container hint and the resolving client
+        // both describe the URL that just failed, and the replacement may be a
+        // different container from a different client.
+        mimeType: undefined,
+        streamUserAgent: undefined,
+        // The replacement has not been tried yet, so this rejection marker has
+        // to be dropped along with the URL it described. Leaving it set would
+        // make the next lookup discard a URL it has never seen.
+        urlRejectedAt: undefined
       };
 
       const success = await playTrack(trackToPlay, true);

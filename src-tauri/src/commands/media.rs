@@ -3,9 +3,7 @@ use std::path::{Path, PathBuf};
 use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::commands::AppState;
-use crate::downloads::supervisor::{
-    build_filename, CompletedDownload, DownloadTask, SongInfo,
-};
+use crate::downloads::supervisor::{build_filename, CompletedDownload, DownloadTask, SongInfo};
 
 const LYRIC_CHANNEL: &str = "receive-lyric";
 
@@ -307,7 +305,9 @@ fn read_metadata(path: &Path, app: Option<&AppHandle>) -> Option<LocalMusicMeta>
                 t.artist().map(|s| s.to_string()),
                 t.album().map(|s| s.to_string()),
                 c,
-                t.comment().map(|s| s.to_string()).filter(|s| !s.trim().is_empty()),
+                t.comment()
+                    .map(|s| s.to_string())
+                    .filter(|s| !s.trim().is_empty()),
             )
         }
         None => (None, None, None, None, None),
@@ -354,7 +354,10 @@ fn collect_audio_files(root: &Path, out: &mut Vec<PathBuf>) {
 pub fn scan_local_music(folder_path: String) -> ScanResult {
     let mut files = Vec::new();
     collect_audio_files(Path::new(&folder_path), &mut files);
-    let paths: Vec<String> = files.iter().map(|p| p.to_string_lossy().to_string()).collect();
+    let paths: Vec<String> = files
+        .iter()
+        .map(|p| p.to_string_lossy().to_string())
+        .collect();
     ScanResult {
         count: paths.len(),
         files: paths,
@@ -365,7 +368,7 @@ pub fn scan_local_music(folder_path: String) -> ScanResult {
 pub fn scan_local_music_with_stats(folder_path: String) -> ScanResultWithStats {
     let mut files = Vec::new();
     collect_audio_files(Path::new(&folder_path), &mut files);
-    
+
     let mut file_infos = Vec::new();
     for p in &files {
         let meta = std::fs::metadata(p).ok();

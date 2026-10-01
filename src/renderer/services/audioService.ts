@@ -304,7 +304,7 @@ class AudioService {
       this.pendingLoadCleanup = null;
     }
 
-    return new Promise<HTMLAudioElement>((resolve, reject) => {
+    return new Promise<void>((resolve, reject) => {
       let retryCount = 0;
       const maxRetries = 1;
 
@@ -314,7 +314,26 @@ class AudioService {
 
         try {
           if (isPlay) {
-            await window.api.audioPlay(url);
+            // Hand the known duration to the native side so it never has to
+            // seek to the end of the HTTP stream just to measure it.
+            const rawDur = track.dt || track.duration || 0;
+            const durationMs = rawDur > 1000 ? rawDur : rawDur * 1000;
+            // The resolved stream carries the real container (e.g. `audio/mp4`).
+            // Passing it lets the native side pick a decoder that can actually
+            // read these bytes instead of failing inside the probe.
+            const container = track.mimeType || undefined;
+            // Google's CDN rejects a download that does not impersonate the
+            // InnerTube client which resolved the URL, and it answers 403 — the
+            // same response an expired link gives, which is why this went
+            // unnoticed for so long.
+            const userAgent = track.streamUserAgent || undefined;
+            await window.api.audioPlay(
+              url,
+              undefined,
+              durationMs || undefined,
+              container,
+              userAgent
+            );
             this._isPlayingNative = true;
             try {
               this._currentNativeDuration = await window.api.audioGetDuration();
@@ -339,6 +358,27 @@ class AudioService {
           console.error('Audio play failed:', err);
           this.emit('playerror', { track, error: err });
 
+          // A retry reuses the same URL, so retrying a URL the CDN already
+          // refused just burns a second and produces the identical failure. A
+          // rejected URL is unrecoverable without resolving a fresh one, which
+          // is what the `url_expired` path does.
+          const message = err instanceof Error ? err.message : String(err ?? '');
+          const urlRejected = /status 40[13]|403 Forbidden|429 Too Many/i.test(message);
+
+          if (urlRejected) {
+            console.warn(
+              '[audioService] resolved URL was refused by the CDN; skipping retry and re-resolving'
+            );
+            // Mark the URL so the store stops handing back the same dead link on
+            // a later lookup. The recovery path clears both the marker and the
+            // URL together when it re-resolves.
+            this.markUrlRejected(track);
+            this.emit('url_expired', track);
+            this.releaseOperationLock();
+            reject(new Error('Stream URL was refused by the server, re-resolving'));
+            return;
+          }
+
           if (retryCount < maxRetries) {
             retryCount++;
             console.log(`Retrying playback (${retryCount}/${maxRetries})...`);
@@ -355,6 +395,28 @@ class AudioService {
     }).finally(() => {
       this.releaseOperationLock();
     });
+  }
+
+  private markUrlRejected(track: SongResult) {
+    const rejected = { ...track, urlRejectedAt: Date.now() };
+    this.currentTrack = rejected;
+
+    void (async () => {
+      try {
+        const { usePlayerCoreStore } = await import('@/store/modules/playerCore');
+        const playerCore = usePlayerCoreStore();
+
+        if (playerCore.playMusic?.id !== track.id) return;
+
+        playerCore.playMusic.urlRejectedAt = rejected.urlRejectedAt;
+        playerCore.playMusic.playMusicUrl = undefined;
+        playerCore.playMusic.mimeType = undefined;
+        playerCore.playMusic.streamUserAgent = undefined;
+        playerCore.playMusicUrl = '';
+      } catch (error) {
+        console.warn('[audioService] could not record the rejected URL:', error);
+      }
+    })();
   }
 
   public pause() {
@@ -430,9 +492,7 @@ class AudioService {
   getDuration(): number {
     if (this._currentNativeDuration) return this._currentNativeDuration;
     if (!this.currentTrack) return 0;
-    // Prefer dt, then duration. Both are usually in milliseconds, but check for seconds if small.
     const rawDur = this.currentTrack.dt || this.currentTrack.duration || 0;
-    // Some formats store it in seconds. We assume > 1000 means ms.
     return rawDur > 1000 ? rawDur / 1000 : rawDur;
   }
 
@@ -473,7 +533,6 @@ class AudioService {
 
   public async setAudioOutputDevice(deviceId: string): Promise<boolean> {
     try {
-      // Native audio output selection would go here
       this.currentSinkId = deviceId;
       localStorage.setItem('audioOutputDeviceId', deviceId);
       return true;

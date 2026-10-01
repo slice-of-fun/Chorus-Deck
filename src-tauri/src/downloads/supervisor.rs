@@ -31,7 +31,10 @@ pub enum TaskState {
 
 impl TaskState {
     fn is_terminal(&self) -> bool {
-        matches!(self, TaskState::Completed | TaskState::Error | TaskState::Cancelled)
+        matches!(
+            self,
+            TaskState::Completed | TaskState::Error | TaskState::Cancelled
+        )
     }
 }
 
@@ -278,7 +281,8 @@ impl DownloadSupervisor {
 
         let temp = task.temp_file_path.clone();
         if temp.is_empty() {
-            task.temp_file_path = format!("{temp}", temp = format!("{}.part", task.final_file_path));
+            task.temp_file_path =
+                format!("{temp}", temp = format!("{}.part", task.final_file_path));
         }
         if let Some(parent) = PathBuf::from(&task.temp_file_path).parent() {
             let _ = std::fs::create_dir_all(parent);
@@ -298,10 +302,9 @@ impl DownloadSupervisor {
         }
         self.persist();
         self.emit_state(&task_id);
-        let _ = self.app.emit(
-            EV_REQUEST_URL,
-            RequestUrlEvent { task_id, song_info },
-        );
+        let _ = self
+            .app
+            .emit(EV_REQUEST_URL, RequestUrlEvent { task_id, song_info });
     }
 
     pub fn add_batch(&self, mut tasks: Vec<DownloadTask>) {
@@ -581,10 +584,7 @@ async fn run_transfer(ctx: TransferCtx, task_id: String) {
         return;
     }
 
-    let total = response
-        .content_length()
-        .map(|c| c + already)
-        .unwrap_or(0);
+    let total = response.content_length().map(|c| c + already).unwrap_or(0);
     if let Some(entry) = ctx.entries.lock().unwrap().get_mut(&task_id) {
         entry.task.total = total;
     }
@@ -714,11 +714,7 @@ fn set_error(ctx: &TransferCtx, task_id: &str, message: String) {
     spawn_next(ctx);
 }
 
-fn emit_state_from(
-    app: &AppHandle,
-    entries: &Arc<Mutex<HashMap<String, Entry>>>,
-    task_id: &str,
-) {
+fn emit_state_from(app: &AppHandle, entries: &Arc<Mutex<HashMap<String, Entry>>>, task_id: &str) {
     let task = {
         let map = entries.lock().unwrap();
         match map.get(task_id) {
@@ -749,18 +745,13 @@ fn spawn_next(ctx: &TransferCtx) {
             .map(|e| (e.task.task_id.clone(), e.task.song_info.clone()))
     };
     if let Some((task_id, song_info)) = next {
-        let _ = ctx.app.emit(
-            EV_REQUEST_URL,
-            RequestUrlEvent { task_id, song_info },
-        );
+        let _ = ctx
+            .app
+            .emit(EV_REQUEST_URL, RequestUrlEvent { task_id, song_info });
     }
 }
 
-pub fn build_filename(
-    format: &str,
-    separator: &str,
-    song: &SongInfo,
-) -> String {
+pub fn build_filename(format: &str, separator: &str, song: &SongInfo) -> String {
     let mut out = format.to_string();
     out = out.replace("{songName}", &song.name);
     out = out.replace("{artistName}", &song.artist_name());

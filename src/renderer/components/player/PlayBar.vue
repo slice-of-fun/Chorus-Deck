@@ -85,19 +85,19 @@
     </div>
     <div class="music-buttons">
       <div class="music-buttons-prev" @click="handlePrev">
-        <i class="iconfont icon-prev"></i>
+        <i class="ri-skip-back-fill"></i>
       </div>
       <div class="music-buttons-play" @click="playMusicEvent">
-        <i class="iconfont icon" :class="play ? 'icon-stop' : 'icon-play'"></i>
+        <i class="icon" :class="play ? 'ri-pause-fill' : 'ri-play-fill'"></i>
       </div>
       <div class="music-buttons-next" @click="handleNext">
-        <i class="iconfont icon-next"></i>
+        <i class="ri-skip-forward-fill"></i>
       </div>
     </div>
     <div class="audio-button">
       <div class="audio-volume custom-slider" @wheel.prevent="handleVolumeWheel">
         <div class="volume-icon" @click="mute">
-          <i class="iconfont" :class="getVolumeIcon"></i>
+          <i class="" :class="getVolumeIcon"></i>
         </div>
         <div class="volume-slider">
           <div class="volume-percentage" :class="{ 'volume-percentage-disabled': isMuted }">
@@ -115,7 +115,7 @@
       <n-tooltip v-if="!isMobile" trigger="hover" :z-index="9999999">
         <template #trigger>
           <i
-            class="iconfont"
+            class=""
             :class="[playModeIcon, { 'intelligence-active': playMode === 3 }]"
             @click="togglePlayMode"
           ></i>
@@ -125,7 +125,7 @@
       <n-tooltip v-if="!isMobile" trigger="hover" :z-index="9999999">
         <template #trigger>
           <i
-            class="iconfont"
+            class=""
             :class="{
               'like-active': isFavorite,
               'ri-heart-3-fill': isFavorite,
@@ -139,7 +139,7 @@
       <n-tooltip v-if="isDesktop()" class="music-lyric" trigger="hover" :z-index="9999999">
         <template #trigger>
           <i
-            class="iconfont ri-music-2-line"
+            class="ri-music-2-line"
             :class="{ 'text-primary': isLyricWindowOpen, 'disabled-icon': !playMusic?.id }"
             @click="playMusic?.id && openLyricWindow()"
           ></i>
@@ -149,7 +149,7 @@
       <n-tooltip v-if="playMusic?.id && isDesktop()" trigger="hover" :z-index="9999999">
         <template #trigger>
           <i
-            class="iconfont ri-download-line"
+            class="ri-download-line"
             :class="{ 'disabled-icon': isDownloading }"
             @click="playMusic?.id && handleDownload()"
           />
@@ -162,11 +162,21 @@
       <n-tooltip trigger="hover" :z-index="9999999">
         <template #trigger>
           <i
-            class="iconfont icon-list text-2xl hover:text-primary transition-colors cursor-pointer"
+            class="ri-play-list-fill text-2xl hover:text-primary transition-colors cursor-pointer"
             @click="openPlayListDrawer"
           ></i>
         </template>
         Play List
+      </n-tooltip>
+
+      <n-tooltip trigger="hover" :z-index="9999999">
+        <template #trigger>
+          <i
+            class="ri-close-line text-2xl hover:text-red-500 transition-colors cursor-pointer"
+            @click="handleCloseBar"
+          ></i>
+        </template>
+        Close
       </n-tooltip>
     </div>
 
@@ -216,10 +226,19 @@ const {
 
 const { isFavorite, toggleFavorite } = useFavorite();
 
-const { downloadMusic, isDownloading } = useDownload();
+const { isDownloading, downloadMusic } = useDownload();
 const handleDownload = () => {
   if (!playMusic.value || isDownloading.value) return;
   downloadMusic(playMusic.value);
+};
+
+const handleCloseBar = async () => {
+  try {
+    const { stopAll } = await import('@/services/playbackController');
+    await stopAll();
+  } catch (error) {
+    console.error('Failed to stop playback:', error);
+  }
 };
 
 const { playMode, playModeIcon, playModeText, togglePlayMode } = usePlayMode();
@@ -581,8 +600,8 @@ const openPlayListDrawer = () => {
   }
 }
 
-.icon-loop,
-.icon-single-loop {
+.ri-repeat-2-fill,
+.ri-repeat-one-fill {
   font-size: 1.5rem;
 }
 

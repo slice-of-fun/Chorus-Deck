@@ -97,10 +97,7 @@ pub fn clear_disk_cache(state: State<'_, AppState>) -> Result<(), String> {
 }
 
 #[tauri::command(rename = "switch-disk-cache-directory")]
-pub fn switch_disk_cache_directory(
-    state: State<'_, AppState>,
-    path: String,
-) -> Result<(), String> {
+pub fn switch_disk_cache_directory(state: State<'_, AppState>, path: String) -> Result<(), String> {
     if !path.is_empty() && !Path::new(&path).is_dir() {
         return Err(format!("not a directory: {path}"));
     }

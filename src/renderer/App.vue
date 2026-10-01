@@ -28,15 +28,16 @@ import { computed, nextTick, onMounted, onUnmounted, reactive, watch } from 'vue
 import { useRouter } from 'vue-router';
 
 import DisclaimerModal from '@/components/common/DisclaimerModal.vue';
-import { initAudioListeners, initMusicHook } from '@/hooks/MusicHook';
+import { destroyMusicHook, initAudioListeners, initMusicHook } from '@/hooks/MusicHook';
 import { audioService } from '@/services/audioService';
 import { usePlayerStore } from '@/store/modules/player';
 import { usePlayerCoreStore } from '@/store/modules/playerCore';
 import { useSettingsStore } from '@/store/modules/settings';
-import { isLyricWindow } from '@/utils';
+import { getImgUrl, isLyricWindow } from '@/utils';
 import { isMobile } from '@/utils';
 import { useAppShortcuts } from '@/utils/appShortcuts';
 import { locale } from '@/utils/i18n';
+import { loadImageSafe } from '@/utils/imageLoader';
 
 const settingsStore = useSettingsStore();
 const playerStore = usePlayerStore();
@@ -98,20 +99,11 @@ watch(
   }
 );
 
-const handleSetLanguage = (value: string) => {
-  console.log('Apply language changes:', value);
-  if (value) {
-    locale.value = value;
-  }
-};
-
 if (!isLyricWindow.value) {
   settingsStore.initializeSettings();
   settingsStore.initializeTheme();
   settingsStore.initializeSystemFonts();
 }
-
-handleSetLanguage(settingsStore.setData.language);
 
 useAppShortcuts();
 
@@ -121,6 +113,7 @@ const handleOffline = () => {
 
 onUnmounted(() => {
   window.removeEventListener('offline', handleOffline);
+  destroyMusicHook();
 });
 
 onMounted(async () => {
@@ -239,16 +232,16 @@ onMounted(async () => {
         const picUrl = newMusic.al?.picUrl || newMusic.picUrl || newMusic.coverImgUrl;
         if (picUrl) {
           try {
-            const img = new Image();
-            img.crossOrigin = 'Anonymous';
-            img.src = picUrl;
-            img.onload = async () => {
+            // Sized, and shared through the loader: the raw URL pulled the
+            // full-size original, a third request for art the preloader and the
+            // color sampler had already asked for at a different size.
+            const img = await loadImageSafe(getImgUrl(picUrl, '500y500'));
+            if (img) {
               const m3Theme = await themeFromImage(img);
               applyThemeFromColor(m3Theme.source);
-            };
-            img.onerror = () => {
+            } else {
               applySystemAccentColor();
-            };
+            }
           } catch (e) {
             console.error('Failed to apply theme from image', e);
             applySystemAccentColor();

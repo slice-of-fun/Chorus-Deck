@@ -112,7 +112,7 @@ import { useMessage } from 'naive-ui';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
-import { getYTMArtist, type YTMArtistDetail, type YTMPlaylist } from '@/api/ytmusic';
+import { getYTMArtist, type YTMArtistDetail, type YTMPlaylist, type YTMSong } from '@/api/ytmusic';
 import { navigateToMusicList } from '@/components/common/MusicListNavigator';
 import PlayBottom from '@/components/common/PlayBottom.vue';
 import PlaylistItem from '@/components/common/PlaylistItem.vue';
@@ -121,8 +121,6 @@ import { playTrack } from '@/services/playbackController';
 import { usePlayerStore } from '@/store/modules/player';
 import type { SongResult } from '@/types/music';
 import { getImgUrl } from '@/utils';
-
-import { toSongResult } from '../../api/search';
 
 defineOptions({ name: 'ArtistDetail' });
 
@@ -146,6 +144,17 @@ const tabs = computed(() => [
 ]);
 
 const artistId = computed(() => String(route.params.id || ''));
+
+// `YTMSong` carries artists as plain names, so map it onto the shared
+// `SongResult` shape the player and stores already expect.
+const toSongResult = (song: YTMSong): SongResult => ({
+  id: song.id,
+  name: song.title,
+  picUrl: song.thumbnail,
+  source: 'ytmusic',
+  artists: song.artists.map((a) => ({ name: a.name })),
+  album: song.album
+});
 
 const loadArtist = async () => {
   const id = artistId.value;

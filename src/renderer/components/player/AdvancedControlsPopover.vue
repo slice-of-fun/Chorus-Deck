@@ -11,7 +11,7 @@
     <n-tooltip trigger="hover" :z-index="9999999">
       <template #trigger>
         <div class="advanced-controls-btn">
-          <i class="iconfont ri-settings-3-line"></i>
+          <i class="ri-settings-3-line"></i>
 
           <div v-if="hasActiveSettings" class="active-indicator">
             <span v-if="hasActiveSleepTimer" class="timer-badge">

@@ -52,6 +52,10 @@
           <input type="checkbox" v-model="config.showTranslation" class="toggle-switch" />
         </div>
         <div class="setting-item">
+          <span>Show Romaji</span>
+          <input type="checkbox" v-model="config.showRoma" class="toggle-switch" />
+        </div>
+        <div class="setting-item">
           <span>Hide Lyrics</span>
           <input type="checkbox" v-model="config.hideLyrics" class="toggle-switch" />
         </div>

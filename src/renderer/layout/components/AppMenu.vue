@@ -17,7 +17,7 @@
               <div class="inline-block w-full">
                 <router-link class="app-menu-item-link" :to="item.path">
                   <i
-                    class="iconfont app-menu-item-icon"
+                    class="app-menu-item-icon"
                     :style="iconStyle(index)"
                     :class="item.meta.icon"
                   ></i>

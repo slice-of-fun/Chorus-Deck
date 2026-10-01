@@ -22,19 +22,19 @@
         <n-tooltip trigger="hover">
           <template #trigger>
             <div class="action-btn" @click="handleClearPlaylist">
-              <i class="iconfont ri-delete-bin-line"></i>
+              <i class="ri-delete-bin-line"></i>
             </div>
           </template>
           Clear Playlist
         </n-tooltip>
         <div class="close-btn" @click="closePanel">
-          <i class="iconfont ri-close-line"></i>
+          <i class="ri-close-line"></i>
         </div>
       </div>
     </div>
     <div class="playlist-panel-content">
       <div v-if="playList.length === 0" class="empty-playlist">
-        <i class="iconfont ri-music-2-line"></i>
+        <i class="ri-music-2-line"></i>
         <p>Playlist is empty</p>
       </div>
       <n-virtual-list v-else ref="playListRef" :item-size="62" item-resizable :items="playList">
@@ -44,7 +44,7 @@
               <song-item :key="item.id" class="flex-1" :item="item" mini></song-item>
               <div class="delete-btn" @click.stop="handleDeleteSong(item)">
                 <i
-                  class="iconfont ri-delete-bin-line text-gray-400 hover:text-red-500 transition-colors"
+                  class="ri-delete-bin-line text-gray-400 hover:text-red-500 transition-colors"
                 ></i>
               </div>
             </div>

@@ -95,7 +95,10 @@
                 >
               </div>
 
-              <span v-else :style="getLrcStyle(index)">{{ item.text }}</span>
+              <span v-else :style="getLrcStyle(index)" :class="{ 'bg-vocal': item.text.startsWith('{bg}') }">{{ item.text.replace('{bg}', '') }}</span>
+              <div v-if="config.showRoma && item.romaText" class="translation">
+                {{ item.romaText }}
+              </div>
               <div v-if="config.showTranslation && item.trText" class="translation">
                 {{ item.trText }}
               </div>
@@ -120,7 +123,7 @@
             <div class="img-wrapper">
               <n-image
                 ref="PicImgRef"
-                :src="getImgUrl(playMusic?.picUrl, '500y500')"
+                :src="thumbPlayer(playMusic?.picUrl)"
                 lazy
                 preview-disabled
                 class="cover-image"
@@ -167,7 +170,7 @@
                     >
                   </div>
 
-                  <span v-else>{{ line.text }}</span>
+                  <span v-else :class="{ 'bg-vocal': line.text.startsWith('{bg}') }">{{ line.text.replace('{bg}', '') }}</span>
                 </div>
               </div>
               <div v-else class="no-lyrics">No lyrics, please enjoy</div>
@@ -190,7 +193,7 @@
           >
             <div class="img-wrapper">
               <n-image
-                :src="getImgUrl(playMusic?.picUrl, '500y500')"
+                :src="thumbPlayer(playMusic?.picUrl)"
                 lazy
                 preview-disabled
                 class="cover-image"
@@ -283,7 +286,10 @@
                 >
               </div>
 
-              <span v-else :style="getLrcStyle(index)">{{ item.text }}</span>
+              <span v-else :style="getLrcStyle(index)" :class="{ 'bg-vocal': item.text.startsWith('{bg}') }">{{ item.text.replace('{bg}', '') }}</span>
+              <div v-if="config.showRoma && item.romaText" class="translation">
+                {{ item.romaText }}
+              </div>
               <div v-if="config.showTranslation && item.trText" class="translation">
                 {{ item.trText }}
               </div>
@@ -355,7 +361,7 @@
             <i class="ri-skip-forward-fill"></i>
           </div>
           <div class="side-button" @click="showPlaylist">
-            <i class="iconfont icon-list"></i>
+            <i class="ri-play-list-fill"></i>
           </div>
         </div>
       </div>
@@ -387,7 +393,8 @@ import { usePlayMode } from '@/hooks/usePlayMode';
 import { audioService } from '@/services/audioService';
 import { usePlayerStore } from '@/store/modules/player';
 import { DEFAULT_LYRIC_CONFIG, LyricConfig } from '@/types/lyric';
-import { getImgUrl, secondToMinute } from '@/utils';
+import { secondToMinute } from '@/utils';
+import { thumbPlayer } from '@/utils/thumbnail';
 import { getTextColors } from '@/utils/linearColor';
 import { LYRIC_CONFIG_CHANGE_EVENT, readLyricConfig } from '@/utils/lyricConfig';
 import { showBottomToast } from '@/utils/shortcutToast';
@@ -1841,6 +1848,23 @@ const getWordStyle = (lineIndex: number, _wordIndex: number, word: any) => {
         transform: scale(0.95);
       }
     }
+
+    :deep(.n-image) {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    :deep(.n-image img) {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
+      filter: none !important;
+      backdrop-filter: none !important;
+    }
   }
 
   &.full-style {
@@ -1876,5 +1900,10 @@ const getWordStyle = (lineIndex: number, _wordIndex: number, word: any) => {
   .square-style {
     @apply shadow-2xl shadow-black/50;
   }
+}
+.bg-vocal {
+  font-size: 0.85em !important;
+  font-style: italic !important;
+  opacity: 0.85 !important;
 }
 </style>

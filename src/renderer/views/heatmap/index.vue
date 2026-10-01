@@ -78,7 +78,7 @@
           <div class="stats-cards">
             <div class="stat-card">
               <div class="stat-icon">
-                <i class="iconfont ri-trophy-line"></i>
+                <i class="ri-trophy-line"></i>
               </div>
               <div class="stat-content">
                 <div class="stat-title">Most Played Song</div>
@@ -95,7 +95,7 @@
 
             <div class="stat-card">
               <div class="stat-icon">
-                <i class="iconfont ri-fire-line"></i>
+                <i class="ri-fire-line"></i>
               </div>
               <div class="stat-content">
                 <div class="stat-title">Most Active Day</div>
@@ -109,7 +109,7 @@
 
             <div class="stat-card">
               <div class="stat-icon">
-                <i class="iconfont ri-moon-line"></i>
+                <i class="ri-moon-line"></i>
               </div>
               <div class="stat-content">
                 <div class="stat-title">Latest Night Song</div>

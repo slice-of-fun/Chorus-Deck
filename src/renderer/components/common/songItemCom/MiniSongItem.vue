@@ -62,7 +62,7 @@
       <div class="song-item-operating">
         <div v-if="favorite" class="song-item-operating-like">
           <i
-            class="iconfont icon-likefill"
+            class="ri-heart-fill"
             :class="{ 'like-active': isFavorite }"
             @click.stop="onToggleFavorite"
           ></i>
@@ -72,8 +72,8 @@
           :class="{ 'text-primary': isPlaying, animate__flipInY: playLoading }"
           @click="onPlayMusic"
         >
-          <i v-if="isPlaying && play" class="iconfont icon-stop"></i>
-          <i v-else class="iconfont icon-playfill"></i>
+          <i v-if="isPlaying && play" class="ri-pause-fill"></i>
+          <i v-else class="ri-play-fill"></i>
         </div>
       </div>
     </template>
@@ -189,7 +189,7 @@ const onPlayMusic = () => {
       margin-left: 0.25rem;
       cursor: pointer;
 
-      .icon-likefill {
+      .ri-heart-fill {
         font-size: 1rem;
         transition-property: color;
         transition-duration: 0.15s;
@@ -248,7 +248,7 @@ const onPlayMusic = () => {
     border-color: rgb(55 65 81);
     background-color: black;
 
-    &-like .icon-likefill {
+    &-like .ri-heart-fill {
       color: rgb(156 163 175);
     }
 

@@ -1,6 +1,6 @@
-use tauri::State;
 use crate::commands::AppState;
 use crate::db::music_db::{self, Playlist, Track};
+use tauri::State;
 
 #[tauri::command(rename = "db_get_track")]
 pub fn get_track(state: State<'_, AppState>, id: String) -> Result<Option<Track>, String> {
@@ -39,31 +39,53 @@ pub fn add_disliked_track(state: State<'_, AppState>, track_id: String) -> Resul
 }
 
 #[tauri::command(rename = "db_track_played")]
-pub fn track_played(state: State<'_, AppState>, track_id: String, played_at: i64) -> Result<(), String> {
+pub fn track_played(
+    state: State<'_, AppState>,
+    track_id: String,
+    played_at: i64,
+) -> Result<(), String> {
     let conn = state.db.lock().map_err(|_| "db lock poisoned")?;
     music_db::track_played(&conn, &track_id, played_at).map_err(|e| e.to_string())
 }
 
 #[tauri::command(rename = "db_store_playlist")]
-pub fn store_playlist(state: State<'_, AppState>, id: String, name: String, description: String) -> Result<(), String> {
+pub fn store_playlist(
+    state: State<'_, AppState>,
+    id: String,
+    name: String,
+    description: String,
+) -> Result<(), String> {
     let conn = state.db.lock().map_err(|_| "db lock poisoned")?;
     music_db::store_playlist(&conn, &id, &name, &description).map_err(|e| e.to_string())
 }
 
 #[tauri::command(rename = "db_add_track_to_playlist")]
-pub fn add_track_to_playlist(state: State<'_, AppState>, playlist_id: String, track_id: String, track_index: i32) -> Result<(), String> {
+pub fn add_track_to_playlist(
+    state: State<'_, AppState>,
+    playlist_id: String,
+    track_id: String,
+    track_index: i32,
+) -> Result<(), String> {
     let conn = state.db.lock().map_err(|_| "db lock poisoned")?;
-    music_db::add_track_to_playlist(&conn, &playlist_id, &track_id, track_index).map_err(|e| e.to_string())
+    music_db::add_track_to_playlist(&conn, &playlist_id, &track_id, track_index)
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command(rename = "db_remove_track_from_playlist")]
-pub fn remove_track_from_playlist(state: State<'_, AppState>, playlist_id: String, track_id: String) -> Result<(), String> {
+pub fn remove_track_from_playlist(
+    state: State<'_, AppState>,
+    playlist_id: String,
+    track_id: String,
+) -> Result<(), String> {
     let conn = state.db.lock().map_err(|_| "db lock poisoned")?;
     music_db::remove_track_from_playlist(&conn, &playlist_id, &track_id).map_err(|e| e.to_string())
 }
 
 #[tauri::command(rename = "db_get_tracks_in_playlist")]
-pub fn get_tracks_in_playlist(state: State<'_, AppState>, playlist_id: String) -> Result<Vec<Track>, String> {
+pub fn get_tracks_in_playlist(
+    state: State<'_, AppState>,
+    playlist_id: String,
+) -> Result<Vec<Track>, String> {
     let conn = state.db.lock().map_err(|_| "db lock poisoned")?;
     music_db::get_tracks_in_playlist(&conn, &playlist_id).map_err(|e| e.to_string())
 }
@@ -75,13 +97,18 @@ pub fn get_all_playlists(state: State<'_, AppState>) -> Result<Vec<Playlist>, St
 }
 
 #[tauri::command(rename = "db_save_local_music")]
-pub fn save_local_music(state: State<'_, AppState>, entry: music_db::LocalMusicEntry) -> Result<(), String> {
+pub fn save_local_music(
+    state: State<'_, AppState>,
+    entry: music_db::LocalMusicEntry,
+) -> Result<(), String> {
     let conn = state.db.lock().map_err(|_| "db lock poisoned")?;
     music_db::save_local_music(&conn, &entry).map_err(|e| e.to_string())
 }
 
 #[tauri::command(rename = "db_get_all_local_music")]
-pub fn get_all_local_music(state: State<'_, AppState>) -> Result<Vec<music_db::LocalMusicEntry>, String> {
+pub fn get_all_local_music(
+    state: State<'_, AppState>,
+) -> Result<Vec<music_db::LocalMusicEntry>, String> {
     let conn = state.db.lock().map_err(|_| "db lock poisoned")?;
     music_db::get_all_local_music(&conn).map_err(|e| e.to_string())
 }
@@ -135,7 +162,14 @@ pub fn export_user_data(state: State<'_, AppState>, export_path: String) -> Resu
 }
 
 #[tauri::command(rename = "db_import_playlist")]
-pub fn import_playlist(state: State<'_, AppState>, id: String, name: String, description: String, tracks: Vec<music_db::ImportedTrack>) -> Result<(), String> {
+pub fn import_playlist(
+    state: State<'_, AppState>,
+    id: String,
+    name: String,
+    description: String,
+    tracks: Vec<music_db::ImportedTrack>,
+) -> Result<(), String> {
     let mut conn = state.db.lock().map_err(|_| "db lock poisoned")?;
-    music_db::import_playlist(&mut conn, &id, &name, &description, &tracks).map_err(|e| e.to_string())
+    music_db::import_playlist(&mut conn, &id, &name, &description, &tracks)
+        .map_err(|e| e.to_string())
 }

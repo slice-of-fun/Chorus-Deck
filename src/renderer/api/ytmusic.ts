@@ -82,6 +82,7 @@ export interface YTMStream {
   thumbnail?: string;
   durationSeconds?: number;
   clientNameId: number;
+  userAgent: string;
 }
 
 interface YTMStreamFailure {
@@ -101,7 +102,12 @@ async function ytmPost(
   endpoint: string,
   body: object,
   cookie?: string,
-  clientOverride?: { clientNameId: number; context: any; userAgent: string }
+  clientOverride?: {
+    clientNameId: number;
+    clientVersion: string;
+    userAgent: string;
+    context: any;
+  }
 ): Promise<any> {
   if (typeof window === 'undefined' || !window.api) {
     throw new Error('IPC not available (Tauri bridge is not installed)');
@@ -114,11 +120,15 @@ async function ytmPost(
 
   try {
     const data = await window.api.invoke<any>('ytm:request', {
-      endpoint,
-      body: payload,
-      cookie,
-      clientNameId: clientOverride?.clientNameId,
-      clientVersion: clientOverride?.context?.client?.clientVersion
+      args: {
+        endpoint,
+        body: payload,
+        cookie,
+        clientNameId: clientOverride?.clientNameId,
+        clientVersion: clientOverride?.clientVersion,
+        userAgent: clientOverride?.userAgent,
+        host: 'music'
+      }
     });
     return data;
   } catch (error: any) {
@@ -126,7 +136,29 @@ async function ytmPost(
   }
 }
 
-// ─── Parsers ──────────────────────────────────────────────────────────────────
+export interface StreamUrlProbe {
+  playable: boolean;
+  status: number;
+  reason?: string | null;
+}
+
+async function validateStreamUrl(
+  url: string,
+  userAgent?: string
+): Promise<StreamUrlProbe> {
+  if (typeof window === 'undefined' || !window.api) {
+    return { playable: true, status: 0, reason: null };
+  }
+
+  try {
+    return await window.api.invoke<StreamUrlProbe>('ytm:validate-stream', {
+      args: { url, userAgent }
+    });
+  } catch (error: any) {
+    console.warn('[ytmusic] stream URL probe failed, trusting the URL:', error);
+    return { playable: true, status: 0, reason: null };
+  }
+}
 
 function parseRuns(runs: any[]): string {
   if (!runs) return '';
@@ -407,28 +439,6 @@ function parseHeader(data: any) {
 
   return { title, thumbnail, description, author, subscriberCount, songCount };
 }
-
-const pickBestAudioFormat = (formats: any[]): any | null => {
-  if (!Array.isArray(formats) || formats.length === 0) return null;
-
-  const audioOnly = formats.filter(
-    (f) =>
-      f?.mimeType?.startsWith('audio/') &&
-      typeof f.url === 'string' &&
-      f.url.length > 0 &&
-      f.url.startsWith('http')
-  );
-
-  const candidates = audioOnly.length > 0 ? audioOnly : [];
-
-  if (candidates.length === 0) return null;
-
-  return candidates.reduce((best, current) => {
-    const bestBitrate = best?.averageBitrate ?? best?.bitrate ?? 0;
-    const currentBitrate = current?.averageBitrate ?? current?.bitrate ?? 0;
-    return currentBitrate > bestBitrate ? current : best;
-  }, candidates[0]);
-};
 
 export async function getYTMHome(cookie?: string): Promise<YTMHomePage> {
   const data = await ytmPost('browse', { browseId: 'FEmusic_home' }, cookie);
@@ -747,138 +757,381 @@ export async function getYTMMoods(cookie?: string): Promise<YTMMood[]> {
   return moods;
 }
 
-const STREAM_CLIENTS = [
+export interface YTStreamClient {
+  clientName: string;
+  clientVersion: string;
+  clientId: number;
+  userAgent: string;
+  osName?: string;
+  osVersion?: string;
+  deviceMake?: string;
+  deviceModel?: string;
+  androidSdkVersion?: number;
+  buildId?: string;
+  cronetVersion?: string;
+  packageName?: string;
+  friendlyName?: string;
+  loginSupported: boolean;
+  loginRequired: boolean;
+  useSignatureTimestamp: boolean;
+  useWebPoTokens: boolean;
+  isEmbedded: boolean;
+}
+
+const USER_AGENT_WEB =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:140.0) Gecko/20100101 Firefox/140.0';
+
+const WEB_REMIX: YTStreamClient = {
+  clientName: 'WEB_REMIX',
+  clientVersion: '1.20260213.01.00',
+  clientId: 67,
+  userAgent: USER_AGENT_WEB,
+  loginSupported: true,
+  loginRequired: false,
+  useSignatureTimestamp: true,
+  useWebPoTokens: true,
+  isEmbedded: false
+};
+
+const STREAM_FALLBACK_CLIENTS: YTStreamClient[] = [
   {
-    clientNameId: 28,
-    context: {
-      client: {
-        clientName: 'ANDROID_VR',
-        clientVersion: '1.60.19',
-        deviceModel: 'Quest 3',
-        androidSdkVersion: 32,
-        osName: 'Android',
-        osVersion: '12',
-        hl: 'en',
-        gl: 'US',
-        timeZone: 'UTC',
-        utcOffsetMinutes: 0
-      }
-    },
+    clientName: 'VISIONOS',
+    clientVersion: '0.1',
+    clientId: 101,
     userAgent:
-      'com.google.android.apps.youtube.vr.oculus/1.60.19 (Linux; U; Android 12; eureka-user Build/SQ3A.220605.009.A1) gzip'
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15',
+    osName: 'visionOS',
+    osVersion: '1.3.21O771',
+    deviceMake: 'Apple',
+    deviceModel: 'RealityDevice14,1',
+    friendlyName: 'visionOS',
+    loginSupported: false,
+    loginRequired: false,
+    useSignatureTimestamp: false,
+    useWebPoTokens: false,
+    isEmbedded: false
   },
   {
-    clientNameId: 5,
-    context: {
-      client: {
-        clientName: 'IOS',
-        clientVersion: '19.29.1',
-        deviceModel: 'iPhone16,2',
-        hl: 'en',
-        gl: 'US',
-        timeZone: 'UTC',
-        utcOffsetMinutes: 0
-      }
-    },
-    userAgent: 'com.google.ios.youtube/19.29.1 (iPhone16,2; U; CPU iOS 17_5_1 like Mac OS X)'
+    clientName: 'ANDROID_VR',
+    clientVersion: '1.65.10',
+    clientId: 28,
+    userAgent:
+      'com.google.android.apps.youtube.vr.oculus/1.65.10 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip',
+    osName: 'Android',
+    osVersion: '12L',
+    deviceMake: 'Oculus',
+    deviceModel: 'Quest 3',
+    androidSdkVersion: 32,
+    friendlyName: 'Android VR 1.65',
+    loginSupported: false,
+    loginRequired: false,
+    useSignatureTimestamp: false,
+    useWebPoTokens: false,
+    isEmbedded: false
   },
   {
-    clientNameId: 85,
-    context: {
-      client: {
-        clientName: 'TVHTML5_SIMPLY_EMBEDDED_PLAYER',
-        clientVersion: '2.0',
-        hl: 'en',
-        gl: 'US'
-      }
-    },
+    clientName: 'TVHTML5',
+    clientVersion: '7.20260213.00.00',
+    clientId: 7,
     userAgent:
-      'Mozilla/5.0 (PlayStation; PlayStation 4/12.00) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Safari/605.1.15'
+      'Mozilla/5.0(SMART-TV; Linux; Tizen 4.0.0.2) AppleWebkit/605.1.15 (KHTML, like Gecko) SamsungBrowser/9.2 TV Safari/605.1.15',
+    loginSupported: true,
+    loginRequired: true,
+    useSignatureTimestamp: true,
+    useWebPoTokens: true,
+    isEmbedded: false
+  },
+  {
+    clientName: 'ANDROID_VR',
+    clientVersion: '1.43.32',
+    clientId: 28,
+    userAgent:
+      'com.google.android.apps.youtube.vr.oculus/1.43.32 (Linux; U; Android 12; en_US; Quest 3; Build/SQ3A.220605.009.A1; Cronet/107.0.5284.2)',
+    osName: 'Android',
+    osVersion: '12',
+    deviceMake: 'Oculus',
+    deviceModel: 'Quest 3',
+    androidSdkVersion: 32,
+    buildId: 'SQ3A.220605.009.A1',
+    cronetVersion: '107.0.5284.2',
+    packageName: 'com.google.android.apps.youtube.vr.oculus',
+    friendlyName: 'Android VR 1.43',
+    loginSupported: false,
+    loginRequired: false,
+    useSignatureTimestamp: false,
+    useWebPoTokens: false,
+    isEmbedded: false
+  },
+  {
+    clientName: 'IOS',
+    clientVersion: '21.03.3',
+    clientId: 5,
+    userAgent:
+      'com.google.ios.youtube/21.03.3 (iPad7,6; U; CPU iPadOS 17_7_10 like Mac OS X; en-US)',
+    osName: 'iPadOS',
+    osVersion: '17.7.10.21H450',
+    deviceMake: 'Apple',
+    deviceModel: 'iPad7,6',
+    friendlyName: 'iPadOS',
+    packageName: 'com.google.ios.youtube',
+    loginSupported: false,
+    loginRequired: false,
+    useSignatureTimestamp: false,
+    useWebPoTokens: false,
+    isEmbedded: false
+  },
+  {
+    clientName: 'IOS',
+    clientVersion: '21.03.1',
+    clientId: 5,
+    userAgent:
+      'com.google.ios.youtube/21.03.1 (iPhone16,2; U; CPU iOS 18_2 like Mac OS X;)',
+    osVersion: '18.2.22C152',
+    friendlyName: 'iPhone',
+    loginSupported: false,
+    loginRequired: false,
+    useSignatureTimestamp: false,
+    useWebPoTokens: false,
+    isEmbedded: false
+  },
+  {
+    clientName: 'WEB_CREATOR',
+    clientVersion: '1.20260213.00.00',
+    clientId: 62,
+    userAgent: USER_AGENT_WEB,
+    loginSupported: true,
+    loginRequired: true,
+    useSignatureTimestamp: true,
+    useWebPoTokens: true,
+    isEmbedded: false
   }
 ];
+
+const PRIVATE_TRACK_STREAM_START_INDEX =
+  STREAM_FALLBACK_CLIENTS.findIndex((c) => c.clientName === 'TVHTML5');
+
+const clientContext = (client: YTStreamClient) => {
+  const context: Record<string, unknown> = {
+    clientName: client.clientName,
+    clientVersion: client.clientVersion,
+    hl: 'en',
+    gl: 'US',
+    osName: client.osName,
+    osVersion: client.osVersion,
+    deviceMake: client.deviceMake,
+    deviceModel: client.deviceModel,
+    androidSdkVersion: client.androidSdkVersion,
+    buildId: client.buildId,
+    cronetVersion: client.cronetVersion,
+    packageName: client.packageName
+  };
+
+  for (const key of Object.keys(context)) {
+    if (context[key] === undefined) delete context[key];
+  }
+
+  return { client: context, user: {} };
+};
+
+const pickBestAudioFormat = (adaptiveFormats: any[]): any | null => {
+  if (!Array.isArray(adaptiveFormats) || adaptiveFormats.length === 0) return null;
+
+  const audioOnly = adaptiveFormats.filter(
+    (f) => f?.width == null && f?.audioTrack?.isAutoDubbed == null
+  );
+
+  if (audioOnly.length === 0) return null;
+
+  const mp4 = audioOnly.filter((f) => f?.mimeType?.startsWith('audio/mp4'));
+  if (mp4.length === 0) {
+    return null;
+  }
+
+  return mp4.reduce((best, current) => {
+    const bestBitrate = best?.averageBitrate ?? best?.bitrate ?? 0;
+    const currentBitrate = current?.averageBitrate ?? current?.bitrate ?? 0;
+    return currentBitrate > bestBitrate ? current : best;
+  }, mp4[0]);
+};
+
+interface StreamAttempt {
+  clientName: string;
+  clientId: number;
+  outcome: string;
+  reason?: string;
+  status?: string;
+}
 
 export async function getYTMStream(videoId: string, cookie?: string): Promise<YTMStream | null> {
   if (!videoId || !/^[\w-]{6,20}$/.test(videoId)) {
     throw new Error('Invalid YouTube video id');
   }
 
-  const attempts: YTMStreamFailure[] = [];
+  const isLoggedIn = Boolean(cookie);
+  const attempts: StreamAttempt[] = [];
 
-  for (const client of STREAM_CLIENTS) {
-    try {
-      const data = await ytmPost(
-        'player',
-        {
-          videoId,
-          contentCheckOk: true,
-          racyCheckOk: true
-        },
-        cookie,
-        client
-      );
+  let sawPrivateTrack = false;
 
-      const status = data?.playabilityStatus?.status;
-
-      if (status && status !== 'OK') {
-        attempts.push({
-          clientNameId: client.clientNameId,
-          reason:
-            data?.playabilityStatus?.reason ??
-            data?.playabilityStatus?.errorScreen?.playerErrorMessageRenderer?.reason?.simpleText ??
-            'Playback not permitted',
-          status
-        });
-        continue;
-      }
-
-      const formats = [
-        ...(data?.streamingData?.adaptiveFormats ?? []),
-        ...(data?.streamingData?.formats ?? [])
-      ];
-
-      const format = pickBestAudioFormat(formats);
-
-      if (!format) {
-        attempts.push({
-          clientNameId: client.clientNameId,
-          reason: 'No audio stream available in player response',
-          status
-        });
-        continue;
-      }
-
-      return {
-        videoId,
-        url: format.url,
-        mimeType: format.mimeType,
-        bitrate: format.averageBitrate ?? format.bitrate ?? 0,
-        approxDurationMs: format.approxDurationMs ?? 0,
-        contentLength: Number(format.contentLength) || undefined,
-        expiresInSeconds: format.expiresInSeconds ?? 21600,
-        title: data?.videoDetails?.title,
-        author: data?.videoDetails?.author,
-        thumbnail:
-          data?.videoDetails?.thumbnail?.thumbnails?.slice(-1)[0]?.url ??
-          `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
-        durationSeconds: data?.videoDetails?.lengthSeconds
-          ? Number(data.videoDetails.lengthSeconds)
-          : undefined,
-        clientNameId: client.clientNameId
-      };
-    } catch (e: any) {
-      attempts.push({
-        clientNameId: client.clientNameId,
-        reason: e?.message ?? String(e)
-      });
-    }
+  const skipMainClient = WEB_REMIX.useWebPoTokens;
+  if (skipMainClient) {
+    attempts.push({
+      clientName: WEB_REMIX.clientName,
+      clientId: WEB_REMIX.clientId,
+      outcome: 'SKIP',
+      reason: 'poTokenUnavailable'
+    });
   }
+
+  const tryClient = async (client: YTStreamClient): Promise<YTMStream | null> => {
+    const data = await ytmPost(
+      'player',
+      {
+        videoId,
+        contentCheckOk: true,
+        racyCheckOk: true
+      },
+      cookie,
+      {
+        clientNameId: client.clientId,
+        clientVersion: client.clientVersion,
+        userAgent: client.userAgent,
+        context: clientContext(client)
+      }
+    );
+
+    const status = data?.playabilityStatus?.status;
+
+    if (data?.videoDetails?.musicVideoType === 'MUSIC_VIDEO_TYPE_OMNI') {
+      sawPrivateTrack = true;
+    }
+
+    if (status && status !== 'OK') {
+      attempts.push({
+        clientName: client.clientName,
+        clientId: client.clientId,
+        outcome: 'STATUS',
+        status,
+        reason:
+          data?.playabilityStatus?.reason ??
+          data?.playabilityStatus?.errorScreen?.playerErrorMessageRenderer?.reason?.simpleText ??
+          'Playback not permitted'
+      });
+      return null;
+    }
+
+    const format = pickBestAudioFormat(data?.streamingData?.adaptiveFormats ?? []);
+
+    if (!format) {
+      attempts.push({
+        clientName: client.clientName,
+        clientId: client.clientId,
+        outcome: 'NO_FORMAT',
+        status,
+        reason: 'No audio-only original format in player response'
+      });
+      return null;
+    }
+
+    const url = typeof format.url === 'string' && format.url.startsWith('http') ? format.url : '';
+    if (!url) {
+      const ciphered = Boolean(format.signatureCipher || format.cipher);
+      attempts.push({
+        clientName: client.clientName,
+        clientId: client.clientId,
+        outcome: 'NO_URL',
+        status,
+        reason: ciphered
+          ? 'Format returned signatureCipher only (no deciphering available)'
+          : 'Format carried no URL'
+      });
+      return null;
+    }
+
+    return {
+      videoId,
+      url,
+      mimeType: format.mimeType,
+      bitrate: format.averageBitrate ?? format.bitrate ?? 0,
+      approxDurationMs: Number(format.approxDurationMs) || 0,
+      contentLength: Number(format.contentLength) || undefined,
+      expiresInSeconds: data?.streamingData?.expiresInSeconds ?? 21600,
+      title: data?.videoDetails?.title,
+      author: data?.videoDetails?.author,
+      thumbnail:
+        data?.videoDetails?.thumbnail?.thumbnails?.slice(-1)[0]?.url ??
+        `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+      durationSeconds: data?.videoDetails?.lengthSeconds
+        ? Number(data.videoDetails.lengthSeconds)
+        : undefined,
+      clientNameId: client.clientId,
+      userAgent: client.userAgent
+    };
+  };
+
+  const runCascade = async (startIndex: number): Promise<YTMStream | null> => {
+    for (let i = startIndex; i < STREAM_FALLBACK_CLIENTS.length; i++) {
+      const client = STREAM_FALLBACK_CLIENTS[i];
+
+      if (client.loginRequired && !isLoggedIn) {
+        attempts.push({
+          clientName: client.clientName,
+          clientId: client.clientId,
+          outcome: 'SKIP',
+          reason: 'loginRequiredButAnonymous'
+        });
+        continue;
+      }
+
+      try {
+        const stream = await tryClient(client);
+        if (!stream) continue;
+        const probe = await validateStreamUrl(stream.url, client.userAgent);
+
+        if (!probe.playable) {
+          attempts.push({
+            clientName: client.clientName,
+            clientId: client.clientId,
+            outcome: 'CDN_REJECTED',
+            status: 'OK',
+            reason: `Resolved URL was refused on download (HTTP ${probe.status})${
+              probe.reason ? `: ${probe.reason}` : ''
+            }`
+          });
+          continue;
+        }
+
+        return stream;
+      } catch (e: any) {
+        attempts.push({
+          clientName: client.clientName,
+          clientId: client.clientId,
+          outcome: 'ERROR',
+          reason: e?.message ?? String(e)
+        });
+      }
+    }
+    return null;
+  };
+
+  const stream = await runCascade(0);
+
+  if (stream) {
+    return stream;
+  }
+
+  if (sawPrivateTrack && PRIVATE_TRACK_STREAM_START_INDEX >= 0) {
+    const retry = await runCascade(PRIVATE_TRACK_STREAM_START_INDEX);
+    if (retry) return retry;
+  }
+
+  console.warn('[YTM stream] cascade exhausted:', attempts);
 
   const isLoginRequired = attempts.some((a) => a.status === 'LOGIN_REQUIRED');
   if (isLoginRequired) {
     throw new Error('YouTube Music sign-in is required for this track');
-  } else {
-    throw new Error(`Unable to resolve a YouTube stream. Attempts: ${JSON.stringify(attempts)}`);
   }
+
+  throw new Error(`Unable to resolve a YouTube stream. Attempts: ${JSON.stringify(attempts)}`);
 }
 
 export async function getYTMPlaylist(
@@ -945,8 +1198,6 @@ export async function getYTMArtist(artistId: string, cookie?: string): Promise<Y
 }
 
 export const getYTMPlaylistDetail = getYTMPlaylist;
-
-// ─── Type Guards ─────────────────────────────────────────────────────────────
 
 export function isYTMSong(item: YTMSong | YTMPlaylist): item is YTMSong {
   return 'artists' in item;

@@ -12,17 +12,6 @@ import { listen as tauriListen, type UnlistenFn } from '@tauri-apps/api/event';
 
 import type { LocalMusicMeta } from '@/types/localMusic';
 
-/**
- * Thin adapter over the Tauri v2 command/event system.
- *
- * The renderer was originally written against Electron's `ipcRenderer`, which
- * exposes three different shapes: `invoke` (request/response), `send`
- * (fire-and-forget) and `on`/`removeListener` (events). Tauri has only
- * `invoke` and `listen`, so this module normalises the old call sites onto the
- * Tauri primitives instead of forcing a churn of edits across ~120 usages.
- */
-
-/** Channels the renderer is allowed to reach through the generic escape hatch. */
 const GENERIC_INVOKE_CHANNELS = [
   'change-language',
   'check-file-exists',
@@ -59,7 +48,9 @@ const GENERIC_INVOKE_CHANNELS = [
   'lyric-drag-move',
   'lyric-drag-end',
   'control-back',
-  'ytm:request'
+  'ytm:request',
+  'ytm:validate-stream',
+  'fetch_best_lyrics'
 ] as const;
 
 const EVENT_CHANNELS = [
@@ -89,6 +80,7 @@ export type Unlisten = () => void;
 const listenerRegistry = new Map<string, Set<UnlistenFn>>();
 
 async function rawInvoke<T>(channel: string, args?: unknown): Promise<T> {
+  console.debug(`[bridge] rawInvoke ${channel}`, args);
   return tauriInvoke<T>(channel, args as Record<string, unknown> | undefined);
 }
 
@@ -127,9 +119,6 @@ function listenChannel<T>(channel: string, handler: (payload: T) => void): Unlis
 }
 
 export const bridge = {
-  /* ------------------------------------------------------------------ *
-   * Window management
-   * ------------------------------------------------------------------ */
   minimize: () => rawInvoke<void>('minimize-window'),
   maximize: () => rawInvoke<void>('maximize-window'),
   close: () => rawInvoke<void>('close-window'),
@@ -144,9 +133,6 @@ export const bridge = {
   miniTray: () => rawInvoke<void>('mini-tray'),
   miniWindow: () => rawInvoke<void>('mini-window'),
 
-  /* ------------------------------------------------------------------ *
-   * Lyric window
-   * ------------------------------------------------------------------ */
   openLyric: () => rawInvoke<void>('open-lyric'),
   sendLyric: (data: unknown) => rawInvoke<void>('send-lyric', { data }),
   onLyricWindowClosed: (callback: () => void) => {
@@ -156,34 +142,20 @@ export const bridge = {
     void listenChannel<void>('lyric-window-ready', () => callback());
   },
 
-  /* ------------------------------------------------------------------ *
-   * Playback / tray / shortcuts
-   * ------------------------------------------------------------------ */
   sendSong: (data: unknown) => rawInvoke<void>('update-current-song', { data }),
   updatePlayState: (isPlaying: boolean) => rawInvoke<void>('update-play-state', { isPlaying }),
   setContentZoom: (zoom: number) => rawInvoke<void>('set-content-zoom', { zoom }),
   getContentZoom: () => rawInvoke<number>('get-content-zoom'),
 
-  /* ------------------------------------------------------------------ *
-   * Store (replaces electron-store)
-   * ------------------------------------------------------------------ */
   getStoreValue: (key: string) => rawInvoke<unknown>('get-store-value', { key }),
   setStoreValue: (key: string, value: unknown) =>
     rawInvoke<void>('set-store-value', { key, value }),
 
-  /* ------------------------------------------------------------------ *
-   * Generic escape hatch (Electron ipcRenderer parity)
-   * ------------------------------------------------------------------ */
   invoke: <T = unknown>(channel: string, ...args: unknown[]): Promise<T> => {
     assertAllowed(channel, GENERIC_INVOKE_CHANNELS);
     return rawInvoke<T>(channel, args.length === 1 ? args[0] : { args });
   },
 
-  /**
-   * Electron's `ipcRenderer.send` was fire-and-forget, but several call sites
-   * (`get-store-value` in particular) await its result. Tauri has no separate
-   * send primitive, so this resolves through `invoke` and is safe to await.
-   */
   send: <T = unknown>(channel: string, ...args: unknown[]): Promise<T> => {
     assertAllowed(channel, GENERIC_INVOKE_CHANNELS);
     return rawInvoke<T>(channel, args.length === 1 ? args[0] : { args });
@@ -208,9 +180,6 @@ export const bridge = {
     listenerRegistry.delete(channel);
   },
 
-  /* ------------------------------------------------------------------ *
-   * App updates
-   * ------------------------------------------------------------------ */
   getAppUpdateState: () => rawInvoke<AppUpdateState>('app-update:get-state'),
   checkAppUpdate: (manual = false) => rawInvoke<AppUpdateState>('app-update:check', { manual }),
   downloadAppUpdate: () => rawInvoke<AppUpdateState>('app-update:download'),
@@ -228,9 +197,6 @@ export const bridge = {
     void listenChannel<string>('language-changed', (locale) => callback(locale));
   },
 
-  /* ------------------------------------------------------------------ *
-   * Downloads
-   * ------------------------------------------------------------------ */
   downloadAdd: (task: unknown) => rawInvoke<string>('download:add', { task }),
   downloadAddBatch: (tasks: unknown) =>
     rawInvoke<{ batchId: string; taskIds: string[] }>('download:add-batch', { tasks }),
@@ -272,9 +238,6 @@ export const bridge = {
     }
   },
 
-  /* ------------------------------------------------------------------ *
-   * Local music
-   * ------------------------------------------------------------------ */
   scanLocalMusic: (folderPath: string) =>
     rawInvoke<{ files: string[]; count: number }>('scan-local-music', { folderPath }),
   scanLocalMusicWithStats: (folderPath: string) =>
@@ -304,8 +267,6 @@ export const bridge = {
     rawInvoke<void>('db_remove_track_from_playlist', { playlistId, trackId }),
   dbGetTracksInPlaylist: (playlistId: string) =>
     rawInvoke<unknown[]>('db_get_tracks_in_playlist', { playlistId }),
-  dbImportPlaylist: (id: string, name: string, description: string, tracks: any[]) =>
-    rawInvoke<void>('db_import_playlist', { id, name, description, tracks }),
   dbGetAllPlaylists: () => rawInvoke<unknown[]>('db_get_all_playlists'),
   dbSaveLocalMusic: (entry: LocalMusicMeta & { id: string }) =>
     rawInvoke<void>('db_save_local_music', { entry }),
@@ -331,6 +292,8 @@ export const bridge = {
   clearLyricsCache: () => rawInvoke<void>('clear-lyrics-cache'),
   clearLyricCache: () => rawInvoke<void>('clear-lyric-cache'),
   cacheLyric: (key: string, value: unknown) => rawInvoke<void>('cache-lyric', { key, value }),
+  fetchBestLyrics: (title: string, artist: string, videoId?: string) =>
+    rawInvoke<any>('fetch_best_lyrics', { title, artist, videoId }),
   clearDiskCache: () => rawInvoke<void>('clear-disk-cache'),
   getDiskCacheConfig: () => rawInvoke<unknown>('get-disk-cache-config'),
   setDiskCacheConfig: (config: unknown) => rawInvoke<void>('set-disk-cache-config', { config }),
@@ -348,7 +311,13 @@ export const bridge = {
     listenChannel<number>('playback-progress', cb);
   },
 
-  audioPlay: (url: string) => rawInvoke<void>('audio-play', { url }),
+  audioPlay: (
+    url: string,
+    cookie?: string,
+    durationMs?: number,
+    container?: string,
+    userAgent?: string
+  ) => rawInvoke<void>('audio-play', { url, cookie, durationMs, container, userAgent }),
   audioPause: () => rawInvoke<void>('audio-pause'),
   audioResume: () => rawInvoke<void>('audio-resume'),
   audioStop: () => rawInvoke<void>('audio-stop'),
@@ -363,9 +332,15 @@ export const bridge = {
   audioClearCache: () => rawInvoke<void>('audio-clear-cache'),
 
   spotifyLogin: (clientId: string) => rawInvoke<string>('integrations:spotify-login', { clientId }),
-  spotifyExchangeToken: (code: string, clientId: string, clientSecret: string) => 
+  spotifyExchangeToken: (code: string, clientId: string, clientSecret: string) =>
     rawInvoke<any>('integrations:spotify-exchange-token', { code, clientId, clientSecret }),
-  parsePlaylistUrl: (url: string) => rawInvoke<any>('integrations:parse-playlist-url', { url })
+  spotifyFetchPlaylists: (accessToken: string) =>
+    rawInvoke<any>('integrations:spotify-fetch-playlists', { accessToken }),
+  spotifyFetchPlaylistTracks: (accessToken: string, playlistId: string, offset: number, limit: number) =>
+    rawInvoke<any>('integrations:spotify-fetch-playlist-tracks', { accessToken, playlistId, offset, limit }),
+  parsePlaylistUrl: (url: string) => rawInvoke<any>('integrations:parse-playlist-url', { url }),
+  dbImportPlaylist: (id: string, name: string, description: string, tracks: { id: string; title: string; artist: string; durationMs: number }[]) =>
+    rawInvoke<void>('db_import_playlist', { id, name, description, tracks })
 };
 
 export type Bridge = typeof bridge;
@@ -381,3 +356,5 @@ export function installBridge(): void {
   if (typeof window === 'undefined') return;
   window.api = bridge;
 }
+
+installBridge();

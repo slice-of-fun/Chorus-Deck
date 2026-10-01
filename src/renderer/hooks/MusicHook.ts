@@ -1,5 +1,5 @@
 import { cloneDeep } from 'lodash';
-import { computed, type ComputedRef, nextTick, onUnmounted, ref, watch } from 'vue';
+import { computed, type ComputedRef, nextTick, ref, watch } from 'vue';
 
 import useIndexedDB from '@/hooks/IndexDBHook';
 import { audioService } from '@/services/audioService';
@@ -206,6 +206,29 @@ const ensureLyricsLoaded = async (force = false) => {
       }
     } catch (err) {
       console.error('Failed to extract embedded lyrics:', err);
+    }
+  } else {
+    try {
+        const title = playMusic.value.name || "";
+        const artist = playMusic.value.ar?.[0]?.name || "";
+        const videoId = playMusic.value.id;
+        
+        const fetchedLyrics = await window.api.fetchBestLyrics(title, artist, videoId);
+        
+        if (fetchedLyrics && fetchedLyrics.lines) {
+            lrcArray.value = fetchedLyrics.lines.map((line: any) => ({
+                text: line.text,
+                trText: '',
+                startTime: line.time,
+                hasWordByWord: line.words !== null && line.words !== undefined,
+                words: line.words?.map((w: any) => ({ word: w.word, startTime: w.start, duration: w.duration }))
+            }));
+            lrcTimeArray.value = fetchedLyrics.lines.map((line: any) => line.time / 1000);
+            
+            console.log(`Successfully loaded lyrics from provider: ${fetchedLyrics.provider}`);
+        }
+    } catch (err) {
+        console.error("Failed to fetch lyrics from network providers:", err);
     }
   }
 
@@ -422,6 +445,17 @@ const setupAudioListeners = () => {
     console.log('Audio pause event triggered');
     getPlayerStore().setPlayMusic(false);
     clearInterval();
+    if (isLyricWindowOpen.value) {
+      sendLyricToWin();
+    }
+  });
+
+  audioService.on('stop', () => {
+    clearInterval();
+    nowTime.value = 0;
+    nowIndex.value = 0;
+    lrcArray.value = [];
+    lrcTimeArray.value = [];
     if (isLyricWindowOpen.value) {
       sendLyricToWin();
     }
@@ -794,19 +828,24 @@ const sendDiscordPresence = () => {
   const albumId = music.al?.id || '';
 
   try {
-    let currentPlaybackTimeMillis = nowTime.value * 1000;
-    let duration = (audioService.getDuration() || 0) * 1000;
-    window.api.send('update-discord-presence', {
-      state: isPlaying ? `by ${artistName}` : 'Paused',
-      details: title,
-      largeImage: albumArt,
-      largeText: albumName,
-      smallImage: isPlaying ? 'play' : 'pause',
-      smallText: isPlaying ? 'Playing' : 'Paused',
+    const currentPlaybackTimeMillis = nowTime.value * 1000;
+    const duration = (audioService.getDuration() || 0) * 1000;
+    window.api.updateDiscordPresence({
+      title: title,
+      artist: artistName,
+      album: albumName,
+      albumArt: albumArt,
+      songId: songId,
+      artistId: artistId,
+      albumId: albumId,
+      duration: duration,
+      isPlaying: isPlaying,
       startTimestamp: isPlaying ? Math.floor(Date.now() - currentPlaybackTimeMillis) : undefined
     });
   } catch (err) {
-    console.error('Failed to send discord presence', err);
+    // Discord not running is an expected state, not an error worth surfacing
+    // on every playback tick.
+    console.debug('Discord presence unavailable:', (err as Error)?.message || err);
   }
 };
 
@@ -830,9 +869,9 @@ const setupPlayStateWatcher = () => {
   );
 };
 
-onUnmounted(() => {
+export const destroyMusicHook = () => {
   stopLyricSync();
-});
+};
 
 export { parseLyricsString };
 

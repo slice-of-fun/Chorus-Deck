@@ -10,12 +10,12 @@ fn main_window(app: &AppHandle) -> Result<WebviewWindow, String> {
         .ok_or_else(|| "main window not found".to_string())
 }
 
-#[tauri::command]
+#[tauri::command(rename = "minimize-window")]
 pub fn minimize_window(window: WebviewWindow) -> Result<(), String> {
     window.minimize().map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(rename = "maximize-window")]
 pub fn maximize_window(window: WebviewWindow) -> Result<(), String> {
     if window.is_maximized().map_err(|e| e.to_string())? {
         window.unmaximize().map_err(|e| e.to_string())
@@ -41,6 +41,7 @@ pub fn restart(app: AppHandle) {
 
 #[tauri::command(rename = "restore-window")]
 pub fn restore_window(window: WebviewWindow) -> Result<(), String> {
+    window.set_always_on_top(false).map_err(|e| e.to_string())?;
     window.unminimize().map_err(|e| e.to_string())?;
     window.show().map_err(|e| e.to_string())?;
     window.set_focus().map_err(|e| e.to_string())

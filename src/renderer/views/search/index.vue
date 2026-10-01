@@ -566,12 +566,13 @@
 import { NScrollbar, NSelect } from 'naive-ui';
 import { onMounted, ref, watch } from 'vue';
 
-import { getYTMMoods, type YTMMood } from '@/api/ytmusic';
+import type { PlaylistResult, SearchFilter, SearchResults } from '@/api/provider';
 import { getProvider } from '@/api/providers';
-import type { SearchResults, SearchFilter } from '@/api/provider';
+import { getYTMMoods, type YTMMood } from '@/api/ytmusic';
 import logoImg from '@/assets/logo.png';
 import { usePlaylistStore } from '@/store/modules/playlist';
 import type { SongResult } from '@/types/music';
+import { secondToMinute } from '@/utils';
 
 defineOptions({ name: 'Search' });
 
@@ -598,7 +599,15 @@ const suggestions = ref<string[]>([]);
 const searchDone = ref(false);
 const searchLoading = ref(false);
 const activeTab = ref<'all' | 'songs' | 'videos' | 'albums' | 'artists' | 'playlists'>('all');
-const results = ref<YTMSearchResult>({
+const results = ref<{
+  topResult: SongResult | undefined;
+  songs: SongResult[];
+  playlists: PlaylistResult[];
+  albums: PlaylistResult[];
+  artists: PlaylistResult[];
+  videos: SongResult[];
+  total: number;
+}>({
   topResult: undefined,
   songs: [],
   playlists: [],
@@ -617,7 +626,14 @@ const suggestDebounceTimer = ref<ReturnType<typeof setTimeout> | null>(null);
 
 const playlistStore = usePlaylistStore();
 
-// ─── Methods ──────────────────────────────────────────────────────────────────
+const formatTime = (time?: number | string) => {
+  if (!time) return '';
+  if (typeof time === 'string') {
+    if (time.includes(':')) return time;
+    return secondToMinute(Number(time));
+  }
+  return secondToMinute(time);
+};
 
 function getTabCount(key: string): number {
   if (key === 'songs') return results.value.songs?.length || 0;

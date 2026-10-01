@@ -1,6 +1,8 @@
 import { useDebounceFn } from '@vueuse/core';
 import tinycolor from 'tinycolor2';
 
+import { isArtworkCoolingDown, loadImageOnce } from './imageLoader';
+
 interface IColor {
   backgroundColor: string;
   primaryColor: string;
@@ -27,6 +29,14 @@ interface LyricSettings {
 }
 
 export const getImageLinearBackground = async (imageSrc: string): Promise<IColor> => {
+  const empty = { backgroundColor: '', primaryColor: '' };
+
+  if (!imageSrc) return empty;
+
+  // Skipping before the attempt keeps a rate-limited artwork from logging one
+  // error per song while the cooldown runs.
+  if (isArtworkCoolingDown(imageSrc)) return empty;
+
   try {
     const primaryColor = await getImagePrimaryColor(imageSrc);
     return {
@@ -34,11 +44,10 @@ export const getImageLinearBackground = async (imageSrc: string): Promise<IColor
       primaryColor
     };
   } catch (error) {
-    console.error('error', error);
-    return {
-      backgroundColor: '',
-      primaryColor: ''
-    };
+    if (!isArtworkCoolingDown(imageSrc)) {
+      console.error('error', error);
+    }
+    return empty;
   }
 };
 
@@ -78,29 +87,20 @@ const getImageColor = (img: HTMLImageElement): Promise<string> => {
 };
 
 const getImagePrimaryColor = (imageSrc: string): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = 'Anonymous';
-    img.src = imageSrc;
+  return loadImageOnce(imageSrc).then((img) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      throw new Error('Failed to get canvas context');
+    }
 
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        reject(new Error('Failed to get canvas context'));
-        return;
-      }
+    canvas.width = img.width;
+    canvas.height = img.height;
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-      canvas.width = img.width;
-      canvas.height = img.height;
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const color = getAverageColor(imageData.data);
-      resolve(`rgb(${color.join(',')})`);
-    };
-
-    img.onerror = () => reject(new Error('Image failed to load'));
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const color = getAverageColor(imageData.data);
+    return `rgb(${color.join(',')})`;
   });
 };
 

@@ -4,9 +4,10 @@ import { defineStore, storeToRefs } from 'pinia';
 import { computed, ref, shallowRef, triggerRef } from 'vue';
 
 import { useSongDetail } from '@/hooks/usePlayerHooks';
+import { audioService } from '@/services/audioService';
 import { preloadService } from '@/services/preloadService';
 import type { SongResult } from '@/types/music';
-import { getImgUrl } from '@/utils';
+import { thumbTiny } from '@/utils/thumbnail';
 import { debouncedLocalStorage } from '@/utils/debouncedStorage';
 import { minifySongList } from '@/utils/persistedSong';
 import { performShuffle, preloadCoverImage } from '@/utils/playerUtils';
@@ -72,7 +73,7 @@ export const usePlaylistStore = defineStore(
           try {
             const { getImageLinearBackground } = await import('@/utils/linearColor');
             const { backgroundColor, primaryColor } = await getImageLinearBackground(
-              getImgUrl(nextSong.picUrl, '30y30')
+              thumbTiny(nextSong.picUrl)
             );
             nextSong.backgroundColor = backgroundColor;
             nextSong.primaryColor = primaryColor;
@@ -96,7 +97,7 @@ export const usePlaylistStore = defineStore(
             });
           }
           if (nextSong.picUrl) {
-            preloadCoverImage(nextSong.picUrl, getImgUrl);
+            preloadCoverImage(nextSong.picUrl);
           }
         }
       } catch (error) {
@@ -495,7 +496,8 @@ export const usePlaylistStore = defineStore(
             playerCore.userPlayIntent = true;
             try {
               await window.api.audioResume();
-            } catch (e) {
+            } catch {
+              // Native player is not running; restart the track from scratch.
               const { playTrack } = await import('@/services/playbackController');
               const recoverSong = {
                 ...playerCore.playMusic,

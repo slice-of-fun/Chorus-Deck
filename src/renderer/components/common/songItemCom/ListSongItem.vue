@@ -65,7 +65,7 @@
       <div class="song-item-operating-list">
         <div v-if="favorite" class="song-item-operating-list-like">
           <i
-            class="iconfont icon-likefill"
+            class="ri-heart-fill"
             :class="{ 'like-active': isFavorite }"
             @click.stop="onToggleFavorite"
           ></i>
@@ -75,8 +75,8 @@
           :class="{ 'text-primary': isPlaying, animate__flipInY: playLoading }"
           @click="onPlayMusic"
         >
-          <i v-if="isPlaying && play" class="iconfont icon-stop"></i>
-          <i v-else class="iconfont icon-playfill"></i>
+          <i v-if="isPlaying && play" class="ri-pause-fill"></i>
+          <i v-else class="ri-play-fill"></i>
         </div>
       </div>
     </template>

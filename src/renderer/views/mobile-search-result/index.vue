@@ -65,8 +65,8 @@
 import { computed, inject, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
-import { getProvider } from '@/api/providers';
 import type { SearchFilter } from '@/api/provider';
+import { getProvider } from '@/api/providers';
 import SearchItem from '@/components/common/SearchItem.vue';
 import SongItem from '@/components/common/SongItem.vue';
 import { SEARCH_TYPE, SEARCH_TYPES } from '@/const/bar-const';

@@ -62,7 +62,7 @@
       <div class="song-item-operating">
         <div v-if="favorite" class="song-item-operating-like">
           <i
-            class="iconfont icon-likefill"
+            class="ri-heart-fill"
             :class="{ 'like-active': isFavorite }"
             @click.stop="onToggleFavorite"
           ></i>
@@ -70,7 +70,7 @@
         <n-tooltip v-if="isNext" trigger="hover" :z-index="9999999" :delay="400">
           <template #trigger>
             <div class="song-item-operating-next" @click.stop="onPlayNext">
-              <i class="iconfont ri-skip-forward-fill"></i>
+              <i class="ri-skip-forward-fill"></i>
             </div>
           </template>
           Play Next
@@ -80,8 +80,8 @@
           :class="{ 'text-primary': isPlaying, animate__flipInY: playLoading }"
           @click="onPlayMusic"
         >
-          <i v-if="isPlaying && play" class="iconfont icon-stop"></i>
-          <i v-else class="iconfont icon-playfill"></i>
+          <i v-if="isPlaying && play" class="ri-pause-fill"></i>
+          <i v-else class="ri-play-fill"></i>
         </div>
       </div>
     </template>
@@ -177,7 +177,7 @@ const onPlayNext = () => {
       @apply text-xl;
     }
 
-    .icon-likefill {
+    .ri-heart-fill {
       @apply text-xl transition text-gray-500 dark:text-gray-400 hover:text-red-500;
     }
 

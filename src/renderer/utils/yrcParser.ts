@@ -370,8 +370,8 @@ export const parseLyrics = (lyricsStr: string): ParseResult<ParsedLyrics> => {
 
     const finalLyrics = calculateLrcDurations(lyrics).map((line) => {
       if (line.startTime === -1) return line;
-      let newStartTime = Math.max(0, line.startTime - offset);
-      let newWords = line.words.map((w) => ({
+      const newStartTime = Math.max(0, line.startTime - offset);
+      const newWords = line.words.map((w) => ({
         ...w,
         startTime: Math.max(0, w.startTime - offset)
       }));

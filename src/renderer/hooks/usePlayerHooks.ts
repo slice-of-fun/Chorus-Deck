@@ -8,12 +8,8 @@ export type ResolvedStream = {
   mimeType: string;
   videoId: string;
   isLocal: boolean;
+  userAgent?: string;
 };
-
-/**
- * Resolves a playable URL for a track, preferring already-resolved URLs and
- * falling back to YouTube Music stream extraction.
- */
 export const getSongStream = async (
   id: string | number,
   songData: SongResult,
@@ -24,12 +20,9 @@ export const getSongStream = async (
     throw new Error('Request cancelled');
   }
 
-  // Local files already carry a playable URL.
   if (songData.playMusicUrl?.startsWith('local://')) {
     return { url: songData.playMusicUrl, mimeType: '', videoId: String(id), isLocal: true };
   }
-
-  // A still-valid resolved URL can be reused as-is.
   if (songData.playMusicUrl && !isDownloaded) {
     const expired = songData.expiredAt ? songData.expiredAt < Date.now() : false;
     if (!expired) {
@@ -37,7 +30,8 @@ export const getSongStream = async (
         url: songData.playMusicUrl,
         mimeType: songData.mimeType || '',
         videoId: songData.videoId || String(id),
-        isLocal: false
+        isLocal: false,
+        userAgent: songData.streamUserAgent
       };
     }
   }
@@ -53,7 +47,8 @@ export const getSongStream = async (
     url: stream.url,
     mimeType: stream.mimeType,
     videoId: stream.videoId,
-    isLocal: false
+    isLocal: false,
+    userAgent: stream.userAgent
   };
 };
 
@@ -113,10 +108,8 @@ const parseLyrics = (lyricsString: string): { lyrics: ILyricText[]; times: numbe
 export const loadLrc = async (id: string | number): Promise<ILyric> => {
   try {
     let lyricData: any;
-
-    // Use window.api for Tauri bridge instead of window.electron.ipcRenderer
     try {
-      lyricData = await window.api.invoke('get-cached-lyric', id);
+      lyricData = await window.api.getCachedLyric(id.toString());
     } catch (error) {
       console.warn('Failed to read disk lyrics cache:', error);
     }
@@ -201,10 +194,22 @@ export const useSongDetail = () => {
       throw new Error('Request cancelled');
     }
 
-    if (playMusic.expiredAt && playMusic.expiredAt < Date.now()) {
-      if (!playMusic.playMusicUrl?.startsWith('local://')) {
-        console.info(`The song has expired, please retrieve it again: ${playMusic.name}`);
+    // A URL the CDN already refused must never be handed back, no matter how
+    // fresh it looks. InnerTube served it, it still 403s on download, so the
+    // clock says nothing about whether it works. Local files are exempt.
+    const cachedUrl = playMusic.playMusicUrl;
+    if (cachedUrl && !cachedUrl.startsWith('local://')) {
+      const isExpired = playMusic.expiredAt !== undefined && playMusic.expiredAt < Date.now();
+      const wasRejected = Boolean(playMusic.urlRejectedAt);
+
+      if (isExpired || wasRejected) {
+        console.info(
+          `The song URL is no longer usable, retrieving it again: ${playMusic.name}`
+        );
         playMusic.playMusicUrl = undefined;
+        playMusic.mimeType = undefined;
+        playMusic.streamUserAgent = undefined;
+        playMusic.urlRejectedAt = undefined;
       }
     }
 

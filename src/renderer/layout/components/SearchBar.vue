@@ -46,7 +46,7 @@
       >
         <template #trigger>
           <div class="search-inner" :class="{ 'search-inner--focus': inputFocused }">
-            <i class="iconfont icon-search search-icon-glyph" />
+            <i class="ri-search-line search-icon-glyph" />
             <input
               ref="inputRef"
               v-model="searchValue"
@@ -68,7 +68,7 @@
                 <span>{{
                   searchTypeOptions.find((i) => i.key === searchStore.searchType)?.label
                 }}</span>
-                <i class="iconfont icon-xiasanjiaoxing text-[10px]" />
+                <i class="ri-arrow-down-s-fill text-[10px]" />
               </div>
             </n-dropdown>
           </div>
@@ -103,7 +103,7 @@
     <n-popover trigger="hover" placement="bottom-end" :show-arrow="false" raw>
       <template #trigger>
         <div class="user-btn">
-          <i class="iconfont icon-shezhi settings-icon" />
+          <i class="ri-settings-3-fill settings-icon" />
         </div>
       </template>
       <div class="user-menu">

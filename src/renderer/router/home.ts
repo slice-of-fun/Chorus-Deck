@@ -6,7 +6,7 @@ const layoutRouter: RouteRecordRaw[] = [
     name: 'home',
     meta: {
       title: 'comp.home',
-      icon: 'icon-Home',
+      icon: 'ri-home-4-fill',
       keepAlive: true,
       isMobile: true
     },
@@ -18,7 +18,7 @@ const layoutRouter: RouteRecordRaw[] = [
     meta: {
       title: 'comp.search',
       noScroll: true,
-      icon: 'icon-Search',
+      icon: 'ri-search-2-line',
       keepAlive: true
     },
     component: () => import('@/views/search/index.vue')
@@ -41,7 +41,7 @@ const layoutRouter: RouteRecordRaw[] = [
     component: () => import('@/views/historyAndFavorite/index.vue'),
     meta: {
       title: 'comp.history',
-      icon: 'icon-a-TicketStar',
+      icon: 'ri-history-fill',
       keepAlive: true,
       isMobile: true
     }
@@ -51,7 +51,7 @@ const layoutRouter: RouteRecordRaw[] = [
     name: 'library',
     meta: {
       title: 'comp.library',
-      icon: 'ri-book-3-fill',
+      icon: 'ri-folder-music-fill',
       keepAlive: true,
       isMobile: false
     },

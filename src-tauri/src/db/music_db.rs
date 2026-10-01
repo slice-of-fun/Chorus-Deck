@@ -536,7 +536,12 @@ pub fn clear_local_music(conn: &Connection) -> Result<()> {
     Ok(())
 }
 
-pub fn record_audio_cache_access(conn: &Connection, hash: &str, file_size: u64, accessed_at: i64) -> Result<()> {
+pub fn record_audio_cache_access(
+    conn: &Connection,
+    hash: &str,
+    file_size: u64,
+    accessed_at: i64,
+) -> Result<()> {
     conn.execute(
         "INSERT OR REPLACE INTO audio_cache (hash, file_size, last_accessed) VALUES (?1, ?2, ?3)",
         rusqlite::params![hash, file_size as i64, accessed_at],
@@ -545,7 +550,8 @@ pub fn record_audio_cache_access(conn: &Connection, hash: &str, file_size: u64, 
 }
 
 pub fn get_audio_cache_eviction_candidates(conn: &Connection) -> Result<Vec<(String, u64)>> {
-    let mut stmt = conn.prepare("SELECT hash, file_size FROM audio_cache ORDER BY last_accessed ASC")?;
+    let mut stmt =
+        conn.prepare("SELECT hash, file_size FROM audio_cache ORDER BY last_accessed ASC")?;
     let rows = stmt.query_map([], |row| {
         Ok((
             row.get::<_, String>(0)?,
@@ -562,21 +568,28 @@ pub fn delete_audio_cache_record(conn: &Connection, hash: &str) -> Result<()> {
 
 pub fn export_user_data(conn: &Connection, export_path: &str) -> Result<()> {
     let playlists = get_all_playlists(conn)?;
-    
-    let mut stmt = conn.prepare("SELECT playlist_id, track_id, track_index FROM playlist_tracks")?;
-    let playlist_tracks: Vec<serde_json::Value> = stmt.query_map([], |row| {
-        Ok(serde_json::json!({
-            "playlist_id": row.get::<_, String>(0)?,
-            "track_id": row.get::<_, String>(1)?,
-            "track_index": row.get::<_, i32>(2)?,
-        }))
-    })?.filter_map(Result::ok).collect();
+
+    let mut stmt =
+        conn.prepare("SELECT playlist_id, track_id, track_index FROM playlist_tracks")?;
+    let playlist_tracks: Vec<serde_json::Value> = stmt
+        .query_map([], |row| {
+            Ok(serde_json::json!({
+                "playlist_id": row.get::<_, String>(0)?,
+                "track_id": row.get::<_, String>(1)?,
+                "track_index": row.get::<_, i32>(2)?,
+            }))
+        })?
+        .filter_map(Result::ok)
+        .collect();
 
     let liked_tracks = get_liked_tracks(conn)?;
     let followed_artists = get_followed_artists(conn)?;
 
     let mut stmt = conn.prepare("SELECT id, name, artist, album, duration, file_path, last_played, play_count, rating FROM tracks")?;
-    let tracks: Vec<Track> = stmt.query_map([], track_from_row)?.filter_map(Result::ok).collect();
+    let tracks: Vec<Track> = stmt
+        .query_map([], track_from_row)?
+        .filter_map(Result::ok)
+        .collect();
 
     let export_data = serde_json::json!({
         "playlists": playlists,
@@ -589,11 +602,11 @@ pub fn export_user_data(conn: &Connection, export_path: &str) -> Result<()> {
     let f = std::fs::File::create(export_path).map_err(|e| {
         rusqlite::Error::ToSqlConversionFailure(Box::new(std::io::Error::other(e.to_string())))
     })?;
-    
+
     serde_json::to_writer_pretty(f, &export_data).map_err(|e| {
-         rusqlite::Error::ToSqlConversionFailure(Box::new(std::io::Error::other(e.to_string())))
+        rusqlite::Error::ToSqlConversionFailure(Box::new(std::io::Error::other(e.to_string())))
     })?;
-    
+
     Ok(())
 }
 
@@ -606,9 +619,15 @@ pub struct ImportedTrack {
     pub duration_ms: i64,
 }
 
-pub fn import_playlist(conn: &mut Connection, id: &str, name: &str, description: &str, tracks: &[ImportedTrack]) -> Result<()> {
+pub fn import_playlist(
+    conn: &mut Connection,
+    id: &str,
+    name: &str,
+    description: &str,
+    tracks: &[ImportedTrack],
+) -> Result<()> {
     let tx = conn.transaction()?;
-    
+
     tx.execute(
         "INSERT OR REPLACE INTO playlists (id, name, description, created, last_modified) VALUES (?1, ?2, ?3, ?4, ?4)",
         rusqlite::params![id, name, description, 0_i64],
@@ -619,7 +638,12 @@ pub fn import_playlist(conn: &mut Connection, id: &str, name: &str, description:
         let mut pt_stmt = tx.prepare("INSERT OR REPLACE INTO playlist_tracks (playlist_id, track_id, track_index) VALUES (?1, ?2, ?3)")?;
 
         for (index, track) in tracks.iter().enumerate() {
-            track_stmt.execute(rusqlite::params![track.id, track.title, track.artist, track.duration_ms])?;
+            track_stmt.execute(rusqlite::params![
+                track.id,
+                track.title,
+                track.artist,
+                track.duration_ms
+            ])?;
             pt_stmt.execute(rusqlite::params![id, track.id, index as i32])?;
         }
     }

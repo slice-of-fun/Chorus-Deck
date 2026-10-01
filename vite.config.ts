@@ -36,11 +36,12 @@ export default defineConfig({
   ],
   publicDir: resolve('resources'),
   build: {
-    // MusicHook 等模块使用顶层 await，默认 target(es2020) 无法转译导致 web 构建失败
     target: 'es2022'
   },
   server: {
     host: '0.0.0.0',
+    port: 1420,
+    strictPort: true,
     proxy: {}
   }
 });

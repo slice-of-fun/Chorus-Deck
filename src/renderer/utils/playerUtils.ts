@@ -1,5 +1,8 @@
 import type { SongResult } from '@/types/music';
 
+import { isArtworkCoolingDown, loadImageOnce } from './imageLoader';
+import { thumbPlayer } from './thumbnail';
+
 export function getLocalStorageItem<T>(key: string, defaultValue: T): T {
   try {
     const item = localStorage.getItem(key);
@@ -77,26 +80,21 @@ export const performShuffle = (list: SongResult[], currentSong?: SongResult): So
   return result;
 };
 
-export const preloadCoverImage = (
-  picUrl: string,
-  getImgUrl: (url: string, size: string) => string
-) => {
+export const preloadCoverImage = (picUrl: string) => {
   if (!picUrl) return;
 
   try {
-    const imageUrl = getImgUrl(picUrl, '500y500');
-    console.log('Preload cover image:', imageUrl);
+    const imageUrl = thumbPlayer(picUrl);
 
-    const img = new Image();
-    img.src = imageUrl;
-
-    img.onload = () => {
-      console.log('Cover image preloaded successfully:', imageUrl);
-    };
-
-    img.onerror = () => {
-      console.error('Cover image preload failed:', imageUrl);
-    };
+    void loadImageOnce(imageUrl)
+      .then(() => {
+        console.log('Cover image preloaded:', imageUrl);
+      })
+      .catch((error: Error) => {
+        if (!isArtworkCoolingDown(imageUrl)) {
+          console.error('Cover image preload failed:', error);
+        }
+      });
   } catch (error) {
     console.error('Error preloading cover image:', error);
   }

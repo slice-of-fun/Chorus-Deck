@@ -21,7 +21,7 @@
       <div
         class="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
       >
-        <i class="iconfont icon-playfill text-lg md:text-xl text-white drop-shadow-lg"></i>
+        <i class="ri-play-fill text-lg md:text-xl text-white drop-shadow-lg"></i>
       </div>
     </div>
 

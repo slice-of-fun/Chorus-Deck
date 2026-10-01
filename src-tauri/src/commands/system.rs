@@ -1,31 +1,4 @@
-use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
-use serde::Deserialize;
-use std::sync::Mutex;
 use tauri::AppHandle;
-
-lazy_static::lazy_static! {
-    static ref DISCORD_CLIENT: Mutex<Option<DiscordIpcClient>> = Mutex::new(None);
-}
-
-const DISCORD_CLIENT_ID: &str = "1538302367584362536";
-
-fn get_or_init_discord() -> Result<std::sync::MutexGuard<'static, Option<DiscordIpcClient>>, String>
-{
-    let mut lock = DISCORD_CLIENT
-        .lock()
-        .map_err(|_| "Failed to lock Discord client".to_string())?;
-
-    if lock.is_none() {
-        let mut client = DiscordIpcClient::new(DISCORD_CLIENT_ID);
-        if client.connect().is_ok() {
-            *lock = Some(client);
-        } else {
-            return Err("Failed to connect to Discord IPC".to_string());
-        }
-    }
-
-    Ok(lock)
-}
 
 #[tauri::command(rename = "open-directory")]
 pub fn open_directory(app: AppHandle, path: String) -> Result<(), String> {
@@ -75,7 +48,11 @@ pub fn select_file(app: AppHandle, title: String) -> Result<Option<String>, Stri
 }
 
 #[tauri::command(rename = "save-file")]
-pub fn save_file(app: AppHandle, title: String, default_name: String) -> Result<Option<String>, String> {
+pub fn save_file(
+    app: AppHandle,
+    title: String,
+    default_name: String,
+) -> Result<Option<String>, String> {
     use tauri_plugin_dialog::DialogExt;
 
     let (tx, rx) = std::sync::mpsc::sync_channel(1);

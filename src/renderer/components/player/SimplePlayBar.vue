@@ -21,30 +21,27 @@
       <div class="controls-section">
         <div class="left-controls">
           <button class="control-btn small-btn" @click="togglePlayMode">
-            <i
-              class="iconfont"
-              :class="[playModeIcon, { 'intelligence-active': playMode === 3 }]"
-            ></i>
+            <i class="" :class="[playModeIcon, { 'intelligence-active': playMode === 3 }]"></i>
           </button>
         </div>
 
         <div class="center-controls">
           <button class="control-btn" @click="handlePrev">
-            <i class="iconfont icon-prev"></i>
+            <i class="ri-skip-back-fill"></i>
           </button>
 
           <button class="control-btn play-btn" @click="playMusicEvent">
-            <i class="iconfont" :class="play ? 'icon-stop' : 'icon-play'"></i>
+            <i class="" :class="play ? 'ri-pause-fill' : 'ri-play-fill'"></i>
           </button>
 
           <button class="control-btn" @click="handleNext">
-            <i class="iconfont icon-next"></i>
+            <i class="ri-skip-forward-fill"></i>
           </button>
         </div>
 
         <div class="right-controls">
           <button class="control-btn small-btn" @click="openPlayListDrawer">
-            <i class="iconfont icon-list"></i>
+            <i class="ri-play-list-fill"></i>
           </button>
         </div>
       </div>
@@ -53,7 +50,7 @@
         <div class="spacer"></div>
 
         <div class="volume-control">
-          <i class="iconfont" :class="getVolumeIcon" @click="mute"></i>
+          <i class="" :class="getVolumeIcon" @click="mute"></i>
           <div class="volume-slider">
             <n-slider
               v-model:value="volumeSlider"
@@ -303,7 +300,7 @@ onMounted(() => {
       color: var(--text-on-fill);
     }
 
-    .volume-control .iconfont:hover {
+    .volume-control :hover {
       color: var(--fill-color-alt);
     }
   }
@@ -325,7 +322,7 @@ onMounted(() => {
       }
     }
 
-    .volume-control .iconfont:hover {
+    .volume-control :hover {
       color: var(--fill-color-light);
     }
   }

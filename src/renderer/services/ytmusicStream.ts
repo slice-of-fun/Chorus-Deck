@@ -17,17 +17,11 @@ export interface ResolvedYTMStream {
   durationMs?: number;
   thumbnail?: string;
   mimeType: string;
+  userAgent: string;
   bitrate: number;
   expiresAt: number;
 }
 
-/**
- * Resolve a playable YouTube Music stream for a track and enrich the track
- * with duration/artwork returned by the InnerTube `/player` response.
- *
- * Throws when the track has no usable YouTube id or the stream cannot be
- * resolved (unplayable, region locked, or login required).
- */
 export const resolveYTMusicStream = async (song: SongResult): Promise<ResolvedYTMStream> => {
   const videoId = getYTMVideoId(song);
 
@@ -58,6 +52,7 @@ export const resolveYTMusicStream = async (song: SongResult): Promise<ResolvedYT
 
   song.videoId = videoId;
   song.mimeType = stream.mimeType;
+  song.streamUserAgent = stream.userAgent;
 
   return {
     url: stream.url,
@@ -65,8 +60,8 @@ export const resolveYTMusicStream = async (song: SongResult): Promise<ResolvedYT
     durationMs,
     thumbnail: stream.thumbnail,
     mimeType: stream.mimeType,
+    userAgent: stream.userAgent,
     bitrate: stream.bitrate,
-    // Mirror the 30-minute window the rest of the app assumes for parsed URLs.
     expiresAt: Date.now() + Math.min(stream.expiresInSeconds, 1800) * 1000
   };
 };

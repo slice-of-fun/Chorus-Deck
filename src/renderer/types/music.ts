@@ -12,6 +12,7 @@ export interface IWordData {
 export interface ILyricText {
   text: string;
   trText: string;
+  romaText?: string;
   words?: IWordData[];
   hasWordByWord?: boolean;
   startTime?: number;
@@ -65,8 +66,10 @@ export interface SongResult {
 
   videoId?: string;
   mimeType?: string;
+  streamUserAgent?: string;
   expiredAt?: number;
   createdAt?: number;
+  urlRejectedAt?: number;
 
   duration?: number;
   isFirstPlay?: boolean;
