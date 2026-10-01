@@ -2,7 +2,7 @@ export interface IUserDetail {
   level: number;
   listenSongs: number;
   userPoint: UserPoint;
-  mobileSign: boolean;
+  compactSign: boolean;
   pcSign: boolean;
   profile: Profile;
   peopleCanSeeMyPlayRecord: boolean;

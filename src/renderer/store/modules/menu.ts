@@ -13,8 +13,8 @@ export const useMenuStore = defineStore('menu', () => {
       if (item.meta?.hideInSidebar) {
         return false;
       }
-      if (settingsStore.isMobile) {
-        return item.meta?.isMobile !== false;
+      if (settingsStore.isCompact) {
+        return item.meta?.isCompact !== false;
       }
       return true;
     });

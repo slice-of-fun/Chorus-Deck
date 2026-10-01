@@ -570,13 +570,11 @@ import type { PlaylistResult, SearchFilter, SearchResults } from '@/api/provider
 import { getProvider } from '@/api/providers';
 import { getYTMMoods, type YTMMood } from '@/api/ytmusic';
 import logoImg from '@/assets/logo.png';
-import { usePlaylistStore } from '@/store/modules/playlist';
+import { useQueueStore } from '@/store/modules/queue';
 import type { SongResult } from '@/types/music';
 import { secondToMinute } from '@/utils';
 
 defineOptions({ name: 'Search' });
-
-// ─── Constants ────────────────────────────────────────────────────────────────
 
 const SEARCH_TABS = [
   { key: 'all', label: 'All' },
@@ -624,7 +622,7 @@ const searchHistory = ref<string[]>([]);
 const searchInputRef = ref<HTMLInputElement | null>(null);
 const suggestDebounceTimer = ref<ReturnType<typeof setTimeout> | null>(null);
 
-const playlistStore = usePlaylistStore();
+const playlistStore = useQueueStore();
 
 const formatTime = (time?: number | string) => {
   if (!time) return '';

@@ -158,7 +158,7 @@ import {
   type YTMSong
 } from '@/api/ytmusic';
 import logoImg from '@/assets/logo.png';
-import { usePlaylistStore } from '@/store/modules/playlist';
+import { useQueueStore } from '@/store/modules/queue';
 import type { SongResult } from '@/types/music';
 
 defineOptions({ name: 'Home' });
@@ -171,7 +171,7 @@ const error = ref<string | null>(null);
 const sectionRefs = ref<Record<number, HTMLElement | null>>({});
 
 const message = useMessage();
-const playlistStore = usePlaylistStore();
+const playlistStore = useQueueStore();
 
 const greeting = computed(() => {
   const h = new Date().getHours();

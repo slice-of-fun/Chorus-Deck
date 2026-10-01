@@ -17,9 +17,9 @@ export interface LyricConfig {
   focusCurrentLyric: boolean;
   contentWidth: number;
 
-  mobileLayout: 'default' | 'ios' | 'android';
-  mobileCoverStyle: 'record' | 'square' | 'full';
-  mobileShowLyricLines: number;
+  compactLayout: 'default' | 'ios' | 'android';
+  compactCoverStyle: 'record' | 'square' | 'full';
+  compactShowLyricLines: number;
 
   useCustomBackground: boolean;
   backgroundMode: 'solid' | 'gradient' | 'image' | 'css';
@@ -52,9 +52,9 @@ export const DEFAULT_LYRIC_CONFIG: LyricConfig = {
   focusCurrentLyric: false,
   contentWidth: 75,
 
-  mobileLayout: 'ios',
-  mobileCoverStyle: 'full',
-  mobileShowLyricLines: 3,
+  compactLayout: 'ios',
+  compactCoverStyle: 'full',
+  compactShowLyricLines: 3,
 
   translationEngine: 'none',
 

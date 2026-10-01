@@ -71,7 +71,7 @@
         v-if="!isDesktop()"
         icon="ri-tablet-line"
         title="Tablet Mode"
-        description="Enabling tablet mode allows using PC-style interface on mobile devices"
+        description="Enabling tablet mode allows using PC-style interface on compact devices"
       >
         <n-switch v-model:value="setData.tabletMode">
           <template #checked><i class="ri-tablet-line"></i></template>
@@ -135,12 +135,12 @@
         </template>
         <template #action>
           <div class="flex items-center gap-2">
-            <span v-if="!isMobile" class="text-sm text-gray-400"
+            <span v-if="!isCompact" class="text-sm text-gray-400"
               >{{ setData.animationSpeed }}x</span
             >
             <div class="w-40 max-md:w-auto flex justify-end">
               <n-slider
-                v-if="!isMobile"
+                v-if="!isCompact"
                 v-model:value="setData.animationSpeed"
                 :min="0.1"
                 :max="3"
@@ -501,7 +501,7 @@
 import { computed, h, inject, onMounted, onUnmounted, ref, watch } from 'vue';
 
 import { useSettingsStore } from '@/store/modules/settings';
-import { isDesktop, isMobile } from '@/utils';
+import { isDesktop, isCompact } from '@/utils';
 import { t } from '@/utils/i18n';
 import { applyTheme } from '@/utils/theme';
 

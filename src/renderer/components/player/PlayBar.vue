@@ -84,14 +84,14 @@
       </div>
     </div>
     <div class="music-buttons">
-      <div class="music-buttons-prev" @click="handlePrev">
-        <i class="ri-skip-back-fill"></i>
+      <div class="music-buttons-prev" :style="{ color: playMusic?.primaryColor }" @click="handlePrev">
+        <i class="ri-skip-back-line"></i>
       </div>
-      <div class="music-buttons-play" @click="playMusicEvent">
-        <i class="icon" :class="play ? 'ri-pause-fill' : 'ri-play-fill'"></i>
+      <div class="music-buttons-play play-animated">
+        <AnimatedPlayPause :is-playing="play" @click="playMusicEvent" :bg-color="playMusic?.primaryColor" />
       </div>
-      <div class="music-buttons-next" @click="handleNext">
-        <i class="ri-skip-forward-fill"></i>
+      <div class="music-buttons-next" :style="{ color: playMusic?.primaryColor }" @click="handleNext">
+        <i class="ri-skip-forward-line"></i>
       </div>
     </div>
     <div class="audio-button">
@@ -112,69 +112,23 @@
           ></n-slider>
         </div>
       </div>
-      <n-tooltip v-if="!isMobile" trigger="hover" :z-index="9999999">
-        <template #trigger>
-          <i
-            class=""
-            :class="[playModeIcon, { 'intelligence-active': playMode === 3 }]"
-            @click="togglePlayMode"
-          ></i>
-        </template>
-        {{ playModeText }}
-      </n-tooltip>
-      <n-tooltip v-if="!isMobile" trigger="hover" :z-index="9999999">
-        <template #trigger>
-          <i
-            class=""
-            :class="{
-              'like-active': isFavorite,
-              'ri-heart-3-fill': isFavorite,
-              'ri-heart-3-line': !isFavorite
-            }"
-            @click="toggleFavorite"
-          ></i>
-        </template>
-        Like
-      </n-tooltip>
-      <n-tooltip v-if="isDesktop()" class="music-lyric" trigger="hover" :z-index="9999999">
-        <template #trigger>
-          <i
-            class="ri-music-2-line"
-            :class="{ 'text-primary': isLyricWindowOpen, 'disabled-icon': !playMusic?.id }"
-            @click="playMusic?.id && openLyricWindow()"
-          ></i>
-        </template>
-        {{ playMusic?.id ? 'Lyric' : 'No song playing' }}
-      </n-tooltip>
-      <n-tooltip v-if="playMusic?.id && isDesktop()" trigger="hover" :z-index="9999999">
-        <template #trigger>
-          <i
-            class="ri-download-line"
-            :class="{ 'disabled-icon': isDownloading }"
-            @click="playMusic?.id && handleDownload()"
-          />
-        </template>
-        {{ isDownloading ? 'Downloading, please wait...' : 'Download' }}
-      </n-tooltip>
 
       <advanced-controls-popover />
 
       <n-tooltip trigger="hover" :z-index="9999999">
         <template #trigger>
-          <i
-            class="ri-play-list-fill text-2xl hover:text-primary transition-colors cursor-pointer"
-            @click="openPlayListDrawer"
-          ></i>
+          <div class="icon-btn" @click="openQueue">
+            <i class="ri-play-list-fill text-2xl transition-colors cursor-pointer"></i>
+          </div>
         </template>
         Play List
       </n-tooltip>
 
       <n-tooltip trigger="hover" :z-index="9999999">
         <template #trigger>
-          <i
-            class="ri-close-line text-2xl hover:text-red-500 transition-colors cursor-pointer"
-            @click="handleCloseBar"
-          ></i>
+          <div class="icon-btn close-btn" @click="handleCloseBar">
+            <i class="ri-close-line text-2xl transition-colors cursor-pointer"></i>
+          </div>
         </template>
         Close
       </n-tooltip>
@@ -191,6 +145,7 @@ import { computed, ref, watch } from 'vue';
 
 import MusicFullWrapper from '@/components/lyric/MusicFullWrapper.vue';
 import AdvancedControlsPopover from '@/components/player/AdvancedControlsPopover.vue';
+import AnimatedPlayPause from '@/components/player/AnimatedPlayPause.vue';
 import {
   allTime,
   artistList,
@@ -209,7 +164,7 @@ import { useVolumeControl } from '@/hooks/useVolumeControl';
 import { audioService } from '@/services/audioService';
 import { usePlayerStore } from '@/store/modules/player';
 import { useSettingsStore } from '@/store/modules/settings';
-import { getImgUrl, isDesktop, isMobile, secondToMinute, setAnimationClass } from '@/utils';
+import { getImgUrl, isDesktop, isCompact, secondToMinute, setAnimationClass } from '@/utils';
 
 const playerStore = usePlayerStore();
 const settingsStore = useSettingsStore();
@@ -334,8 +289,8 @@ const handleArtistClick = (id: string | undefined) => {
   navigateToArtist(id);
 };
 
-const openPlayListDrawer = () => {
-  playerStore.setPlayListDrawerVisible(true);
+const openQueue = () => {
+  playerStore.setQueueVisible(true);
 };
 </script>
 
@@ -385,7 +340,7 @@ const openPlayListDrawer = () => {
 }
 
 .music-buttons {
-  @apply mx-6 flex-1 flex justify-center;
+  @apply mx-6 flex-1 flex justify-center items-center;
 
   .iconfont {
     @apply text-2xl transition;
@@ -397,15 +352,52 @@ const openPlayListDrawer = () => {
     @apply hover:text-primary;
   }
 
-  @apply flex items-center;
-
   > div {
-    @apply cursor-pointer;
+    @apply cursor-pointer transition-colors duration-200;
+  }
+
+  &-prev, &-next {
+    @apply flex items-center justify-center rounded-full bg-gray-100 dark:bg-dark-300 mx-2 transition-all;
+    width: 48px;
+    height: 48px;
+    
+    .iconfont, i {
+      font-size: 28px !important;
+    }
+    
+    &:hover {
+      @apply bg-gray-200 dark:bg-dark-200;
+      transform: scale(1.05);
+    }
   }
 
   &-play {
-    @apply flex justify-center items-center w-20 h-12 rounded-full mx-4 transition text-gray-500;
-    @apply bg-gray-100 bg-opacity-60 dark:bg-gray-800 dark:bg-opacity-60 hover:bg-gray-200;
+    @apply flex justify-center items-center rounded-full mx-4 transition-all;
+    width: 64px;
+    height: 64px;
+    
+    &.play-animated {
+      background: transparent !important;
+      &:hover {
+        background: transparent !important;
+        transform: scale(1.05);
+      }
+      :deep(.animated-play-pause) {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+      }
+    }
+  }
+}
+
+.icon-btn {
+  @apply flex items-center justify-center rounded-full transition-all w-10 h-10 mx-1;
+  &:hover {
+    @apply bg-gray-100 dark:bg-dark-300 text-primary;
+  }
+  &.close-btn:hover {
+    @apply text-red-500;
   }
 }
 
@@ -468,7 +460,7 @@ const openPlayListDrawer = () => {
   }
 }
 
-.mobile {
+.compact {
   .music-play-bar {
     @apply px-4 bottom-[56px] transition-all duration-300;
   }

@@ -178,19 +178,17 @@ import {
   type YTMSong
 } from '@/api/ytmusic';
 import logoImg from '@/assets/logo.png';
-import { usePlaylistStore } from '@/store/modules/playlist';
+import { useQueueStore } from '@/store/modules/queue';
 import type { SongResult } from '@/types/music';
 
 defineOptions({ name: 'Charts' });
 
-// ─── State ────────────────────────────────────────────────────────────────────
 
 const sections = ref<YTMSection[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
-const playlistStore = usePlaylistStore();
+const playlistStore = useQueueStore();
 
-// ─── Methods ──────────────────────────────────────────────────────────────────
 
 function getSubtitle(item: YTMSong | YTMPlaylist): string {
   if (isYTMSong(item)) {

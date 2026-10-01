@@ -1,21 +1,21 @@
 <template>
-  <mobile-layout v-if="isPhone && !settingsStore.setData?.tabletMode" :is-phone="isPhone" />
+  <compact-layout v-if="isPhone && !settingsStore.setData?.tabletMode" :is-phone="isPhone" />
 
-  <div v-else class="layout-page" :class="{ mobile: settingsStore.isMobile }">
+  <div v-else class="layout-page" :class="{ compact: settingsStore.isCompact }">
     <div id="layout-main" class="layout-main">
       <title-bar />
       <div class="layout-main-page">
-        <app-menu v-if="!settingsStore.isMobile" class="menu" :menus="menuStore.menus" />
+        <app-menu v-if="!settingsStore.isCompact" class="menu" :menus="menuStore.menus" />
         <div class="main">
           <div
             class="main-content"
             :native-scrollbar="false"
-            :class="{ 'mobile-content': !shouldShowMobileMenu }"
+            :class="{ 'compact-content': !shouldShowCompactMenu }"
           >
             <router-view
               v-slot="{ Component }"
               class="main-page"
-              :class="route.meta.noScroll && !settingsStore.isMobile ? 'pr-3' : ''"
+              :class="route.meta.noScroll && !settingsStore.isCompact ? 'pr-3' : ''"
             >
               <keep-alive :include="keepAliveInclude">
                 <component :is="Component" />
@@ -24,27 +24,27 @@
           </div>
           <play-bottom />
 
-          <app-menu v-if="shouldShowMobileMenu" class="menu mobile-menu" :menus="menuStore.menus" />
+          <app-menu v-if="shouldShowCompactMenu" class="menu compact-menu" :menus="menuStore.menus" />
         </div>
       </div>
 
       <template v-if="!settingsStore.isMiniMode">
         <play-bar
-          v-if="!settingsStore.isMobile"
+          v-if="!settingsStore.isCompact"
           v-show="isPlay"
           :style="playerStore.musicFull ? 'bottom: 0;' : ''"
         />
-        <mobile-play-bar
+        <compact-play-bar
           v-else
           v-show="isPlay"
-          :style="settingsStore.isMobile && playerStore.musicFull ? 'bottom: 0;' : ''"
+          :style="settingsStore.isCompact && playerStore.musicFull ? 'bottom: 0;' : ''"
         />
       </template>
     </div>
     <update-modal v-if="isDesktop()" />
-    <sleep-timer-top v-if="!settingsStore.isMobile" />
+    <sleep-timer-top v-if="!settingsStore.isCompact" />
 
-    <playing-list-drawer />
+    <queue />
   </div>
 </template>
 
@@ -64,7 +64,7 @@ import { isDesktop } from '@/utils';
 
 import AppMenu from './components/AppMenu.vue';
 import TitleBar from './components/TitleBar.vue';
-import MobileLayout from './MobileLayout.vue';
+import CompactLayout from './CompactLayout.vue';
 
 const keepAliveInclude = computed(() => {
   const allRoutes = [...homeRouter, ...otherRouter];
@@ -82,9 +82,9 @@ const keepAliveInclude = computed(() => {
 });
 
 const PlayBar = defineAsyncComponent(() => import('@/components/player/PlayBar.vue'));
-const MobilePlayBar = defineAsyncComponent(() => import('@/components/player/MobilePlayBar.vue'));
-const PlayingListDrawer = defineAsyncComponent(
-  () => import('@/components/player/PlayingListDrawer.vue')
+const CompactPlayBar = defineAsyncComponent(() => import('@/components/player/CompactPlayBar.vue'));
+const Queue = defineAsyncComponent(
+  () => import('@/components/player/Queue.vue')
 );
 
 const playerStore = usePlayerStore();
@@ -94,15 +94,15 @@ const menuStore = useMenuStore();
 const isPlay = computed(() => playerStore.playMusic && playerStore.playMusic.id);
 const route = useRoute();
 
-const shouldShowMobileMenu = computed(() => {
+const shouldShowCompactMenu = computed(() => {
   const menuPaths = menuStore.menus.map((item: any) => item.path);
 
-  return menuPaths.includes(route.path) && settingsStore.isMobile && !playerStore.musicFull;
+  return menuPaths.includes(route.path) && settingsStore.isCompact && !playerStore.musicFull;
 });
 
-provide('shouldShowMobileMenu', shouldShowMobileMenu);
+provide('shouldShowCompactMenu', shouldShowCompactMenu);
 
-const isPhone = computed(() => settingsStore.isMobile);
+const isPhone = computed(() => settingsStore.isCompact);
 
 onMounted(() => {
   settingsStore.initializeSettings();
@@ -139,7 +139,7 @@ onMounted(() => {
   @apply h-full;
 }
 
-.mobile {
+.compact {
   .main-content {
     height: calc(100vh - 130px);
     overflow: auto;
@@ -148,7 +148,7 @@ onMounted(() => {
     position: relative;
   }
 
-  .mobile-content {
+  .compact-content {
     height: calc(100vh - 75px);
     position: relative;
   }

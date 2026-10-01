@@ -1,5 +1,5 @@
 <template>
-  <div class="mobile-header" :class="{ 'safe-area-top': hasSafeArea }">
+  <div class="compact-header" :class="{ 'safe-area-top': hasSafeArea }">
     <div class="header-left">
       <div v-if="showBack" class="header-btn" @click="goBack">
         <i class="ri-arrow-left-s-line"></i>
@@ -48,7 +48,7 @@ const goBack = () => {
 };
 
 const openSearch = () => {
-  router.push('/mobile-search');
+  router.push('/compact-search');
 };
 
 const openSettings = () => {
@@ -57,7 +57,7 @@ const openSettings = () => {
 </script>
 
 <style lang="scss" scoped>
-.mobile-header {
+.compact-header {
   @apply flex items-center justify-between px-4 py-3;
   @apply bg-light dark:bg-black;
   @apply border-b border-gray-100 dark:border-gray-800;

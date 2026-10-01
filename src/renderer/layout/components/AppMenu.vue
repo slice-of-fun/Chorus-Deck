@@ -10,7 +10,7 @@
         <div v-for="(item, index) in menus" :key="item.path" class="app-menu-item">
           <n-tooltip
             :delay="200"
-            :disabled="settingsStore.setData.isMenuExpanded || isMobile"
+            :disabled="settingsStore.setData.isMenuExpanded || isCompact"
             placement="right"
           >
             <template #trigger>
@@ -44,7 +44,7 @@ import { useRoute } from 'vue-router';
 
 import icon from '@/assets/logo.png';
 import { useSettingsStore } from '@/store';
-import { isMobile } from '@/utils';
+import { isCompact } from '@/utils';
 import { t } from '@/utils/i18n';
 
 const props = defineProps({
@@ -166,7 +166,7 @@ const toggleMenu = () => {
   }
 }
 
-.mobile {
+.compact {
   .app-menu {
     max-width: 100%;
     width: 100vw;

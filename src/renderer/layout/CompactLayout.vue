@@ -1,25 +1,25 @@
 <template>
-  <div id="layout-main" class="mobile-layout mobile" :class="{ 'has-safe-area': isPhone }">
-    <mobile-header />
+  <div id="layout-main" class="compact-layout compact" :class="{ 'has-safe-area': isPhone }">
+    <compact-header />
 
     <div
-      class="mobile-content"
+      class="compact-content"
       :class="{ 'has-bottom-menu': shouldShowBottomMenu, 'has-player': isPlay }"
     >
-      <router-view v-slot="{ Component }" class="mobile-page">
+      <router-view v-slot="{ Component }" class="compact-page">
         <keep-alive :include="keepAliveInclude">
           <component :is="Component" />
         </keep-alive>
       </router-view>
     </div>
 
-    <mobile-play-bar v-if="isPlay" />
+    <compact-play-bar v-if="isPlay" />
 
-    <div v-if="shouldShowBottomMenu" class="mobile-bottom-menu">
-      <app-menu class="mobile-menu" :menus="menuStore.menus" />
+    <div v-if="shouldShowBottomMenu" class="compact-bottom-menu">
+      <app-menu class="compact-menu" :menus="menuStore.menus" />
     </div>
 
-    <playing-list-drawer />
+    <queue />
   </div>
 </template>
 
@@ -33,10 +33,10 @@ import { useMenuStore } from '@/store/modules/menu';
 import { usePlayerStore } from '@/store/modules/player';
 
 import AppMenu from './components/AppMenu.vue';
-import MobileHeader from './components/MobileHeader.vue';
-const MobilePlayBar = defineAsyncComponent(() => import('@/components/player/MobilePlayBar.vue'));
-const PlayingListDrawer = defineAsyncComponent(
-  () => import('@/components/player/PlayingListDrawer.vue')
+import CompactHeader from './components/CompactHeader.vue';
+const CompactPlayBar = defineAsyncComponent(() => import('@/components/player/CompactPlayBar.vue'));
+const Queue = defineAsyncComponent(
+  () => import('@/components/player/Queue.vue')
 );
 
 const props = defineProps<{
@@ -56,7 +56,7 @@ const shouldShowBottomMenu = computed(() => {
   return menuPaths.includes(route.path) && !playerStore.musicFull;
 });
 
-provide('shouldShowMobileMenu', shouldShowBottomMenu);
+provide('shouldShowCompactMenu', shouldShowBottomMenu);
 
 const keepAliveInclude = computed(() => {
   const allRoutes = [...homeRouter, ...otherRouter];
@@ -70,27 +70,27 @@ const keepAliveInclude = computed(() => {
 </script>
 
 <style lang="scss" scoped>
-.mobile-layout {
+.compact-layout {
   @apply w-screen h-screen flex flex-col;
   @apply bg-light dark:bg-black;
   @apply overflow-hidden;
   position: relative;
 }
 
-.mobile-content {
+.compact-content {
   @apply flex-1 overflow-auto;
 }
 
-.mobile-page {
+.compact-page {
   @apply h-full;
 }
 
-.mobile-bottom-menu {
+.compact-bottom-menu {
   @apply bg-light dark:bg-black;
   @apply border-t border-gray-200 dark:border-gray-800;
 }
 
-.mobile-menu {
+.compact-menu {
   @apply w-full;
 }
 </style>

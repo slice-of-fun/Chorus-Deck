@@ -8,10 +8,10 @@
     :z-index="9998"
   >
     <div
-      id="mobile-drawer-target"
+      id="compact-drawer-target"
       :class="[
         config.theme,
-        `cover-style-${config.mobileCoverStyle}`,
+        `cover-style-${config.compactCoverStyle}`,
         { 'is-landscape': isLandscape },
         { 'is-dark': isDark }
       ]"
@@ -47,7 +47,7 @@
         </div>
       </div>
 
-      <mobile-player-settings v-model:visible="showPlayerSettings" />
+      <compact-player-settings v-model:visible="showPlayerSettings" />
 
       <transition name="fade">
         <div v-if="showFullLyrics && !isLandscape" class="fullscreen-lyrics" :class="config.theme">
@@ -113,9 +113,9 @@
           <div
             class="cover-container"
             :class="{
-              'record-style': config.mobileCoverStyle === 'record',
-              'square-style': config.mobileCoverStyle === 'square',
-              'full-style': config.mobileCoverStyle === 'full',
+              'record-style': config.compactCoverStyle === 'record',
+              'square-style': config.compactCoverStyle === 'square',
+              'full-style': config.compactCoverStyle === 'full',
               paused: !play
             }"
             @click="cycleCoverStyle"
@@ -127,7 +127,7 @@
                 lazy
                 preview-disabled
                 class="cover-image"
-                :class="{ 'full-blend': config.mobileCoverStyle === 'full' }"
+                :class="{ 'full-blend': config.compactCoverStyle === 'full' }"
               />
             </div>
           </div>
@@ -184,9 +184,9 @@
           <div
             class="landscape-cover-container cover-container"
             :class="{
-              'record-style': config.mobileCoverStyle === 'record',
-              'square-style': config.mobileCoverStyle === 'square',
-              'full-style': config.mobileCoverStyle === 'full',
+              'record-style': config.compactCoverStyle === 'record',
+              'square-style': config.compactCoverStyle === 'square',
+              'full-style': config.compactCoverStyle === 'full',
               paused: !play
             }"
             @click="cycleCoverStyle"
@@ -197,7 +197,7 @@
                 lazy
                 preview-disabled
                 class="cover-image"
-                :class="{ 'full-blend': config.mobileCoverStyle === 'full' }"
+                :class="{ 'full-blend': config.compactCoverStyle === 'full' }"
               />
             </div>
           </div>
@@ -298,14 +298,14 @@
           </div>
 
           <div class="landscape-main-controls">
-            <div class="main-button prev" @click="prevSong">
-              <i class="ri-skip-back-fill"></i>
+            <div class="main-button prev" style="width: 48px; height: 48px;" :style="{ color: playMusic?.primaryColor }" @click="prevSong">
+              <i class="ri-skip-back-fill" style="font-size: 36px;"></i>
             </div>
-            <div class="main-button play-pause" @click="togglePlay">
-              <i :class="playIcon"></i>
+            <div class="main-button play-pause play-animated" style="width: 64px; height: 64px; border: none; background: none; padding: 0;" @click="togglePlay">
+              <AnimatedPlayPause :is-playing="play" :bg-color="playMusic?.primaryColor" />
             </div>
-            <div class="main-button next" @click="nextSong">
-              <i class="ri-skip-forward-fill"></i>
+            <div class="main-button next" style="width: 48px; height: 48px;" :style="{ color: playMusic?.primaryColor }" @click="nextSong">
+              <i class="ri-skip-forward-fill" style="font-size: 36px;"></i>
             </div>
           </div>
         </div>
@@ -351,14 +351,14 @@
           <div class="side-button" @click="togglePlayMode">
             <i :class="[playModeIcon, { 'intelligence-active': playMode === 3 }]"></i>
           </div>
-          <div class="main-button prev" @click="prevSong">
-            <i class="ri-skip-back-fill"></i>
+          <div class="main-button prev" style="width: 48px; height: 48px;" :style="{ color: playMusic?.primaryColor }" @click="prevSong">
+            <i class="ri-skip-back-fill" style="font-size: 36px;"></i>
           </div>
-          <div class="main-button play-pause" @click="togglePlay">
-            <i :class="playIcon"></i>
+          <div class="main-button play-pause play-animated" style="width: 64px; height: 64px; border: none; background: none; padding: 0;" @click="togglePlay">
+            <AnimatedPlayPause :is-playing="play" :bg-color="playMusic?.primaryColor" />
           </div>
-          <div class="main-button next" @click="nextSong">
-            <i class="ri-skip-forward-fill"></i>
+          <div class="main-button next" style="width: 48px; height: 48px;" :style="{ color: playMusic?.primaryColor }" @click="nextSong">
+            <i class="ri-skip-forward-fill" style="font-size: 36px;"></i>
           </div>
           <div class="side-button" @click="showPlaylist">
             <i class="ri-play-list-fill"></i>
@@ -373,7 +373,8 @@
 import { useWindowSize } from '@vueuse/core';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
-import MobilePlayerSettings from '@/components/player/MobilePlayerSettings.vue';
+import CompactPlayerSettings from '@/components/player/CompactPlayerSettings.vue';
+import AnimatedPlayPause from '@/components/player/AnimatedPlayPause.vue';
 import {
   allTime,
   artistList,
@@ -663,9 +664,9 @@ const handleTouchEnd = () => {
 
 const cycleCoverStyle = () => {
   const styles = ['record', 'square', 'full'];
-  const currentIdx = styles.indexOf(config.value.mobileCoverStyle);
+  const currentIdx = styles.indexOf(config.value.compactCoverStyle);
   const nextIdx = (currentIdx + 1) % styles.length;
-  config.value.mobileCoverStyle = styles[nextIdx] as 'record' | 'square' | 'full';
+  config.value.compactCoverStyle = styles[nextIdx] as 'record' | 'square' | 'full';
 
   const container = document.querySelector('.cover-container');
   if (container) {
@@ -1072,7 +1073,7 @@ const getWordStyle = (lineIndex: number, _wordIndex: number, word: any) => {
 </script>
 
 <style scoped lang="scss">
-#mobile-drawer-target {
+#compact-drawer-target {
   @apply top-0 left-0 absolute overflow-hidden flex flex-col w-full h-full;
   animation-duration: 300ms;
 
@@ -1501,13 +1502,13 @@ const getWordStyle = (lineIndex: number, _wordIndex: number, word: any) => {
   }
 }
 
-#mobile-drawer-target.cover-style-record {
+#compact-drawer-target.cover-style-record {
   .ios-layout-container .cover-container {
     @apply mt-4;
   }
 }
 
-#mobile-drawer-target.cover-style-full {
+#compact-drawer-target.cover-style-full {
   .ios-layout-container {
     @apply pt-0;
   }
@@ -1758,7 +1759,7 @@ const getWordStyle = (lineIndex: number, _wordIndex: number, word: any) => {
   }
 }
 
-#mobile-drawer-target {
+#compact-drawer-target {
   &.is-landscape {
     .landscape-lyrics-section {
       .landscape-lyrics-scroller {

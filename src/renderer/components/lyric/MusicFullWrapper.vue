@@ -6,11 +6,11 @@
 import { computed } from 'vue';
 
 import MusicFull from '@/components/lyric/MusicFull.vue';
-import MusicFullMobile from '@/components/lyric/MusicFullMobile.vue';
-import { isMobile } from '@/utils';
+import MusicFullCompact from '@/components/lyric/MusicFullCompact.vue';
+import { isCompact } from '@/utils';
 
 const componentToUse = computed(() => {
-  return isMobile.value ? MusicFullMobile : MusicFull;
+  return isCompact.value ? MusicFullCompact : MusicFull;
 });
 
 const musicFullRef = ref<InstanceType<typeof MusicFull>>();

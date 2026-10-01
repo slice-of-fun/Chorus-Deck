@@ -52,7 +52,7 @@ const emit = defineEmits<{
   @apply w-7 h-7 flex items-center justify-center rounded-lg bg-white dark:bg-neutral-800 border border-white/20 dark:border-neutral-700/40 shadow-md backdrop-blur-2xl cursor-pointer transition-all duration-150 text-gray-700 dark:text-gray-200 hover:text-primary/80 hover:text-white hover:text-primary/60 active:scale-95 bg-opacity-40 dark:hover:text-primary/80 dark:hover:text-white dark:hover:text-primary/60 dark:hover:bg-opacity-40;
 }
 
-.mobile {
+.compact {
   .lyric-correction {
     @apply opacity-100;
   }

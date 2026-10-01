@@ -3,116 +3,72 @@
     class="mini-play-bar"
     :class="{ 'pure-mode': pureModeEnabled, 'mini-mode': settingsStore.isMiniMode }"
   >
+
     <div class="mini-bar-container">
-      <div class="album-cover" @click="setMusicFull">
-        <n-image
-          :src="getImgUrl(playMusic?.picUrl, '100y100')"
-          :fallback-src="logoImg"
-          class="cover-img"
-          preview-disabled
-        />
-      </div>
-
-      <div class="song-info" @click="setMusicFull">
-        <div class="song-title" v-html="playMusic?.name || 'Not played'"></div>
-        <div class="song-artist">
-          <span
-            v-for="(artists, artistsindex) in artistList"
-            :key="artistsindex"
-            class="cursor-pointer hover:text-primary"
-            @click.stop="handleArtistClick(artists.id)"
-          >
-            {{ artists.name }}{{ artistsindex < artistList.length - 1 ? ' / ' : '' }}
-          </span>
-        </div>
-      </div>
-
-      <div class="control-buttons">
-        <div class="control-button previous" @click="handlePrev">
-          <i class="ri-skip-back-fill"></i>
-        </div>
-        <div class="control-button play" @click="playMusicEvent">
-          <i class="" :class="play ? 'ri-pause-fill' : 'ri-play-fill'"></i>
-        </div>
-        <div class="control-button next" @click="handleNext">
-          <i class="ri-skip-forward-fill"></i>
-        </div>
-      </div>
-
-      <div class="function-buttons">
-        <div class="function-button">
-          <i
-            class="ri-heart-fill"
-            :class="{ 'like-active': isFavorite }"
-            @click="toggleFavorite"
-          ></i>
-        </div>
-
-        <n-popover
-          v-if="component"
-          trigger="hover"
-          :z-index="99999999"
-          placement="top"
-          :show-arrow="false"
-        >
-          <template #trigger>
-            <div class="function-button" @click="mute" @wheel.prevent="handleVolumeWheel">
-              <i class="" :class="getVolumeIcon"></i>
-            </div>
-          </template>
-          <div class="volume-slider-wrapper transparent-popover">
-            <n-slider
-              v-model:value="volumeSlider"
-              :step="0.01"
-              :tooltip="false"
-              :disabled="isMuted"
-              vertical
-              @wheel.prevent="handleVolumeWheel"
-            ></n-slider>
-          </div>
-        </n-popover>
-
-        <div v-if="!component" class="function-button" @click="togglePlaylist">
-          <i class="ri-play-list-fill"></i>
-        </div>
-      </div>
-
-      <div v-if="!component" class="close-button" @click="handleClose">
-        <i class="ri-close-line"></i>
-      </div>
-    </div>
-
-    <div
-      class="progress-bar"
-      @click="handleProgressClick"
-      @mousemove="handleProgressHover"
-      @mouseleave="handleProgressLeave"
-    >
-      <div class="progress-track"></div>
-      <div class="progress-fill" :style="{ width: `${(nowTime / allTime) * 100}%` }"></div>
-    </div>
-
-    <div
-      v-if="!component"
-      v-show="isPlaylistOpen"
-      class="playlist-container"
-      :class="{ 'mini-mode-list': settingsStore.isMiniMode }"
-    >
-      <n-scrollbar ref="palyListRef" class="playlist-scrollbar">
-        <div class="playlist-items">
-          <div v-for="item in playList" :key="item.id" class="music-play-list-content">
-            <div class="flex items-center justify-between">
-              <song-item :key="item.id" class="flex-1" :item="item" mini></song-item>
-              <div class="delete-btn" @click.stop="handleDeleteSong(item)">
-                <i
-                  class="ri-delete-bin-line text-gray-400 hover:text-red-500 transition-colors"
-                ></i>
-              </div>
-            </div>
+      <div class="section-left">
+        <div class="album-cover-wrapper">
+          <svg class="circular-progress" viewBox="0 0 100 100">
+            <circle class="progress-bg" cx="50" cy="50" r="46" />
+            <circle class="progress-value" cx="50" cy="50" r="46" :stroke-dasharray="289.02" :stroke-dashoffset="289.02 - (289.02 * (nowTime / allTime))" :stroke="playMusic?.primaryColor || 'var(--primary-color)'" />
+          </svg>
+          <div class="album-cover">
+            <n-image
+              :src="getImgUrl(playMusic?.picUrl, '100y100')"
+              :fallback-src="logoImg"
+              class="cover-img"
+              preview-disabled
+            />
           </div>
         </div>
-      </n-scrollbar>
+
+        <div class="song-info">
+          <div class="song-title" v-html="playMusic?.name || 'Not played'"></div>
+          <div class="song-artist">
+            <span
+              v-for="(artists, artistsindex) in artistList"
+              :key="artistsindex"
+              class="cursor-pointer hover:text-primary"
+              @click.stop="handleArtistClick(artists.id)"
+            >
+              {{ artists.name }}{{ artistsindex < artistList.length - 1 ? ' / ' : '' }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-center">
+        <div class="control-buttons">
+          <div class="control-button" :class="{ 'active': playerStore.queueVisible && activeTab === 'lyrics' }" @click="toggleLyrics">
+            <i class="ri-mic-line"></i>
+          </div>
+          <div class="control-button previous" :style="{ color: playMusic?.primaryColor }" @click="handlePrev">
+            <i class="ri-skip-back-fill"></i>
+          </div>
+          
+          <div class="control-button play-pause" @click="playMusicEvent">
+            <AnimatedPlayPause 
+              :is-playing="play" 
+              :bg-color="playMusic?.primaryColor || 'var(--primary-color)'"
+              :icon-color="playMusic?.primaryColor || 'var(--primary-color)'"
+            />
+          </div>
+
+          <div class="control-button next" :style="{ color: playMusic?.primaryColor }" @click="handleNext">
+            <i class="ri-skip-forward-fill"></i>
+          </div>
+          <div class="control-button" :class="{ 'active': playerStore.queueVisible && activeTab === 'queue' }" @click="togglePlaylist">
+            <i class="ri-play-list-line"></i>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-right">
+        <div class="control-button circular-restore" @click="restoreMainWindow">
+          <i class="ri-external-link-line"></i>
+        </div>
+      </div>
     </div>
+
   </div>
 </template>
 
@@ -122,6 +78,7 @@ import { useRouter } from 'vue-router';
 
 import logoImg from '@/assets/logo.png';
 import SongItem from '@/components/common/SongItem.vue';
+import AnimatedPlayPause from '@/components/player/AnimatedPlayPause.vue';
 import { allTime, artistList, nowTime, playMusic } from '@/hooks/MusicHook';
 import { useArtist } from '@/hooks/useArtist';
 import { useFavorite } from '@/hooks/useFavorite';
@@ -138,6 +95,11 @@ const router = useRouter();
 const { navigateToArtist } = useArtist();
 
 const { isPlaying: play, playMusicEvent, handleNext, handlePrev } = usePlaybackControl();
+const activeTab = ref('queue');
+
+window.addEventListener('queue-tab-changed', (e: any) => {
+  activeTab.value = e.detail;
+});
 
 const {
   isMuted,
@@ -159,79 +121,47 @@ withDefaults(
   }
 );
 
-const handleClose = async () => {
-  try {
-    const { stopAll } = await import('@/services/playbackController');
-    await stopAll();
-  } catch (error) {
-    console.error('Failed to stop playback:', error);
-  }
-
+const restoreMainWindow = () => {
   if (settingsStore.isMiniMode) {
     settingsStore.setMiniMode(false);
     try {
       router.push('/');
     } catch(e) {}
-    window.api.restore();
+    if (window.api && typeof window.api.resizeWindow === 'function') {
+      window.api.resizeWindow(1200, 800);
+    }
+    if (window.api && typeof window.api.restore === 'function') {
+      window.api.restore();
+    }
   }
 };
 
 const playList = computed(() => playerStore.playList as SongResult[]);
 
-const palyListRef = useTemplateRef('palyListRef') as any;
-const isPlaylistOpen = ref(false);
-
 const togglePlaylist = () => {
-  isPlaylistOpen.value = !isPlaylistOpen.value;
-  console.log('Switch playlist status', isPlaylistOpen.value);
-
-  if (settingsStore.isMiniMode) {
-    try {
-      if (isPlaylistOpen.value) {
-        document.body.style.height = 'auto';
-        document.body.style.overflow = 'visible';
-
-        if (window.api && typeof window.api.resizeMiniWindow === 'function') {
-          window.api.resizeMiniWindow(true);
-        }
-      } else {
-        document.body.style.height = '64px';
-        document.body.style.overflow = 'hidden';
-
-        if (window.api && typeof window.api.resizeMiniWindow === 'function') {
-          window.api.resizeMiniWindow(false);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to resize window:', error);
-    }
-  }
-
-  if (isPlaylistOpen.value) {
-    scrollToPlayList();
+  if (playerStore.queueVisible && activeTab.value === 'queue') {
+    playerStore.setQueueVisible(false);
+  } else {
+    activeTab.value = 'queue';
+    playerStore.setQueueVisible(true);
+    window.dispatchEvent(new CustomEvent('open-queue-tab', { detail: 'queue' }));
   }
 };
 
-const scrollToPlayList = () => {
-  setTimeout(() => {
-    const currentIndex = playerStore.playListIndex;
-    const itemHeight = 69;
-    palyListRef.value?.scrollTo({
-      top: currentIndex * itemHeight,
-      behavior: 'smooth'
-    });
-  }, 50);
+const toggleLyrics = () => {
+  if (playerStore.queueVisible && activeTab.value === 'lyrics') {
+    playerStore.setQueueVisible(false);
+  } else {
+    activeTab.value = 'lyrics';
+    playerStore.setQueueVisible(true);
+    window.dispatchEvent(new CustomEvent('open-queue-tab', { detail: 'lyrics' }));
+  }
 };
 
-const handleDeleteSong = (song: SongResult) => {
-  if (song.id === playMusic.value.id) {
-    playerStore.nextPlay();
-  }
-  playerStore.removeFromPlayList(song.id);
+const updateWindowSize = () => {
 };
 
 const handleArtistClick = (id: string | undefined) => {
-  navigateToArtist(id);
 };
 
 const handleProgressClick = (e: MouseEvent) => {
@@ -256,200 +186,174 @@ const handleProgressLeave = () => {
 };
 
 const setMusicFull = () => {
-  playerStore.setMusicFull(true);
+  if (settingsStore.isMiniMode) {
+    restoreMainWindow();
+  } else {
+    playerStore.setMusicFull(true);
+  }
 };
 </script>
 
 <style lang="scss" scoped>
 .mini-play-bar {
-  @apply w-full flex flex-col bg-light-200 dark:bg-dark-200 shadow-md bg-opacity-60 backdrop-blur dark:bg-opacity-60;
-  height: 64px;
-  border-radius: 8px;
+  @apply w-full flex flex-col bg-black;
+  height: 72px;
+  border-radius: 9999px;
   position: relative;
+  overflow: visible;
 
   &.mini-mode {
     @apply shadow-lg;
     -webkit-app-region: drag;
 
+    .album-cover-wrapper, .song-info, .control-button {
+      -webkit-app-region: no-drag;
+    }
+    
     .mini-bar-container {
-      @apply px-2;
+      @apply px-4;
     }
 
     .song-info {
-      width: 120px;
+      flex: 1;
+      margin-right: 8px;
 
       .song-title {
-        @apply text-xs font-medium;
+        @apply text-base font-bold;
+        color: #ffffff;
       }
 
       .song-artist {
-        @apply text-xs opacity-50;
-      }
-    }
-
-    .function-buttons {
-      -webkit-app-region: no-drag;
-      @apply space-x-1 ml-1;
-
-      .function-button {
-        width: 28px;
-        height: 28px;
-
-        .iconfont {
-          @apply text-base;
-        }
+        @apply text-sm font-medium opacity-70;
+        color: #ffffff;
       }
     }
 
     .control-buttons {
-      @apply mx-1 space-x-0.5;
-      -webkit-app-region: no-drag;
+      @apply space-x-2;
       .control-button {
-        width: 28px;
-        height: 28px;
+        width: 36px;
+        height: 36px;
+        color: #ffffff;
+        background: transparent;
 
-        .iconfont {
-          @apply text-base;
+        &.active {
+          background-color: rgba(255, 255, 255, 0.2);
         }
-      }
-    }
 
-    .close-button {
-      -webkit-app-region: no-drag;
-      width: 28px;
-      height: 28px;
-    }
+        .iconfont, i {
+          @apply text-xl;
+        }
 
-    .album-cover {
-      @apply flex-shrink-0 mr-2;
-      width: 36px;
-      height: 36px;
-      -webkit-app-region: no-drag;
-    }
-
-    .progress-bar {
-      height: 3px !important;
-      transform: scaleY(0.67);
-
-      &:hover {
-        transform: scaleY(1);
+        &.play-pause {
+          width: 52px;
+          height: 52px;
+          i { font-size: 28px; }
+        }
       }
     }
   }
 }
 
 .mini-bar-container {
-  @apply flex items-center px-3 h-full relative;
+  @apply flex items-center px-2 h-full relative justify-between;
+  flex: 1;
+}
+
+.section-left {
+  @apply flex items-center flex-1 min-w-0;
+}
+
+.section-center {
+  @apply flex items-center justify-end pr-2;
+}
+
+.section-right {
+  @apply flex items-center justify-center pl-2 ml-2 border-l border-white/10;
+}
+
+.album-cover-wrapper {
+  @apply relative flex items-center justify-center flex-shrink-0 mr-4 cursor-pointer;
+  width: 56px;
+  height: 56px;
+
+  .circular-progress {
+    @apply absolute inset-0;
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+
+    .progress-bg {
+      fill: none;
+      stroke: rgba(255, 255, 255, 0.1);
+      stroke-width: 8;
+    }
+
+    .progress-value {
+      fill: none;
+      stroke-width: 8;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 0.1s linear;
+    }
+  }
 }
 
 .album-cover {
-  @apply flex-shrink-0 mr-3 cursor-pointer;
-  width: 40px;
-  height: 40px;
+  @apply relative rounded-full overflow-hidden flex items-center justify-center;
+  width: 44px;
+  height: 44px;
+  z-index: 1;
 
   .cover-img {
-    @apply w-full h-full rounded-md object-cover pointer-events-none;
+    @apply w-full h-full object-cover pointer-events-none;
   }
 }
 
 .song-info {
-  @apply flex flex-col justify-center min-w-0 flex-shrink mr-4 cursor-pointer;
-  width: 200px;
+  @apply flex flex-col justify-center min-w-0 cursor-pointer;
 
   .song-title {
-    @apply text-sm font-medium truncate;
-    color: var(--text-color-1, #000);
+    @apply text-base font-bold truncate;
+    color: #ffffff;
   }
 
   .song-artist {
-    @apply text-xs truncate mt-0.5 opacity-60;
-    color: var(--text-color-2, #666);
+    @apply text-sm truncate mt-0.5 font-medium opacity-70;
+    color: #ffffff;
   }
 }
 
 .control-buttons {
-  @apply flex items-center space-x-1 mx-4;
+  @apply flex items-center space-x-3;
 }
 
 .control-button {
-  @apply flex items-center justify-center rounded-full transition-all duration-200 border-0 bg-transparent cursor-pointer text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200;
-  width: 32px;
-  height: 32px;
+  @apply flex items-center justify-center rounded-full transition-all duration-200 border-0 bg-transparent cursor-pointer;
+  width: 36px;
+  height: 36px;
+  color: #ffffff;
 
   &:hover {
-    @apply bg-gray-100 dark:bg-dark-300;
+    transform: scale(1.1);
   }
-
-  &.play {
-    @apply bg-primary text-white;
+  
+  &.play-pause {
+    width: 44px;
+    height: 44px;
+    background-color: transparent;
+    padding: 0;
+  }
+  
+  &.circular-restore {
+    background-color: rgba(255, 255, 255, 0.1);
     &:hover {
-      @apply text-primary/80;
+      background-color: rgba(255, 255, 255, 0.2);
     }
   }
 
-  .iconfont {
-    @apply text-lg;
+  i {
+    font-size: 20px;
   }
-}
-
-.function-buttons {
-  @apply flex items-center ml-auto space-x-2;
-}
-
-.function-button {
-  @apply flex items-center justify-center rounded-full transition-all duration-200 border-0 bg-transparent cursor-pointer text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200;
-  width: 32px;
-  height: 32px;
-
-  &:hover {
-    @apply bg-gray-100 dark:bg-dark-300;
-    color: var(--text-color-1, #000);
-  }
-
-  .iconfont {
-    @apply text-lg;
-  }
-}
-
-.close-button {
-  @apply flex items-center justify-center rounded-full transition-all duration-200 border-0 bg-transparent cursor-pointer ml-2;
-  width: 32px;
-  height: 32px;
-  color: var(--text-color-2, #666);
-
-  &:hover {
-    @apply bg-gray-100 dark:bg-dark-300;
-    color: var(--text-color-1, #000);
-  }
-}
-
-.progress-bar {
-  @apply relative w-full cursor-pointer;
-  height: 4px;
-  transform: scaleY(0.5);
-  transform-origin: bottom center;
-  transition: transform 0.2s ease;
-
-  &:hover {
-    transform: scaleY(1);
-  }
-}
-
-.progress-track {
-  @apply absolute inset-x-0 bottom-0 transition-colors duration-200;
-  height: 4px;
-  background: rgba(0, 0, 0, 0.1);
-
-  .dark & {
-    background: rgba(255, 255, 255, 0.15);
-  }
-}
-
-.progress-fill {
-  @apply absolute bottom-0 left-0;
-  height: 4px;
-  background: var(--primary-color, rgb(var(--color-primary)));
-  transition: background-color 0.2s ease;
 }
 
 .like-active {
@@ -505,48 +409,7 @@ const setMusicFull = () => {
   }
 }
 
-.playlist-container {
-  @apply fixed left-0 right-0 bg-white dark:bg-dark-100 overflow-hidden;
-  top: 64px;
-  height: 330px;
-  max-height: 330px;
 
-  &.mini-mode-list {
-    width: 340px;
-    @apply bg-opacity-90 dark:bg-opacity-90;
-  }
-}
-
-.music-play-list-content {
-  @apply px-2 py-1;
-
-  .delete-btn {
-    @apply p-2 rounded-full transition-colors duration-200 cursor-pointer;
-    @apply hover:bg-red-50 dark:hover:bg-red-900/20;
-
-    .iconfont {
-      @apply text-lg;
-    }
-  }
-}
-
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-
-.playlist-scrollbar {
-  height: 100%;
-}
-
-.playlist-items {
-  padding: 4px 0;
-}
 
 .dark {
   .song-info {

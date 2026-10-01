@@ -2,7 +2,7 @@
  * Home / discovery helpers for the YouTube Music browse experience.
  *
  * These previously lived in a module that was never ported, leaving
- * `views/mobile-search` importing a non-existent path. They now call the
+ * `views/compact-search` importing a non-existent path. They now call the
  * backend through the Tauri bridge.
  */
 

@@ -26,21 +26,21 @@
         </div>
 
         <div class="center-controls">
-          <button class="control-btn" @click="handlePrev">
-            <i class="ri-skip-back-fill"></i>
+          <button class="control-btn" style="width: 48px; height: 48px;" :style="{ color: playerStore.playMusic?.primaryColor }" @click="handlePrev">
+            <i class="ri-skip-back-line" style="font-size: 28px;"></i>
           </button>
 
-          <button class="control-btn play-btn" @click="playMusicEvent">
-            <i class="" :class="play ? 'ri-pause-fill' : 'ri-play-fill'"></i>
-          </button>
+          <div class="control-btn play-btn play-animated" style="width: 64px; height: 64px; background: none; border: none; padding: 0; box-shadow: none;" @click="playMusicEvent">
+            <AnimatedPlayPause :is-playing="play" :bg-color="playerStore.playMusic?.primaryColor" />
+          </div>
 
-          <button class="control-btn" @click="handleNext">
-            <i class="ri-skip-forward-fill"></i>
+          <button class="control-btn" style="width: 48px; height: 48px;" :style="{ color: playerStore.playMusic?.primaryColor }" @click="handleNext">
+            <i class="ri-skip-forward-line" style="font-size: 28px;"></i>
           </button>
         </div>
 
         <div class="right-controls">
-          <button class="control-btn small-btn" @click="openPlayListDrawer">
+          <button class="control-btn small-btn" @click="openQueue">
             <i class="ri-play-list-fill"></i>
           </button>
         </div>
@@ -76,6 +76,7 @@ import { useVolumeControl } from '@/hooks/useVolumeControl';
 import { audioService } from '@/services/audioService';
 import { usePlayerStore } from '@/store/modules/player';
 import { secondToMinute } from '@/utils';
+import AnimatedPlayPause from '@/components/player/AnimatedPlayPause.vue';
 
 const props = withDefaults(
   defineProps<{
@@ -171,8 +172,8 @@ const formatTime = (seconds: number) => {
   return secondToMinute(seconds);
 };
 
-const openPlayListDrawer = () => {
-  playerStore.setPlayListDrawerVisible(true);
+const openQueue = () => {
+  playerStore.setQueueVisible(true);
 };
 
 const isDarkMode = computed(() => props.isDark);

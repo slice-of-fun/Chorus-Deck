@@ -1,11 +1,11 @@
 <template>
   <div
     ref="playBarRef"
-    class="mobile-play-bar"
+    class="compact-play-bar"
     :class="[
       setAnimationClass('animate__fadeInUp'),
       playerStore.musicFull ? 'play-bar-expanded' : 'play-bar-mini',
-      shouldShowMobileMenu ? 'is-menu-show' : 'is-menu-hide'
+      shouldShowCompactMenu ? 'is-menu-show' : 'is-menu-hide'
     ]"
     :style="{
       color: playerStore.musicFull
@@ -17,7 +17,7 @@
           : '#000000'
     }"
   >
-    <div v-if="!playerStore.musicFull" class="mobile-mini-controls">
+    <div v-if="!playerStore.musicFull" class="compact-mini-controls">
       <div class="mini-song-info" @click="setMusicFull">
         <n-image
           :src="getImgUrl(playMusic?.picUrl, '100y100')"
@@ -41,11 +41,16 @@
       </div>
 
       <div class="mini-playback-controls">
-        <div class="mini-control-btn play" @click="playMusicEvent">
-          <i class="icon" :class="play ? 'ri-pause-fill' : 'ri-play-fill'"></i>
+        <div class="mini-control-btn prev" :style="{ color: playMusic?.primaryColor }" @click.stop="handlePrev">
+          <i class="ri-skip-back-line"></i>
         </div>
-        <i class="ri-play-list-fill mini-list-icon" @click="openPlayListDrawer"></i>
-        <i class="ri-close-line mini-list-icon" @click="handleCloseBar"></i>
+        <div class="mini-control-btn play play-animated">
+          <AnimatedPlayPause :is-playing="play" @click.stop="playMusicEvent" :bg-color="playMusic?.primaryColor" />
+        </div>
+        <div class="mini-control-btn next" :style="{ color: playMusic?.primaryColor }" @click.stop="handleNext">
+          <i class="ri-skip-forward-line"></i>
+        </div>
+        <i class="ri-play-list-line mini-list-icon ml-2" @click="openQueue"></i>
       </div>
     </div>
 
@@ -63,13 +68,14 @@ import type { Ref } from 'vue';
 import { inject, onMounted, ref, watch } from 'vue';
 
 import MusicFullWrapper from '@/components/lyric/MusicFullWrapper.vue';
+import AnimatedPlayPause from '@/components/player/AnimatedPlayPause.vue';
 import { artistList, playMusic, textColors } from '@/hooks/MusicHook';
 import { usePlaybackControl } from '@/hooks/usePlaybackControl';
 import { usePlayerStore } from '@/store/modules/player';
 import { useSettingsStore } from '@/store/modules/settings';
 import { getImgUrl, setAnimationClass } from '@/utils';
 
-const shouldShowMobileMenu = inject('shouldShowMobileMenu') as Ref<boolean>;
+const shouldShowCompactMenu = inject('shouldShowCompactMenu') as Ref<boolean>;
 
 const playerStore = usePlayerStore();
 const settingsStore = useSettingsStore();
@@ -92,18 +98,11 @@ watch(
   (_newVal) => {}
 );
 
-const openPlayListDrawer = () => {
-  playerStore.setPlayListDrawerVisible(true);
+const openQueue = () => {
+  playerStore.setQueueVisible(true);
 };
 
-const handleCloseBar = async () => {
-  try {
-    const { stopAll } = await import('@/services/playbackController');
-    await stopAll();
-  } catch (error) {
-    console.error('Failed to stop playback:', error);
-  }
-};
+
 
 const playBarRef = ref<HTMLElement | null>(null);
 onMounted(() => {
@@ -128,7 +127,7 @@ watch(
 </script>
 
 <style lang="scss" scoped>
-.mobile-play-bar {
+.compact-play-bar {
   @apply fixed bottom-[76px] left-0 w-full flex flex-col;
   z-index: 10000;
   animation-duration: 0.3s !important;
@@ -250,7 +249,7 @@ watch(
     }
   }
 
-  .mobile-mini-controls {
+  .compact-mini-controls {
     @apply flex items-center justify-between pr-4 mx-3 h-12 rounded-full bg-light-100 dark:bg-dark-100 shadow-lg;
 
     .mini-song-info {
@@ -277,14 +276,26 @@ watch(
       @apply flex items-center;
 
       .mini-control-btn {
-        @apply flex items-center justify-center cursor-pointer transition;
+        @apply flex items-center justify-center cursor-pointer transition mx-1;
+        width: 36px;
+        height: 36px;
+        
+        i {
+          font-size: 24px;
+        }
 
         &.play {
-          @apply w-9 h-9 rounded-full flex items-center justify-center mr-2;
-          @apply bg-gray-100 dark:bg-gray-800;
-
-          .iconfont {
-            @apply text-xl text-primary transition hover:text-primary;
+          @apply rounded-full flex items-center justify-center mx-1;
+          width: 48px;
+          height: 48px;
+          
+          &.play-animated {
+            background: transparent !important;
+            :deep(.animated-play-pause) {
+              width: 100%;
+              height: 100%;
+              border-radius: 50%;
+            }
           }
         }
       }
@@ -297,19 +308,19 @@ watch(
   }
 }
 
-.mobile-play-list-container {
+.compact-play-list-container {
   height: 60vh;
   width: 90vw;
   max-width: 400px;
   @apply relative rounded-t-2xl overflow-hidden;
 
-  .mobile-play-list-back {
+  .compact-play-list-back {
     backdrop-filter: blur(20px);
     @apply absolute top-0 left-0 w-full h-full;
     @apply bg-light dark:bg-black bg-opacity-90;
   }
 
-  .mobile-play-list-item {
+  .compact-play-list-item {
     @apply px-3 py-1;
   }
 }

@@ -17,7 +17,7 @@ import { type AppUpdateState, createDefaultAppUpdateState } from '../../../share
 
 export const useSettingsStore = defineStore('settings', () => {
   const theme = ref<ThemeType>(getCurrentTheme());
-  const isMobile = ref(false);
+  const isCompact = ref(false);
   const isMiniMode = ref(false);
   const showUpdateModal = ref(false);
   const appUpdateState = ref<AppUpdateState>(createDefaultAppUpdateState());
@@ -201,42 +201,43 @@ export const useSettingsStore = defineStore('settings', () => {
     }
   };
 
-  const calculateMobileStatus = () => {
+  const calculateCompactStatus = () => {
     const userAgentFlag = navigator.userAgent.match(
-      /(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i
+      /(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Compact|BlackBerry|IECompact|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i
     );
-    const isMobileWidth = window.innerWidth < 500;
-    const isMobileDevice = !!userAgentFlag || isMobileWidth;
+    const isDesktopClient = typeof window !== 'undefined' && Boolean((window as any).api);
+    const isCompactWidth = !isDesktopClient && window.innerWidth < 500;
+    const isCompactDevice = !!userAgentFlag || isCompactWidth;
     const tabletMode = setData.value?.tabletMode;
 
-    return isMobileDevice && !tabletMode;
+    return isCompactDevice && !tabletMode;
   };
 
-  const updateMobileStatus = () => {
+  const updateCompactStatus = () => {
     const menuStore = useMenuStore();
-    const shouldUseMobileStyle = calculateMobileStatus();
+    const shouldUseCompactStyle = calculateCompactStatus();
 
-    if (shouldUseMobileStyle) {
-      menuStore.setMenus(homeRouter.filter((item) => item.meta?.isMobile));
+    if (shouldUseCompactStyle) {
+      menuStore.setMenus(homeRouter.filter((item) => item.meta?.isCompact));
     } else {
       menuStore.setMenus(homeRouter);
     }
 
-    if (shouldUseMobileStyle) {
-      document.documentElement.classList.add('mobile');
+    if (shouldUseCompactStyle) {
+      document.documentElement.classList.add('compact');
       document.documentElement.classList.remove('pc');
     } else {
       document.documentElement.classList.add('pc');
-      document.documentElement.classList.remove('mobile');
+      document.documentElement.classList.remove('compact');
     }
 
-    isMobile.value = shouldUseMobileStyle;
+    isCompact.value = shouldUseCompactStyle;
   };
 
   watch(
     () => setData.value?.tabletMode,
     () => {
-      updateMobileStatus();
+      updateCompactStatus();
     },
     { immediate: true }
   );
@@ -281,13 +282,13 @@ export const useSettingsStore = defineStore('settings', () => {
   );
 
   if (typeof window !== 'undefined') {
-    window.addEventListener('resize', updateMobileStatus);
+    window.addEventListener('resize', updateCompactStatus);
   }
 
   return {
     setData,
     theme,
-    isMobile,
+    isCompact,
     isMiniMode,
     showUpdateModal,
     appUpdateState,

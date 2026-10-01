@@ -3,7 +3,7 @@
     <div
       class="flex flex-col gap-4 px-6 pt-4 pb-2 flex-shrink-0"
       :class="setAnimationClass('animate__fadeInRight')"
-      v-if="!isMobile"
+      v-if="!isCompact"
     >
       <div class="flex items-center justify-between">
         <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Play History</h2>
@@ -64,7 +64,7 @@
                 :item="item"
                 @play="handlePlay"
               />
-              <template v-if="!isMobile">
+              <template v-if="!isCompact">
                 <div
                   class="px-4 text-xs text-gray-400 dark:text-gray-600 font-medium min-w-[60px] text-right"
                   v-show="true"
@@ -159,7 +159,7 @@ import SongItem from '@/components/common/SongItem.vue';
 import { usePlayerStore } from '@/store/modules/player';
 import { usePlayHistoryStore } from '@/store/modules/playHistory';
 import type { SongResult } from '@/types/music';
-import { isMobile, setAnimationClass, setAnimationDelay } from '@/utils';
+import { isCompact, setAnimationClass, setAnimationDelay } from '@/utils';
 import { t } from '@/utils/i18n';
 
 const message = useMessage();

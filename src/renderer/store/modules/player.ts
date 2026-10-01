@@ -4,7 +4,7 @@ import { computed } from 'vue';
 import { useFavoriteStore } from './favorite';
 import { usePlayerCoreStore } from './playerCore';
 import { cleanupLegacyPlayHistoryStorage } from './playHistory';
-import { usePlaylistStore } from './playlist';
+import { useQueueStore } from './queue';
 import { type SleepTimerInfo, SleepTimerType, useSleepTimerStore } from './sleepTimer';
 
 export { type SleepTimerInfo, SleepTimerType };
@@ -12,7 +12,7 @@ export { getSongUrl, loadLrc, useLyrics, useSongDetail, useSongUrl } from '@/hoo
 
 export const usePlayerStore = defineStore('player', () => {
   const playerCore = usePlayerCoreStore();
-  const playlist = usePlaylistStore();
+  const playlist = useQueueStore();
   const favorite = useFavoriteStore();
   const sleepTimer = useSleepTimerStore();
 
@@ -29,7 +29,7 @@ export const usePlayerStore = defineStore('player', () => {
     isFmPlaying
   } = storeToRefs(playerCore);
 
-  const { playList, playListIndex, playMode, originalPlayList, playListDrawerVisible } =
+  const { playList, playListIndex, playMode, originalPlayList, queueVisible } =
     storeToRefs(playlist);
 
   const { favoriteList, favoriteIds, dislikeList } = storeToRefs(favorite);
@@ -89,7 +89,7 @@ export const usePlayerStore = defineStore('player', () => {
     playListIndex,
     playMode,
     originalPlayList,
-    playListDrawerVisible,
+    queueVisible,
 
     currentPlayList,
     currentPlayListIndex,
@@ -104,7 +104,7 @@ export const usePlayerStore = defineStore('player', () => {
     preloadNextSongs: playlist.preloadNextSongs,
     nextPlay: playlist.nextPlay,
     prevPlay: playlist.prevPlay,
-    setPlayListDrawerVisible: playlist.setPlayListDrawerVisible,
+    setQueueVisible: playlist.setQueueVisible,
     setPlay: playlist.setPlay,
 
     favoriteList,

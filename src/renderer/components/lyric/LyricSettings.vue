@@ -335,7 +335,7 @@ const handleImageUpload = (e: Event) => {
   }
 };
 
-// Exposed so MusicFull / MusicFullMobile can read and persist lyric config.
+// Exposed so MusicFull / MusicFullCompact can read and persist lyric config.
 defineExpose({ config });
 </script>
 

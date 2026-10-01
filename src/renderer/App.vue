@@ -1,5 +1,5 @@
 <template>
-  <div class="app-container h-full w-full" :class="{ mobile: isMobile }">
+  <div class="app-container h-full w-full" :class="{ compact: isCompact }">
     <n-config-provider
       :theme="theme === 'dark' ? darkTheme : lightTheme"
       :theme-overrides="themeOverrides"
@@ -34,7 +34,7 @@ import { usePlayerStore } from '@/store/modules/player';
 import { usePlayerCoreStore } from '@/store/modules/playerCore';
 import { useSettingsStore } from '@/store/modules/settings';
 import { getImgUrl, isLyricWindow } from '@/utils';
-import { isMobile } from '@/utils';
+import { isCompact } from '@/utils';
 import { useAppShortcuts } from '@/utils/appShortcuts';
 import { locale } from '@/utils/i18n';
 import { loadImageSafe } from '@/utils/imageLoader';
@@ -286,13 +286,13 @@ onMounted(async () => {
   user-select: none;
 }
 
-.mobile {
+.compact {
   .text-base {
     font-size: 14px !important;
   }
 }
 
-.html:has(.mobile) {
+.html:has(.compact) {
   font-size: 14px;
 }
 </style>

@@ -195,7 +195,7 @@ const { zoomFactor, initZoomFactor, increaseZoom, decreaseZoom, resetZoom, isZoo
 
 const showBackButton = computed(() => {
   const meta = router.currentRoute.value.meta;
-  if (!settingsStore.isMobile && meta.isMobile === false) return false;
+  if (!settingsStore.isCompact && meta.isCompact === false) return false;
   return meta.back === true;
 });
 const goBack = () => router.back();

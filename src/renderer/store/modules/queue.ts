@@ -21,14 +21,14 @@ const getMessage = () => {
   return _message;
 };
 
-export const usePlaylistStore = defineStore(
-  'playlist',
+export const useQueueStore = defineStore(
+  'queue',
   () => {
     const playList = shallowRef<SongResult[]>([]);
     const playListIndex = ref(0);
     const playMode = ref(0);
     const originalPlayList = shallowRef<SongResult[]>([]);
-    const playListDrawerVisible = ref(false);
+    const queueVisible = ref(false);
 
     const consecutiveFailCount = ref(0);
     const MAX_CONSECUTIVE_FAILS = 5;
@@ -467,8 +467,8 @@ export const usePlaylistStore = defineStore(
 
     const prevPlay = useThrottleFn(_prevPlay, 500);
 
-    const setPlayListDrawerVisible = (value: boolean) => {
-      playListDrawerVisible.value = value;
+    const setQueueVisible = (value: boolean) => {
+      queueVisible.value = value;
     };
 
     const setPlay = async (song: SongResult) => {
@@ -560,7 +560,7 @@ export const usePlaylistStore = defineStore(
       playListIndex,
       playMode,
       originalPlayList,
-      playListDrawerVisible,
+      queueVisible,
 
       currentPlayList,
       currentPlayListIndex,
@@ -576,7 +576,7 @@ export const usePlaylistStore = defineStore(
       nextPlay: nextPlay as unknown as typeof _nextPlay,
       nextPlayOnEnd,
       prevPlay: prevPlay as unknown as typeof _prevPlay,
-      setPlayListDrawerVisible,
+      setQueueVisible,
       setPlay,
       initializePlaylist,
       fetchSongs,
@@ -594,7 +594,7 @@ export const usePlaylistStore = defineStore(
   },
   {
     persist: {
-      key: 'playlist-store',
+      key: 'queue-store',
       storage: debouncedLocalStorage,
       pick: ['playList', 'playListIndex', 'playMode', 'originalPlayList'],
       serializer: {

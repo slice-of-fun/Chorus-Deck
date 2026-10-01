@@ -78,8 +78,8 @@ export const useSleepTimerStore = defineStore('sleepTimer', () => {
       return false;
     }
 
-    const { usePlaylistStore } = await import('./playlist');
-    const playlistStore = usePlaylistStore();
+    const { useQueueStore } = await import('./queue');
+    const playlistStore = useQueueStore();
 
     sleepTimer.value = {
       type: SleepTimerType.SONGS,
@@ -182,8 +182,8 @@ export const useSleepTimerStore = defineStore('sleepTimer', () => {
     }
 
     if (sleepTimer.value.type === SleepTimerType.PLAYLIST_END) {
-      const { usePlaylistStore } = await import('./playlist');
-      const playlistStore = usePlaylistStore();
+      const { useQueueStore } = await import('./queue');
+      const playlistStore = useQueueStore();
 
       const isLastSong = playlistStore.playListIndex === playlistStore.playList.length - 1;
 

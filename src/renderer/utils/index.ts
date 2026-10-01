@@ -73,9 +73,9 @@ export const formatNumber = (num: string | number) => {
 
 export { getImgUrl } from './thumbnail';
 
-export const isMobile = computed(() => {
+export const isCompact = computed(() => {
   const settingsStore = useSettingsStore();
-  return settingsStore.isMobile;
+  return settingsStore.isCompact;
 });
 
 export const isDesktop = (): boolean => typeof window !== 'undefined' && Boolean(window.api);

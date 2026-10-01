@@ -49,26 +49,26 @@ const otherRouter: RouteRecordRaw[] = [
     component: () => import('@/views/heatmap/index.vue')
   },
   {
-    path: '/mobile-search',
-    name: 'mobileSearch',
+    path: '/compact-search',
+    name: 'compactSearch',
     meta: {
       title: 'search',
       keepAlive: false,
       showInMenu: false,
       back: true
     },
-    component: () => import('@/views/mobile-search/index.vue')
+    component: () => import('@/views/compact-search/index.vue')
   },
   {
-    path: '/mobile-search-result',
-    name: 'mobileSearchResult',
+    path: '/compact-search-result',
+    name: 'compactSearchResult',
     meta: {
       title: 'Search results',
       keepAlive: false,
       showInMenu: false,
       back: true
     },
-    component: () => import('@/views/mobile-search-result/index.vue')
+    component: () => import('@/views/compact-search-result/index.vue')
   },
 
   {

@@ -1,5 +1,5 @@
 <template>
-  <div class="mobile-search-page">
+  <div class="compact-search-page">
     <div class="search-header" :class="{ 'safe-area-top': hasSafeArea }">
       <div class="header-back" @click="goBack">
         <i class="ri-arrow-left-s-line"></i>
@@ -119,7 +119,7 @@ const searchTypes = computed(() => {
 
 const suggestions = ref<string[]>([]);
 
-const HISTORY_KEY = 'mobile_search_history';
+const HISTORY_KEY = 'compact_search_history';
 const searchHistory = ref<string[]>([]);
 
 const hotSearchList = ref<any[]>([]);
@@ -201,7 +201,7 @@ const handleSearch = () => {
   saveSearchHistory(keyword);
 
   router.push({
-    path: '/mobile-search-result',
+    path: '/compact-search-result',
     query: {
       keyword,
       type: searchType.value
@@ -224,7 +224,7 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
-.mobile-search-page {
+.compact-search-page {
   @apply fixed inset-0 z-50;
   @apply bg-light dark:bg-black;
   @apply flex flex-col;

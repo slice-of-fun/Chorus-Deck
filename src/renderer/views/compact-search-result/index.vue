@@ -1,5 +1,5 @@
 <template>
-  <div class="mobile-search-result">
+  <div class="compact-search-result">
     <div class="result-header" :class="{ 'safe-area-top': hasSafeArea }">
       <div class="header-back" @click="goBack">
         <i class="ri-arrow-left-s-line"></i>
@@ -213,13 +213,13 @@ const goBack = () => {
 };
 
 const openSearch = () => {
-  router.push('/mobile-search');
+  router.push('/compact-search');
 };
 
 watch(
   () => route.query,
   (query) => {
-    if (route.path === '/mobile-search-result' && query.keyword) {
+    if (route.path === '/compact-search-result' && query.keyword) {
       keyword.value = query.keyword as string;
       searchType.value = Number(query.type) || searchStore.searchType || 1;
       performSearch();
@@ -235,7 +235,7 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
-.mobile-search-result {
+.compact-search-result {
   @apply fixed inset-0;
   @apply bg-light dark:bg-black;
   @apply flex flex-col;

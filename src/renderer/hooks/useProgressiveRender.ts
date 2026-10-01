@@ -1,7 +1,7 @@
 import { computed, type ComputedRef, type Ref, ref } from 'vue';
 
 import { usePlayerStore } from '@/store';
-import { isMobile } from '@/utils';
+import { isCompact } from '@/utils';
 
 type ProgressiveRenderOptions<T> = {
   items: ComputedRef<T[]> | Ref<T[]>;
@@ -36,7 +36,7 @@ export const useProgressiveRender = <T>(options: ProgressiveRenderOptions<T>) =>
   const isPlaying = computed(() => !!playerStore.playMusicUrl);
 
   const contentPaddingBottom = computed(() =>
-    isPlaying.value && !isMobile.value ? '220px' : '80px'
+    isPlaying.value && !isCompact.value ? '220px' : '80px'
   );
 
   const resetRenderLimit = () => {

@@ -8,7 +8,7 @@ const layoutRouter: RouteRecordRaw[] = [
       title: 'comp.home',
       icon: 'ri-home-4-fill',
       keepAlive: true,
-      isMobile: true
+      isCompact: true
     },
     component: () => import('@/views/home/index.vue')
   },
@@ -30,7 +30,7 @@ const layoutRouter: RouteRecordRaw[] = [
       title: 'comp.toplist',
       icon: 'ri-bar-chart-grouped-fill',
       keepAlive: true,
-      isMobile: true
+      isCompact: true
     },
     component: () => import('@/views/toplist/index.vue')
   },
@@ -43,7 +43,7 @@ const layoutRouter: RouteRecordRaw[] = [
       title: 'comp.history',
       icon: 'ri-history-fill',
       keepAlive: true,
-      isMobile: true
+      isCompact: true
     }
   },
   {
@@ -53,7 +53,7 @@ const layoutRouter: RouteRecordRaw[] = [
       title: 'comp.library',
       icon: 'ri-folder-music-fill',
       keepAlive: true,
-      isMobile: false
+      isCompact: false
     },
     component: () => import('@/views/library/index.vue')
   },

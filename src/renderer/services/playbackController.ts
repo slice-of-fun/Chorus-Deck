@@ -19,8 +19,8 @@ const getPlayerCoreStore = async () => {
 };
 
 const getPlaylistStore = async () => {
-  const { usePlaylistStore } = await import('@/store/modules/playlist');
-  return usePlaylistStore();
+  const { useQueueStore } = await import('@/store/modules/queue');
+  return useQueueStore();
 };
 
 const getPlayHistoryStore = async () => {

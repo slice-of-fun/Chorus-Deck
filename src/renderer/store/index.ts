@@ -21,7 +21,7 @@ export * from './modules/navTitle';
 export * from './modules/player';
 export * from './modules/playerCore';
 export * from './modules/playHistory';
-export * from './modules/playlist';
+export * from './modules/queue';
 export * from './modules/search';
 export * from './modules/settings';
 

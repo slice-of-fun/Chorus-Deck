@@ -238,7 +238,7 @@
             </div>
 
             <lyric-correction-control
-              v-if="!isMobile"
+              v-if="!isCompact"
               :correction-time="correctionTime"
               @adjust="adjustCorrectionTime"
             />
@@ -274,7 +274,7 @@ import { useLyricBackground } from '@/hooks/useLyricBackground';
 import { usePlayerStore } from '@/store/modules/player';
 import { useSettingsStore } from '@/store/modules/settings';
 import { DEFAULT_LYRIC_CONFIG, LyricConfig } from '@/types/lyric';
-import { isMobile, isDesktop } from '@/utils';
+import { isCompact, isDesktop } from '@/utils';
 import { thumbPlayer } from '@/utils/thumbnail';
 import { useRouter } from 'vue-router';
 import { getTextColors } from '@/utils/linearColor';
@@ -475,14 +475,14 @@ const lrcScroll = (behavior: ScrollBehavior = 'smooth', forceTop: boolean = fals
 const debouncedLrcScroll = useDebounceFn(lrcScroll, 200);
 
 const mouseOverLayout = () => {
-  if (isMobile.value) {
+  if (isCompact.value) {
     return;
   }
   isMouse.value = true;
 };
 
 const mouseLeaveLayout = () => {
-  if (isMobile.value) {
+  if (isCompact.value) {
     return;
   }
   setTimeout(() => {
@@ -1078,7 +1078,7 @@ defineExpose({
   }
 }
 
-.mobile {
+.compact {
   #drawer-target {
     @apply p-4 pt-8;
 

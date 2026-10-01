@@ -469,16 +469,16 @@ const setupAudioListeners = () => {
         setupAudioListeners();
       } else {
         console.error('Single loop: None available URL or song data');
-        const { usePlaylistStore } = await import('@/store/modules/playlist');
-        usePlaylistStore().nextPlayOnEnd();
+        const { useQueueStore } = await import('@/store/modules/queue');
+        useQueueStore().nextPlayOnEnd();
       }
     } catch (error) {
       console.error('Single loop replay failed:', error);
       if (retryCount < MAX_REPLAY_RETRIES) {
         setTimeout(() => replayMusic(retryCount + 1), 1000 * (retryCount + 1));
       } else {
-        const { usePlaylistStore } = await import('@/store/modules/playlist');
-        usePlaylistStore().nextPlayOnEnd();
+        const { useQueueStore } = await import('@/store/modules/queue');
+        useQueueStore().nextPlayOnEnd();
       }
     }
   };
@@ -492,8 +492,8 @@ const setupAudioListeners = () => {
       return;
     }
 
-    const { usePlaylistStore } = await import('@/store/modules/playlist');
-    usePlaylistStore().nextPlayOnEnd();
+    const { useQueueStore } = await import('@/store/modules/queue');
+    useQueueStore().nextPlayOnEnd();
   });
 
   audioService.on('previoustrack', () => {

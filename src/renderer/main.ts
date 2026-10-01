@@ -1,5 +1,5 @@
 import './index.css';
-import '@/assets/css/mobile.css';
+import '@/assets/css/compact.css';
 import 'animate.css';
 import 'remixicon/fonts/remixicon.css';
 

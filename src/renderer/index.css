@@ -107,7 +107,7 @@
     --page-px: 1.5rem; /* 24px，对应 sm:px-6 */
     --page-pr: 1.5rem;
   }
-  .mobile {
+  .compact {
     --page-pl: 1.5rem;
   }
 }
