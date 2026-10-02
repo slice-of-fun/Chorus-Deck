@@ -1,7 +1,7 @@
 <template>
   <div class="ytm-home h-full w-full bg-white dark:bg-black transition-colors duration-500">
     <n-scrollbar class="h-full" ref="scrollRef">
-      <div class="home-content w-full pb-32 page-padding">
+      <div class="home-content w-full pb-32">
         <!-- ── Header ──────────────────────────────────────────────── -->
         <div class="home-header flex items-center justify-between mb-8 pt-2">
           <div>

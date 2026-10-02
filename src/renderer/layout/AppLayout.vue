@@ -1,50 +1,62 @@
 <template>
   <compact-layout v-if="isPhone && !settingsStore.setData?.tabletMode" :is-phone="isPhone" />
 
-  <div v-else class="layout-page" :class="{ compact: settingsStore.isCompact }">
+  <div v-else-if="settingsStore.isCompact" class="layout-page compact">
     <div id="layout-main" class="layout-main">
       <title-bar />
       <div class="layout-main-page">
-        <app-menu v-if="!settingsStore.isCompact" class="menu" :menus="menuStore.menus" />
         <div class="main">
-          <div
-            class="main-content"
-            :native-scrollbar="false"
-            :class="{ 'compact-content': !shouldShowCompactMenu }"
-          >
+          <div class="main-content compact-content">
             <router-view
               v-slot="{ Component }"
               class="main-page"
-              :class="route.meta.noScroll && !settingsStore.isCompact ? 'pr-3' : ''"
+              :class="route.meta.noScroll ? 'pr-3' : ''"
             >
               <keep-alive :include="keepAliveInclude">
                 <component :is="Component" />
               </keep-alive>
             </router-view>
           </div>
-          <play-bottom />
-
-          <app-menu v-if="shouldShowCompactMenu" class="menu compact-menu" :menus="menuStore.menus" />
+          <app-sidebar :menus="menuStore.menus" />
         </div>
       </div>
 
-      <template v-if="!settingsStore.isMiniMode">
-        <play-bar
-          v-if="!settingsStore.isCompact"
-          v-show="isPlay"
-          :style="playerStore.musicFull ? 'bottom: 0;' : ''"
-        />
-        <compact-play-bar
-          v-else
-          v-show="isPlay"
-          :style="settingsStore.isCompact && playerStore.musicFull ? 'bottom: 0;' : ''"
-        />
-      </template>
+      <compact-play-bar v-show="isPlay" />
     </div>
     <update-modal v-if="isDesktop()" />
-    <sleep-timer-top v-if="!settingsStore.isCompact" />
-
     <queue />
+  </div>
+
+  <div v-else class="layout-page">
+    <div id="layout-main" class="layout-main">
+      <title-bar />
+
+      <div class="shell">
+        <div class="shell-row">
+          <div class="shell-surface shell-sidebar">
+            <app-sidebar :menus="menuStore.menus" />
+          </div>
+          <div class="shell-surface shell-main">
+            <div class="main-viewport">
+              <router-view
+                v-slot="{ Component }"
+                class="main-page"
+                :class="{ 'no-scroll': route.meta.noScroll }"
+              >
+                <keep-alive :include="keepAliveInclude">
+                  <component :is="Component" />
+                </keep-alive>
+              </router-view>
+            </div>
+          </div>
+
+          <queue />
+        </div>
+      </div>
+      <play-bar v-if="!settingsStore.isMiniMode" v-show="isPlay" />
+    </div>
+    <update-modal v-if="isDesktop()" />
+    <sleep-timer-top />
   </div>
 </template>
 
@@ -52,7 +64,6 @@
 import { computed, defineAsyncComponent, onMounted, provide, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
-import PlayBottom from '@/components/common/PlayBottom.vue';
 import UpdateModal from '@/components/common/UpdateModal.vue';
 import SleepTimerTop from '@/components/player/SleepTimerTop.vue';
 import homeRouter from '@/router/home';
@@ -62,9 +73,9 @@ import { usePlayerStore } from '@/store/modules/player';
 import { useSettingsStore } from '@/store/modules/settings';
 import { isDesktop } from '@/utils';
 
-import AppMenu from './components/AppMenu.vue';
-import TitleBar from './components/TitleBar.vue';
 import CompactLayout from './CompactLayout.vue';
+import AppSidebar from './components/AppSidebar.vue';
+import TitleBar from './components/TitleBar.vue';
 
 const keepAliveInclude = computed(() => {
   const allRoutes = [...homeRouter, ...otherRouter];
@@ -83,9 +94,7 @@ const keepAliveInclude = computed(() => {
 
 const PlayBar = defineAsyncComponent(() => import('@/components/player/PlayBar.vue'));
 const CompactPlayBar = defineAsyncComponent(() => import('@/components/player/CompactPlayBar.vue'));
-const Queue = defineAsyncComponent(
-  () => import('@/components/player/Queue.vue')
-);
+const Queue = defineAsyncComponent(() => import('@/components/player/Queue.vue'));
 
 const playerStore = usePlayerStore();
 const settingsStore = useSettingsStore();
@@ -111,34 +120,92 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
+/*
+ * Outer application canvas. Its colour is what shows through every
+ * shell gap, so it must stay distinct from the shell surfaces.
+ */
 .layout-page {
-  @apply w-screen h-screen overflow-hidden bg-light dark:bg-black;
+  @apply w-screen h-screen overflow-hidden;
+  background-color: var(--shell-canvas, #fff);
 }
 
 .layout-main {
-  @apply w-full h-full relative text-gray-900 dark:text-white;
+  @apply w-full h-full relative flex flex-col text-gray-900 dark:text-white;
 }
 
 .layout-main-page {
   @apply flex h-full;
 }
 
-.menu {
-  @apply h-full bg-light dark:bg-black;
+/*
+ * Shell canvas: owns the top/bottom/right outer insets via padding and
+ * the vertical Main/Queue -> Player gap. `gap` collapses to 0 whenever a
+ * surface is display:none, so gaps appear and disappear with their surface.
+ */
+.shell {
+  @apply flex flex-col flex-1 min-h-0;
+  gap: var(--shell-gap);
+  padding: var(--shell-gap);
+}
+
+/* Sidebar / Main / Queue share one row and one horizontal gap. */
+.shell-row {
+  @apply flex flex-1 min-h-0;
+  gap: var(--shell-gap);
+}
+
+/* Major shell surfaces: independent, rounded, never touching. */
+.shell-surface {
+  background-color: var(--shell-surface, #fff);
+  border-radius: var(--shell-radius);
+}
+
+.shell-sidebar {
+  @apply flex-shrink-0 self-stretch min-h-0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.shell-main {
+  @apply flex-1 min-w-0 flex flex-col overflow-hidden;
 }
 
 .main {
   @apply overflow-hidden flex-1 flex flex-col;
 }
 
-.main-content {
-  @apply flex-1 overflow-hidden;
+.main-viewport {
+  @apply flex-1 min-h-0 overflow-auto;
 }
 
 .main-page {
   @apply h-full;
 }
 
+.main-page.no-scroll {
+  @apply overflow-hidden;
+}
+
+/* Apply internal content padding to the page content inside MainSurface. */
+.main-page > * {
+  padding: var(--content-padding-y) var(--content-padding-x);
+  box-sizing: border-box;
+  height: 100%;
+  min-height: 100%;
+  overflow: auto;
+}
+
+.main-page.no-scroll > * {
+  overflow: hidden;
+}
+
+.menu {
+  @apply h-full bg-light dark:bg-black;
+}
+
+/* Legacy desktop-compact branch: preserved geometry. */
 .compact {
   .main-content {
     height: calc(100vh - 130px);

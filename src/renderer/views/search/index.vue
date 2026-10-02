@@ -1,7 +1,7 @@
 <template>
   <div class="search-page h-full w-full bg-white dark:bg-black transition-colors duration-500">
     <n-scrollbar class="h-full">
-      <div class="search-content w-full pb-32 pt-6 page-padding">
+      <div class="search-content w-full pb-32 pt-6">
         <!-- ── Search bar ─────────────────────────────────────────── -->
         <div class="search-bar-wrapper relative mb-8">
           <div class="relative">

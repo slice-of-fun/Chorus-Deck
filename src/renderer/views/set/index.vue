@@ -2,7 +2,7 @@
   <div class="h-full w-full bg-white dark:bg-black transition-colors duration-500 flex flex-col">
     <div
       v-if="currentSection === 'main'"
-      class="flex-shrink-0 bg-white dark:bg-black z-10 page-padding pt-6 pb-2"
+      class="flex-shrink-0 bg-white dark:bg-black z-10 pt-6 pb-2"
     >
       <h1 class="text-2xl md:text-3xl font-bold text-neutral-900 dark:text-white mb-6">Settings</h1>
       <n-input
@@ -36,7 +36,7 @@
     </div>
 
     <n-scrollbar class="flex-1">
-      <div class="w-full mx-auto pb-32 pt-2 page-padding">
+      <div class="w-full mx-auto pb-32 pt-2">
         <!-- Main Settings Menu -->
         <div v-show="currentSection === 'main'" class="animate-fade-in flex flex-col gap-2">
           <div

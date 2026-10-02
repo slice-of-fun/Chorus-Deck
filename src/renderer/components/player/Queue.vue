@@ -14,6 +14,7 @@
           ? 'animate__slideInUp'
           : 'animate__slideInRight'
     ]"
+    :data-shell-layout="isShellLayout || undefined"
     :style="panelStyle"
     @animationend="onAnimationEnd"
   >
@@ -221,6 +222,9 @@ const internalVisible = ref(false);
 const closing = ref(false);
 const activeTab = ref<'queue' | 'lyrics'>('queue');
 const isMiniMode = computed(() => settingsStore.isMiniMode);
+// Desktop shell: Queue is a right-side layout column beside Main.
+// Compact + mini mode keep the existing overlay / bottom-sheet behaviour.
+const isShellLayout = computed(() => !isCompact.value && !isMiniMode.value);
 const repeatMode = computed(() => playerStore.repeatMode);
 const shuffleEnabled = computed(() => playerStore.shuffleEnabled);
 
@@ -433,23 +437,30 @@ const handleClearQueue = () => {
 </script>
 
 <style lang="scss" scoped>
+// The click-catcher only exists for the overlay presentations. In the desktop
+// shell Queue is a real layout column, so there is nothing to dismiss.
 .fixed-overlay {
-  @apply fixed inset-0 z-[999999];
+  @apply fixed inset-0;
   pointer-events: auto;
   cursor: default;
-  display: v-bind('isMiniMode ? "none" : "block"');
+  display: v-bind('isShellLayout || isMiniMode ? "none" : "block"');
 }
 
 .queue-panel {
-  @apply fixed z-[9999999] overflow-hidden flex flex-col;
+  @apply flex flex-col overflow-hidden;
 
-  right: v-bind('isMiniMode ? "auto" : "0"');
-  top: v-bind('isMiniMode ? "76px" : "0"');
-  width: v-bind('isMiniMode ? "100%" : "360px"');
-  height: v-bind('isMiniMode ? "340px" : "100vh"');
+  position: v-bind('isShellLayout ? "relative" : "fixed"');
+  z-index: v-bind('isShellLayout ? "var(--shell-z-queue)" : "9999999"');
+  right: v-bind('isMiniMode || isShellLayout ? "auto" : "0"');
+  top: v-bind('isMiniMode ? "76px" : isShellLayout ? "auto" : "0"');
+  width: v-bind('isMiniMode ? "100%" : isShellLayout ? "clamp(260px, 28vw, 360px)" : "360px"');
+  height: v-bind('isMiniMode ? "340px" : isShellLayout ? "100%" : "100vh"');
   left: v-bind('isMiniMode ? "0" : "auto"');
-  border-radius: v-bind('isMiniMode ? "20px" : "0"');
-  border-left: v-bind('isMiniMode ? "none" : "1px solid rgba(255,255,255,0.08)"');
+  flex-shrink: 0;
+
+  // Own four edges + subtle outer corners when acting as a shell surface.
+  border-radius: v-bind('isMiniMode ? "20px" : isShellLayout ? "var(--shell-radius)" : "0"');
+  border-left: v-bind('isMiniMode ? "none" : isShellLayout ? "none" : "1px solid rgba(255,255,255,0.08)"');
 
   animation-duration: 0.3s !important;
   backdrop-filter: blur(20px);
@@ -677,8 +688,9 @@ const handleClearQueue = () => {
 }
 
 // ── Mobile overrides ──────────────────────────────────────────────────────────
+// Skipped for the desktop shell, which stays a side column at any window width.
 @media (max-width: 768px) {
-  .queue-panel {
+  .queue-panel:not([data-shell-layout]) {
     position: fixed;
     width: 100%;
     height: 80vh;

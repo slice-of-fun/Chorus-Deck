@@ -44,7 +44,7 @@
   white-space: nowrap;
 }
 
-.theme-dark {
+:root.dark {
   --bg-color: #000;
   --text-color: #fff;
   --bg-color-100: #161616;
@@ -55,9 +55,13 @@
   --text-color-200: #dee2e6;
   --text-color-300: #dde0e3;
   --primary-color: #22c55e;
+
+  /* Outer canvas revealed through every shell gap. */
+  --shell-canvas: #000;
+  --shell-surface: #161616;
 }
 
-.theme-light {
+:root:not(.dark) {
   --bg-color: #fff;
   --text-color: #000;
   --bg-color-100: #f8f9fa;
@@ -68,6 +72,9 @@
   --text-color-200: #2d2d2d;
   --text-color-300: #3d3d3d;
   --primary-color: #22c55e;
+
+  --shell-canvas: #f8f9fa;
+  --shell-surface: #fff;
 }
 
 .theme-gray {
@@ -81,6 +88,9 @@
   --text-color-200: #2d2d2d;
   --text-color-300: #3d3d3d;
   --primary-color: #22c55e;
+
+  --shell-canvas: #e9ecef;
+  --shell-surface: #f8f9fa;
 }
 
 :root {
@@ -89,6 +99,17 @@
   --safe-area-inset-right: 0px;
   --safe-area-inset-bottom: 10px;
   --safe-area-inset-left: 0px;
+
+  /* Application shell geometry. */
+  --shell-gap: clamp(6px, 0.45vw, 10px);
+  --shell-radius: clamp(6px, 0.45vw, 10px);
+  --shell-z-main: 1;
+  --shell-z-player: 20;
+  --shell-z-queue: 30;
+
+  /* Internal content padding for pages inside MainSurface. */
+  --content-padding-y: clamp(14px, 1.2vw, 24px);
+  --content-padding-x: clamp(16px, 1.5vw, 28px);
 
   /* 页面内容区域统一边距 */
   --page-px: 1rem; /* 默认 16px，对应 px-4 */

@@ -300,9 +300,10 @@ const openQueue = () => {
 }
 
 .music-play-bar {
-  @apply h-20 w-full absolute bottom-0 left-0 flex items-center box-border px-6 py-2 pt-3;
+  @apply h-20 w-full relative flex-shrink-0 flex items-center box-border px-6 py-2 pt-3;
   @apply bg-light dark:bg-dark shadow-2xl shadow-gray-300;
-  z-index: 9999;
+  border-radius: var(--shell-radius);
+  z-index: var(--shell-z-player, 20);
   animation-duration: 0.5s !important;
 
   cursor: pointer;
