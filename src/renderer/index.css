@@ -101,8 +101,8 @@
   --safe-area-inset-left: 0px;
 
   /* Application shell geometry. */
-  --shell-gap: clamp(6px, 0.45vw, 10px);
-  --shell-radius: clamp(6px, 0.45vw, 10px);
+  --shell-gap: clamp(8px, 0.8vw, 12px);
+  --shell-radius: clamp(8px, 0.8vw, 12px);
   --shell-z-main: 1;
   --shell-z-player: 20;
   --shell-z-queue: 30;

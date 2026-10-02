@@ -1,5 +1,5 @@
 <template>
-  <div class="ytm-home h-full w-full bg-white dark:bg-black transition-colors duration-500">
+  <div class="ytm-home h-full w-full ">
     <n-scrollbar class="h-full" ref="scrollRef">
       <div class="home-content w-full pb-32">
         <!-- ── Header ──────────────────────────────────────────────── -->

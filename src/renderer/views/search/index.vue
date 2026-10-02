@@ -1,5 +1,5 @@
 <template>
-  <div class="search-page h-full w-full bg-white dark:bg-black transition-colors duration-500">
+  <div class="search-page h-full w-full ">
     <n-scrollbar class="h-full">
       <div class="search-content w-full pb-32 pt-6">
         <!-- ── Search bar ─────────────────────────────────────────── -->

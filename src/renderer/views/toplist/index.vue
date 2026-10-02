@@ -1,5 +1,5 @@
 <template>
-  <div class="charts-page h-full w-full bg-white dark:bg-black transition-colors duration-500">
+  <div class="charts-page h-full w-full ">
     <n-scrollbar class="h-full">
       <div class="charts-content w-full pb-32 pt-6">
         <div class="mb-10 flex items-end justify-between">

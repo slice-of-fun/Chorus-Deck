@@ -1,8 +1,8 @@
 <template>
-  <div class="h-full w-full bg-white dark:bg-black transition-colors duration-500 flex flex-col">
+  <div class="h-full w-full  flex flex-col">
     <div
       v-if="currentSection === 'main'"
-      class="flex-shrink-0 bg-white dark:bg-black z-10 pt-6 pb-2"
+      class="flex-shrink-0  z-10 pt-6 pb-2"
     >
       <h1 class="text-2xl md:text-3xl font-bold text-neutral-900 dark:text-white mb-6">Settings</h1>
       <n-input
@@ -20,7 +20,7 @@
 
     <div
       v-else
-      class="flex-shrink-0 bg-white dark:bg-black z-10 page-padding pt-6 pb-2 flex items-center gap-4 border-b border-gray-100 dark:border-gray-800"
+      class="flex-shrink-0  z-10 page-padding pt-6 pb-2 flex items-center gap-4 border-b border-gray-100 dark:border-gray-800"
     >
       <div
         class="w-10 h-10 rounded-full hover:bg-gray-100 dark:hover:bg-neutral-800 flex items-center justify-center cursor-pointer transition-colors"
