@@ -132,7 +132,7 @@
                       {{ song.name }}
                     </p>
                     <p class="text-xs text-neutral-500 dark:text-neutral-400 line-clamp-1 mt-0.5">
-                      {{ song.artists.map((a) => a.name).join(', ') }}
+                      {{ (song.artists || []).map((a) => a.name).join(', ') }}
                       <span v-if="song.album"> · {{ song.album }}</span>
                     </p>
                   </div>
@@ -302,7 +302,7 @@
                     {{ song.name }}
                   </p>
                   <p class="text-xs text-neutral-500 dark:text-neutral-400 line-clamp-1 mt-0.5">
-                    {{ song.artists.map((a) => a.name).join(', ') }}
+                    {{ (song.artists || []).map((a) => a.name).join(', ') }}
                     <span v-if="song.album"> · {{ song.album }}</span>
                   </p>
                 </div>
@@ -482,7 +482,7 @@
                     {{ video.name }}
                   </p>
                   <p class="text-xs text-neutral-500 dark:text-neutral-400 line-clamp-1 mt-0.5">
-                    {{ video.artists.map((a) => a.name).join(', ') }}
+                    {{ (video.artists || []).map((a) => a.name).join(', ') }}
                   </p>
                 </div>
                 <span
@@ -566,7 +566,7 @@
 import { NScrollbar, NSelect } from 'naive-ui';
 import { onMounted, ref, watch } from 'vue';
 
-import type { PlaylistResult, SearchFilter, SearchResults } from '@/api/provider';
+import type { SearchFilter, SearchResults } from '@/api/provider';
 import { getProvider } from '@/api/providers';
 import { getYTMMoods, type YTMMood } from '@/api/ytmusic';
 import logoImg from '@/assets/logo.png';
@@ -597,14 +597,9 @@ const suggestions = ref<string[]>([]);
 const searchDone = ref(false);
 const searchLoading = ref(false);
 const activeTab = ref<'all' | 'songs' | 'videos' | 'albums' | 'artists' | 'playlists'>('all');
-const results = ref<{
-  topResult: SongResult | undefined;
-  songs: SongResult[];
-  playlists: PlaylistResult[];
-  albums: PlaylistResult[];
-  artists: PlaylistResult[];
-  videos: SongResult[];
-  total: number;
+const results = ref<SearchResults & {
+  topResult?: SongResult;
+  total?: number;
 }>({
   topResult: undefined,
   songs: [],
@@ -749,7 +744,7 @@ function searchByMood(title: string) {
 }
 
 function playSong(song: SongResult) {
-  playlistStore.setPlayList([song], false, false);
+  playlistStore.setQueue([song], false, false);
   window.dispatchEvent(new CustomEvent('ytm:play', { detail: song }));
 }
 

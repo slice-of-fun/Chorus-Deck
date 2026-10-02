@@ -210,7 +210,8 @@ const ensureLyricsLoaded = async (force = false) => {
   } else {
     try {
         const title = playMusic.value.name || "";
-        const artist = playMusic.value.ar?.[0]?.name || "";
+        const artist =
+          playMusic.value.ar?.[0]?.name || playMusic.value.artists?.[0]?.name || '';
         const videoId = playMusic.value.id;
         
         const fetchedLyrics = await window.api.fetchBestLyrics(title, artist, videoId);
@@ -244,7 +245,13 @@ const setupMusicWatchers = () => {
   watch(
     () => store.playMusic.id,
     async (newId, oldId) => {
-      if (newId !== oldId) nowIndex.value = 0;
+      if (newId !== oldId) {
+        lrcArray.value = [];
+        lrcTimeArray.value = [];
+        nowTime.value = 0;
+        nowIndex.value = 0;
+        lastIndex = -1;
+      }
       await ensureLyricsLoaded(true);
       sendDiscordPresence();
     },
@@ -487,7 +494,7 @@ const setupAudioListeners = () => {
     console.log('Audio playback end event triggered');
     clearInterval();
 
-    if (getPlayerStore().playMode === 1) {
+    if (getPlayerStore().repeatMode === 2) {
       replayMusic();
       return;
     }
@@ -592,6 +599,11 @@ export const getLrcIndex = (time: number): number => {
     return nowIndex.value;
   }
 
+  if (correctedTime < lrcTimeArray.value[0]) {
+    nowIndex.value = 0;
+    return 0;
+  }
+
   const lastIndex = lrcTimeArray.value.length - 1;
   if (correctedTime >= lrcTimeArray.value[lastIndex]) {
     nowIndex.value = lastIndex;
@@ -643,7 +655,10 @@ export const useLyricProgress = () => {
 };
 
 export const setAudioTime = (index: number) => {
-  audioService.seek(lrcTimeArray.value[index]);
+  const time = lrcTimeArray.value[index] || 0;
+  nowTime.value = time;
+  nowIndex.value = index;
+  audioService.seek(time);
   window.api.audioResume();
 };
 

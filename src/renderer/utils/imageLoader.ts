@@ -59,6 +59,7 @@ const startLoad = (url: string): Promise<HTMLImageElement> => {
   const promise = new Promise<HTMLImageElement>((resolve, reject) => {
     const img = new Image();
     img.crossOrigin = 'Anonymous';
+    img.referrerPolicy = 'no-referrer';
 
     img.onload = () => {
       const identity = artworkIdentity(url);

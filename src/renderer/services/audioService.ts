@@ -54,6 +54,10 @@ class AudioService {
     window.api.onPlaybackProgress((timeSecs: number) => {
       this.emit('timeupdate', timeSecs);
     });
+    window.api.onPlaybackEnded(() => {
+      this._isPlayingNative = false;
+      this.emit('end');
+    });
   }
 
   private initMediaSession() {

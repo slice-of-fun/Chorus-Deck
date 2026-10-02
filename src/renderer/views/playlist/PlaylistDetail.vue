@@ -5,10 +5,13 @@
         class="w-40 h-40 rounded-xl flex-shrink-0 overflow-hidden bg-gray-100 dark:bg-neutral-800 flex items-center justify-center"
       >
         <img
-          v-if="detail?.thumbnail"
-          :src="getImgUrl(detail.thumbnail, '400y400')"
-          :alt="detail.title"
+          v-if="currentSrc"
+          :src="currentSrc"
+          :alt="detail?.title"
           class="w-full h-full object-cover"
+          :class="{ 'has-black-bars': hasBlackBars }"
+          @load="onImageLoad"
+          @error="onImageError"
         />
         <i v-else class="ri-album-line text-5xl text-gray-300 dark:text-neutral-600" />
       </div>
@@ -65,7 +68,7 @@
 
 <script lang="ts" setup>
 import { useMessage } from 'naive-ui';
-import { onMounted, ref, watch } from 'vue';
+import { onMounted, ref, watch, computed } from 'vue';
 import { useRoute } from 'vue-router';
 
 import { getYTMPlaylistDetail, type YTMPlaylistDetail, type YTMSong } from '@/api/ytmusic';
@@ -99,6 +102,38 @@ const songs = ref<SongResult[]>([]);
 const loading = ref(false);
 
 const description = ref('');
+const currentSrc = ref('');
+
+const hasBlackBars = computed(() => {
+  return currentSrc.value?.includes('sddefault') || currentSrc.value?.includes('hqdefault');
+});
+
+const onImageLoad = (e: Event) => {
+  const img = e.target as HTMLImageElement;
+  if (img && img.naturalWidth <= 120) {
+    if (currentSrc.value?.includes('maxresdefault.jpg')) {
+      currentSrc.value = currentSrc.value.replace('maxresdefault.jpg', 'sddefault.jpg');
+    } else if (currentSrc.value?.includes('sddefault.jpg')) {
+      currentSrc.value = currentSrc.value.replace('sddefault.jpg', 'hqdefault.jpg');
+    } else if (currentSrc.value?.includes('hqdefault.jpg')) {
+      currentSrc.value = currentSrc.value.replace('hqdefault.jpg', 'mqdefault.jpg');
+    } else if (currentSrc.value?.includes('mqdefault.jpg')) {
+      currentSrc.value = currentSrc.value.replace('mqdefault.jpg', 'default.jpg');
+    }
+  }
+};
+
+const onImageError = () => {
+  if (currentSrc.value?.includes('maxresdefault.jpg')) {
+    currentSrc.value = currentSrc.value.replace('maxresdefault.jpg', 'sddefault.jpg');
+  } else if (currentSrc.value?.includes('sddefault.jpg')) {
+    currentSrc.value = currentSrc.value.replace('sddefault.jpg', 'hqdefault.jpg');
+  } else if (currentSrc.value?.includes('hqdefault.jpg')) {
+    currentSrc.value = currentSrc.value.replace('hqdefault.jpg', 'mqdefault.jpg');
+  } else if (currentSrc.value?.includes('mqdefault.jpg')) {
+    currentSrc.value = currentSrc.value.replace('mqdefault.jpg', 'default.jpg');
+  }
+};
 
 const loadPlaylist = async () => {
   const id = String(route.params.id || '');
@@ -114,6 +149,7 @@ const loadPlaylist = async () => {
     detail.value = result;
     description.value = result.description || '';
     songs.value = result.songs.map(toSongResult);
+    currentSrc.value = result.thumbnail ? getImgUrl(result.thumbnail, '400y400') : '';
   } catch (error) {
     console.error('Failed to load playlist:', error);
     message.error('Failed to load playlist');
@@ -124,7 +160,7 @@ const loadPlaylist = async () => {
 
 const playAll = () => {
   if (!songs.value.length) return;
-  playerStore.setPlayList(songs.value, false, true);
+  playerStore.setQueue(songs.value, false, true);
 };
 
 const batchDownload = async () => {
@@ -139,5 +175,20 @@ watch(() => route.params.id, loadPlaylist);
 <style lang="scss" scoped>
 .playlist-page {
   @apply h-full w-full;
+}
+
+.has-black-bars {
+  width: 135% !important;
+  height: 135% !important;
+  max-width: 135% !important;
+  max-height: 135% !important;
+  position: absolute;
+  top: -17.5%;
+  left: -17.5%;
+}
+
+/* Ensure the wrapper has relative positioning to bound the absolute image */
+.w-40.h-40 {
+  position: relative;
 }
 </style>

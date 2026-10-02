@@ -284,7 +284,7 @@ const handleScroll = (e: any) => {
 };
 
 const handlePlay = () => {
-  playerStore.setPlayList(displayList.value);
+  playerStore.setQueue(displayList.value);
 };
 
 onMounted(async () => {

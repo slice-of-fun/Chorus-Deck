@@ -72,7 +72,8 @@ const EVENT_CHANNELS = [
   'download:state-change',
   'download:batch-complete',
   'download:request-url',
-  'playback-progress'
+  'playback-progress',
+  'playback-ended'
 ] as const;
 
 export type Unlisten = () => void;
@@ -309,6 +310,9 @@ export const bridge = {
 
   onPlaybackProgress: (cb: (timeSecs: number) => void) => {
     listenChannel<number>('playback-progress', cb);
+  },
+  onPlaybackEnded: (cb: () => void) => {
+    listenChannel<void>('playback-ended', cb);
   },
 
   audioPlay: (

@@ -85,7 +85,7 @@ const loadAndPlayAudio = async (song: SongResult, shouldPlay: boolean): Promise<
 const triggerPreload = async (song: SongResult): Promise<void> => {
   try {
     const playlistStore = await getPlaylistStore();
-    const list = playlistStore.playList;
+    const list = playlistStore.queueItems;
     if (Array.isArray(list) && list.length > 0) {
       const idx = list.findIndex(
         (item: SongResult) => item.id === song.id && item.source === song.source
@@ -330,7 +330,7 @@ export const setupUrlExpiredHandler = (): void => {
       resetUrlExpiredRetry();
       try {
         const playlistStore = await getPlaylistStore();
-        if (playlistStore.playList.length > 1 || playerCore.isFmPlaying) {
+        if (playlistStore.queueItems.length > 1 || playerCore.isFmPlaying) {
           playlistStore.nextPlay();
         } else {
           playerCore.setIsPlay(false);

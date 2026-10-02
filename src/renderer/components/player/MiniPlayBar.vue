@@ -86,7 +86,6 @@ import { usePlaybackControl } from '@/hooks/usePlaybackControl';
 import { useVolumeControl } from '@/hooks/useVolumeControl';
 import { audioService } from '@/services/audioService';
 import { usePlayerStore, useSettingsStore } from '@/store';
-import type { SongResult } from '@/types/music';
 import { getImgUrl } from '@/utils';
 
 const playerStore = usePlayerStore();
@@ -135,8 +134,6 @@ const restoreMainWindow = () => {
     }
   }
 };
-
-const playList = computed(() => playerStore.playList as SongResult[]);
 
 const togglePlaylist = () => {
   if (playerStore.queueVisible && activeTab.value === 'queue') {

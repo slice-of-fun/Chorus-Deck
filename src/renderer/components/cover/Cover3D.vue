@@ -7,7 +7,7 @@
     @mouseenter="handleMouseEnter"
   >
     <div ref="coverImage" class="cover-wrapper" :style="coverTransformStyle">
-      <n-image :src="src" class="cover-image" lazy preview-disabled :object-fit="objectFit" />
+      <n-image :src="currentSrc" class="cover-image" :class="{ 'has-black-bars': hasBlackBars }" preview-disabled :object-fit="objectFit" :img-props="{ referrerpolicy: 'no-referrer' }" @load="onImageLoad" @error="onImageError" />
       <div class="cover-shine" :style="shineStyle"></div>
     </div>
     <div v-if="loading" class="loading-overlay">
@@ -18,7 +18,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 
 interface Props {
   src: string;
@@ -45,6 +45,39 @@ const mouseX = ref(0.5);
 const mouseY = ref(0.5);
 const isHovering = ref(false);
 const rafId = ref<number | null>(null);
+
+const currentSrc = ref(props.src);
+
+watch(() => props.src, (newVal) => {
+  currentSrc.value = newVal;
+});
+
+const hasBlackBars = computed(() => {
+  return currentSrc.value?.includes('sddefault') || currentSrc.value?.includes('hqdefault');
+});
+
+const doFallback = () => {
+  if (currentSrc.value?.includes('maxresdefault.jpg')) {
+    currentSrc.value = currentSrc.value.replace('maxresdefault.jpg', 'sddefault.jpg');
+  } else if (currentSrc.value?.includes('sddefault.jpg')) {
+    currentSrc.value = currentSrc.value.replace('sddefault.jpg', 'hqdefault.jpg');
+  } else if (currentSrc.value?.includes('hqdefault.jpg')) {
+    currentSrc.value = currentSrc.value.replace('hqdefault.jpg', 'mqdefault.jpg');
+  } else if (currentSrc.value?.includes('mqdefault.jpg')) {
+    currentSrc.value = currentSrc.value.replace('mqdefault.jpg', 'default.jpg');
+  }
+};
+
+const onImageLoad = (e: Event) => {
+  const img = e.target as HTMLImageElement;
+  if (img && img.naturalWidth <= 120) {
+    doFallback();
+  }
+};
+
+const onImageError = () => {
+  doFallback();
+};
 
 const coverTransformStyle = computed(() => {
   if (!isHovering.value || props.disabled) {
@@ -148,6 +181,17 @@ onBeforeUnmount(() => {
   @apply w-full h-full;
   border-radius: inherit;
   transform: translateZ(0);
+  transition: transform 0.2s ease;
+}
+
+.cover-image.has-black-bars :deep(img) {
+  width: 135% !important;
+  height: 135% !important;
+  max-width: 135% !important;
+  max-height: 135% !important;
+  position: absolute;
+  top: -17.5%;
+  left: -17.5%;
 }
 
 .cover-shine {

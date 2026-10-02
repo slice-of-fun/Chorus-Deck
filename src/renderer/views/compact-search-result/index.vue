@@ -115,7 +115,7 @@ const performSearch = async (isLoadMore = false) => {
 
   try {
     if (searchType.value === SEARCH_TYPE.MUSIC) {
-      const provider = getProvider(searchStore.searchProvider);
+      const provider = getProvider();
       const data = await provider.search({
         keywords: keyword.value,
         type: 'songs',
@@ -133,7 +133,7 @@ const performSearch = async (isLoadMore = false) => {
 
       hasMore.value = songs.length === ITEMS_PER_PAGE;
     } else if (searchType.value === SEARCH_TYPE.ALBUM) {
-      const provider = getProvider(searchStore.searchProvider);
+      const provider = getProvider();
       const data = await provider.search({
         keywords: keyword.value,
         type: 'albums',
@@ -151,7 +151,7 @@ const performSearch = async (isLoadMore = false) => {
 
       hasMore.value = albums.length === ITEMS_PER_PAGE;
     } else if (searchType.value === SEARCH_TYPE.PLAYLIST) {
-      const provider = getProvider(searchStore.searchProvider);
+      const provider = getProvider();
       const data = await provider.search({
         keywords: keyword.value,
         type: 'playlists',

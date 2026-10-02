@@ -50,7 +50,6 @@ class PreloadService {
   private async _validate(url: string, song: SongResult): Promise<string> {
     return new Promise<string>((resolve, reject) => {
       const testAudio = new Audio();
-      testAudio.crossOrigin = 'anonymous';
       testAudio.preload = 'metadata';
 
       let timeoutId: ReturnType<typeof setTimeout> | null = null;

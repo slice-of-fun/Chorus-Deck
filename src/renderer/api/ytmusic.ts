@@ -180,11 +180,6 @@ function squareThumbnail(url: string, size: number = 226): string {
     return `${base}=w${size}-h${size}-p-l90-rj`;
   }
   if (url.includes('i.ytimg.com')) {
-    if (/\/vi\/[^/]+\/(maxresdefault|hqdefault|mqdefault|sddefault|default)\./.test(url)) {
-      return url
-        .replace(/\/(maxresdefault|hqdefault|mqdefault|sddefault|default)\./, '/hqdefault.')
-        .split('?')[0];
-    }
     return url.split('?')[0];
   }
 
@@ -384,6 +379,48 @@ function collectSongsFromShelves(shelves: any[]): YTMSong[] {
     }
   }
 
+  return songs;
+}
+
+function collectRadioSongs(data: any): YTMSong[] {
+  const songs: YTMSong[] = [];
+  const seen = new Set<string>();
+
+  const walk = (node: any, depth = 0) => {
+    if (!node || typeof node !== 'object' || depth > 14) return;
+
+    const renderer = node.playlistPanelVideoRenderer;
+    if (renderer) {
+      const id = renderer.videoId || renderer.navigationEndpoint?.watchEndpoint?.videoId;
+      const title = parseRuns(renderer.title?.runs) || renderer.title?.simpleText || '';
+      const byline = parseRuns(
+        renderer.longBylineText?.runs || renderer.shortBylineText?.runs || []
+      );
+      const duration = parseRuns(renderer.lengthText?.runs) || renderer.lengthText?.simpleText;
+      const thumbnail = parseThumbnail(renderer.thumbnail?.thumbnails || []);
+
+      if (id && title && !seen.has(id)) {
+        seen.add(id);
+        songs.push({
+          id,
+          title,
+          artists: byline
+            .split(' • ')
+            .map((name) => name.trim())
+            .filter(Boolean)
+            .map((name) => ({ name })),
+          duration,
+          thumbnail: squareThumbnail(thumbnail)
+        });
+      }
+    }
+
+    for (const value of Object.values(node)) {
+      if (value && typeof value === 'object') walk(value, depth + 1);
+    }
+  };
+
+  walk(data);
   return songs;
 }
 
@@ -1198,6 +1235,32 @@ export async function getYTMArtist(artistId: string, cookie?: string): Promise<Y
 }
 
 export const getYTMPlaylistDetail = getYTMPlaylist;
+
+export async function getYTMRadio(videoId: string): Promise<YTMSong[]> {
+  if (!videoId) return [];
+
+  const endpoints = [
+    { videoId },
+    { videoId, playlistId: `RDAMVM${videoId}` }
+  ];
+
+  for (const body of endpoints) {
+    try {
+      const data = await ytmPost('next', body);
+      const songs = [
+        ...collectSongsFromShelves(collectShelves(data)),
+        ...collectRadioSongs(data)
+      ].filter((song, index, all) => {
+        return song.id !== videoId && all.findIndex((candidate) => candidate.id === song.id) === index;
+      });
+      if (songs.length > 0) return songs;
+    } catch (error) {
+      console.warn('[YTM radio] endpoint failed:', error);
+    }
+  }
+
+  return [];
+}
 
 export function isYTMSong(item: YTMSong | YTMPlaylist): item is YTMSong {
   return 'artists' in item;

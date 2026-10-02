@@ -3,7 +3,7 @@
 
   <div
     v-if="internalVisible"
-    class="playlist-panel"
+    class="queue-panel"
     :class="[
       'animate__animated',
       closing
@@ -35,7 +35,7 @@
       <div class="header-actions">
         <n-tooltip v-if="activeTab === 'queue'" trigger="hover">
           <template #trigger>
-            <div class="action-btn" @click="handleClearPlaylist">
+            <div class="action-btn" @click="handleClearQueue">
               <i class="ri-delete-bin-line"></i>
             </div>
           </template>
@@ -79,8 +79,8 @@
         <div class="queue-controls" :style="controlsStyle">
           <button
             class="ctrl-btn"
-            :class="{ 'ctrl-active': playMode === 'random' }"
-            :style="playMode === 'random' ? ctrlActiveStyle : {}"
+            :class="{ 'ctrl-active': shuffleEnabled }"
+            :style="shuffleEnabled ? ctrlActiveStyle : {}"
             @click="toggleShuffle"
           >
             <i class="ri-shuffle-line"></i>
@@ -88,37 +88,39 @@
           </button>
           <button
             class="ctrl-btn"
-            :class="{ 'ctrl-active': playMode === 'loop' || playMode === 'single' }"
-            :style="(playMode === 'loop' || playMode === 'single') ? ctrlActiveStyle : {}"
+            :class="{ 'ctrl-active': repeatMode !== 0 }"
+            :style="repeatMode !== 0 ? ctrlActiveStyle : {}"
             @click="toggleRepeat"
           >
-            <i :class="playMode === 'single' ? 'ri-repeat-one-line' : 'ri-repeat-2-line'"></i>
-            <span>{{ playMode === 'single' ? 'Repeat One' : 'Repeat' }}</span>
+            <i :class="repeatMode === 2 ? 'ri-repeat-one-line' : 'ri-repeat-2-line'"></i>
+            <span>{{ repeatMode === 2 ? 'Repeat One' : 'Repeat' }}</span>
           </button>
         </div>
 
         <!-- Queue subtitle -->
-        <div class="queue-subtitle" v-if="playList.length > 0">
+        <div class="queue-subtitle" v-if="queueItems.length > 0">
           <div class="subtitle-left">
             <span class="subtitle-title">Next in queue</span>
           </div>
           <div class="subtitle-right">
-            <span class="subtitle-count">{{ playList.length }} songs</span>
+            <span class="subtitle-count">
+              {{ queueItems.length }} songs · {{ formatQueueDuration(totalQueueDuration) }}
+            </span>
           </div>
         </div>
 
         <!-- Song List -->
-        <div v-if="playList.length === 0" class="empty-queue">
+        <div v-if="queueItems.length === 0" class="empty-queue">
           <i class="ri-music-2-line"></i>
           <p>Queue is empty</p>
         </div>
 
         <n-virtual-list
           v-else
-          ref="playListRef"
+          ref="queueListRef"
           :item-size="68"
           item-resizable
-          :items="playList"
+          :items="queueItems"
           class="queue-list"
         >
           <template #default="{ item, index }">
@@ -126,7 +128,10 @@
               class="queue-item"
               :class="{ 'is-playing': item.id === playerStore.playMusic?.id }"
               :style="item.id === playerStore.playMusic?.id ? playingItemStyle : {}"
-              @click="playFromQueue(item, index)"
+              @click="playFromQueue(item, index, $event)"
+              @dragover.prevent.stop
+              @dragenter.prevent.stop
+              @drop.prevent.stop="handleDrop(index)"
             >
               <div class="item-art">
                 <n-image
@@ -153,9 +158,27 @@
               </div>
 
               <div class="item-actions">
-                <div class="delete-btn" @click.stop="handleDeleteSong(item)">
-                  <i class="ri-delete-bin-line"></i>
+                <div
+                  class="drag-handle"
+                  draggable="true"
+                  title="Reorder queue"
+                  @click.stop="suppressQueueItemClick"
+                  @mousedown.stop
+                  @dragstart="handleDragStart($event, index)"
+                  @dragend="handleDragEnd"
+                >
+                  <i class="ri-drag-move-2-line"></i>
                 </div>
+                <n-dropdown
+                  :options="queueItemOptions"
+                  trigger="click"
+                  placement="left-start"
+                  @select="handleQueueAction($event, item)"
+                >
+                  <div class="more-btn" title="Queue actions" @click.stop>
+                    <i class="ri-more-2-fill"></i>
+                  </div>
+                </n-dropdown>
               </div>
             </div>
           </template>
@@ -176,7 +199,7 @@
 </template>
 
 <script setup lang="ts">
-import { useDialog, useMessage } from 'naive-ui';
+import { NDropdown, useDialog, useMessage } from 'naive-ui';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 
 import logoImg from '@/assets/logo.png';
@@ -186,7 +209,7 @@ import { usePlaybackControl } from '@/hooks/usePlaybackControl';
 import { usePlayerStore } from '@/store/modules/player';
 import { useSettingsStore } from '@/store/modules/settings';
 import type { SongResult } from '@/types/music';
-import { getImgUrl, isCompact } from '@/utils';
+import { getImgUrl, isCompact, secondToMinute } from '@/utils';
 
 const message = useMessage();
 const dialog = useDialog();
@@ -198,7 +221,8 @@ const internalVisible = ref(false);
 const closing = ref(false);
 const activeTab = ref<'queue' | 'lyrics'>('queue');
 const isMiniMode = computed(() => settingsStore.isMiniMode);
-const playMode = computed(() => playerStore.playMode);
+const repeatMode = computed(() => playerStore.repeatMode);
+const shuffleEnabled = computed(() => playerStore.shuffleEnabled);
 
 // ── Color palette derived from song ──────────────────────────────────────────
 const accentColor = computed(() =>
@@ -307,8 +331,22 @@ onUnmounted(() => {
   window.removeEventListener('open-queue-tab', handleOpenTab as EventListener);
 });
 
-const playList = computed(() => playerStore.playList as SongResult[]);
-const playListRef = ref<any>(null);
+const queueItems = computed(() => playerStore.queueItems as SongResult[]);
+const queueListRef = ref<any>(null);
+const draggedIndex = ref<number | null>(null);
+const totalQueueDuration = computed(() =>
+  queueItems.value.reduce((total, song) => {
+    const duration = song.dt ?? song.duration ?? 0;
+    return total + (duration > 100000 ? duration : duration * 1000);
+  }, 0)
+);
+
+const formatQueueDuration = (durationMs: number) => secondToMinute(durationMs / 1000);
+const queueItemOptions = [
+  { label: 'Play next', key: 'play-next' },
+  { label: 'Add to queue', key: 'add-to-queue' },
+  { label: 'Remove', key: 'remove' }
+];
 
 const closePanel = () => { show.value = false; };
 const onAnimationEnd = () => {
@@ -317,31 +355,65 @@ const onAnimationEnd = () => {
 
 const scrollToCurrentSong = () => {
   setTimeout(() => {
-    if (playListRef.value && playList.value.length > 0) {
-      const index = playerStore.playListIndex;
-      playListRef.value.scrollTo({ top: (index > 3 ? index - 3 : 0) * 68 });
+    if (queueListRef.value && queueItems.value.length > 0) {
+      const index = playerStore.queueIndex;
+      queueListRef.value.scrollTo({ top: (index > 3 ? index - 3 : 0) * 68 });
     }
   }, 100);
 };
 
 const handleDeleteSong = (song: SongResult) => {
-  playerStore.removeFromPlayList(song.id);
+  playerStore.removeFromQueue(song.id);
 };
 
-const playFromQueue = (song: SongResult, index: number) => {
-  playerStore.setPlay(index);
+const handleQueueAction = (action: string, song: SongResult) => {
+  if (action === 'play-next') {
+    playerStore.addToNextPlay(song);
+  } else if (action === 'add-to-queue') {
+    playerStore.addToQueue(song);
+  } else if (action === 'remove') {
+    handleDeleteSong(song);
+  }
 };
+
+const playFromQueue = (song: SongResult, index: number, event?: MouseEvent) => {
+  if ((event?.target as HTMLElement | null)?.closest('.item-actions')) return;
+  playerStore.setPlay(song);
+  if (playerStore.queueIndex !== index) playerStore.queueIndex = index;
+};
+
+const suppressQueueItemClick = () => undefined;
 
 const toggleShuffle = () => {
-  playerStore.shufflePlayList();
+  playerStore.toggleShuffle();
 };
 
 const toggleRepeat = () => {
-  playerStore.togglePlayMode();
+  playerStore.toggleRepeat();
 };
 
-const handleClearPlaylist = () => {
-  if (playList.value.length === 0) {
+const handleDragStart = (event: DragEvent, index: number) => {
+  event.stopPropagation();
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', String(index));
+  }
+  draggedIndex.value = index;
+};
+
+const handleDragEnd = () => {
+  draggedIndex.value = null;
+};
+
+const handleDrop = (toIndex: number) => {
+  if (draggedIndex.value !== null) {
+    playerStore.moveInQueue(draggedIndex.value, toIndex);
+  }
+  draggedIndex.value = null;
+};
+
+const handleClearQueue = () => {
+  if (queueItems.value.length === 0) {
     message.info('Queue is already empty');
     return;
   }
@@ -368,7 +440,7 @@ const handleClearPlaylist = () => {
   display: v-bind('isMiniMode ? "none" : "block"');
 }
 
-.playlist-panel {
+.queue-panel {
   @apply fixed z-[9999999] overflow-hidden flex flex-col;
 
   right: v-bind('isMiniMode ? "auto" : "0"');
@@ -566,18 +638,21 @@ const handleClearPlaylist = () => {
   }
 
   .item-actions {
-    @apply flex-shrink-0 opacity-0 transition-opacity;
+    @apply flex items-center gap-1 flex-shrink-0;
 
-    .delete-btn {
+    .drag-handle,
+    .more-btn {
       @apply w-8 h-8 flex items-center justify-center rounded-full cursor-pointer;
-      @apply text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all;
+      @apply text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:hover:text-gray-200 dark:hover:bg-gray-800 transition-all;
 
       i { font-size: 16px; }
     }
-  }
 
-  &:hover .item-actions {
-    @apply opacity-100;
+    .drag-handle {
+      cursor: grab;
+
+      &:active { cursor: grabbing; }
+    }
   }
 }
 
@@ -603,7 +678,7 @@ const handleClearPlaylist = () => {
 
 // ── Mobile overrides ──────────────────────────────────────────────────────────
 @media (max-width: 768px) {
-  .playlist-panel {
+  .queue-panel {
     position: fixed;
     width: 100%;
     height: 80vh;

@@ -21,7 +21,7 @@
       <div class="controls-section">
         <div class="left-controls">
           <button class="control-btn small-btn" @click="togglePlayMode">
-            <i class="" :class="[playModeIcon, { 'intelligence-active': playMode === 3 }]"></i>
+              <i class="" :class="playModeIcon"></i>
           </button>
         </div>
 

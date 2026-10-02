@@ -66,6 +66,7 @@
             @touchstart="handleTouchStart"
             @touchmove="handleTouchMove"
             @touchend="handleTouchEnd"
+            @wheel="handleManualScroll"
             @scroll="handleScroll"
           >
             <div class="lyrics-padding-top"></div>
@@ -105,6 +106,15 @@
             </div>
             <div class="lyrics-padding-bottom"></div>
           </div>
+          <button
+            v-if="showSyncButton && supportAutoScroll"
+            class="lyrics-sync-button"
+            type="button"
+            @click="syncLyrics"
+          >
+            <i class="ri-focus-3-line"></i>
+            Sync
+          </button>
         </div>
       </transition>
 
@@ -123,11 +133,13 @@
             <div class="img-wrapper">
               <n-image
                 ref="PicImgRef"
-                :src="thumbPlayer(playMusic?.picUrl)"
-                lazy
+                :src="currentSrc"
                 preview-disabled
                 class="cover-image"
-                :class="{ 'full-blend': config.compactCoverStyle === 'full' }"
+                :class="{ 'full-blend': config.compactCoverStyle === 'full', 'has-black-bars': hasBlackBars }"
+                :img-props="{ referrerpolicy: 'no-referrer' }"
+                @load="onImageLoad"
+                @error="onImageError"
               />
             </div>
           </div>
@@ -193,11 +205,13 @@
           >
             <div class="img-wrapper">
               <n-image
-                :src="thumbPlayer(playMusic?.picUrl)"
-                lazy
+                :src="currentSrc"
                 preview-disabled
                 class="cover-image"
-                :class="{ 'full-blend': config.compactCoverStyle === 'full' }"
+                :class="{ 'full-blend': config.compactCoverStyle === 'full', 'has-black-bars': hasBlackBars }"
+                :img-props="{ referrerpolicy: 'no-referrer' }"
+                @load="onImageLoad"
+                @error="onImageError"
               />
             </div>
           </div>
@@ -257,6 +271,7 @@
             @touchstart="handleTouchStart"
             @touchmove="handleTouchMove"
             @touchend="handleTouchEnd"
+            @wheel="handleManualScroll"
             @scroll="handleScroll"
           >
             <div class="lyrics-padding-top"></div>
@@ -296,6 +311,16 @@
             </div>
             <div class="lyrics-padding-bottom"></div>
           </div>
+
+          <button
+            v-if="showSyncButton && supportAutoScroll"
+            class="lyrics-sync-button landscape-sync-button"
+            type="button"
+            @click="syncLyrics"
+          >
+            <i class="ri-focus-3-line"></i>
+            Sync
+          </button>
 
           <div class="landscape-main-controls">
             <div class="main-button prev" style="width: 48px; height: 48px;" :style="{ color: playMusic?.primaryColor }" @click="prevSong">
@@ -349,7 +374,7 @@
             <i class="ri-arrow-down-s-line"></i>
           </div>
           <div class="side-button" @click="togglePlayMode">
-            <i :class="[playModeIcon, { 'intelligence-active': playMode === 3 }]"></i>
+            <i :class="playModeIcon"></i>
           </div>
           <div class="main-button prev" style="width: 48px; height: 48px;" :style="{ color: playMusic?.primaryColor }" @click="prevSong">
             <i class="ri-skip-back-fill" style="font-size: 36px;"></i>
@@ -407,6 +432,34 @@ const playIcon = computed(() => (play.value ? 'ri-pause-fill' : 'ri-play-fill'))
 
 const showPlayerSettings = ref(false);
 
+const currentSrc = ref(thumbPlayer(playMusic.value?.picUrl));
+watch(() => playMusic.value?.picUrl, (newVal) => {
+  currentSrc.value = thumbPlayer(newVal);
+});
+
+const hasBlackBars = computed(() => {
+  return currentSrc.value?.includes('sddefault') || currentSrc.value?.includes('hqdefault');
+});
+
+const onImageLoad = (e: Event) => {
+  const img = e.target as HTMLImageElement;
+  if (img && img.naturalWidth <= 120) {
+    if (currentSrc.value?.includes('maxresdefault.jpg')) {
+      currentSrc.value = currentSrc.value.replace('maxresdefault.jpg', 'sddefault.jpg');
+    } else if (currentSrc.value?.includes('sddefault.jpg')) {
+      currentSrc.value = currentSrc.value.replace('sddefault.jpg', 'hqdefault.jpg');
+    }
+  }
+};
+
+const onImageError = () => {
+  if (currentSrc.value?.includes('maxresdefault.jpg')) {
+    currentSrc.value = currentSrc.value.replace('maxresdefault.jpg', 'sddefault.jpg');
+  } else if (currentSrc.value?.includes('sddefault.jpg')) {
+    currentSrc.value = currentSrc.value.replace('sddefault.jpg', 'hqdefault.jpg');
+  }
+};
+
 const sleepTimerRefresh = ref(0);
 let sleepTimerInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -454,7 +507,7 @@ watch(
 const { playMode, playModeIcon, playModeText, togglePlayMode: togglePlayModeBase } = usePlayMode();
 
 const showPlaylist = () => {
-  playerStore.setPlayListDrawerVisible(true);
+  playerStore.setQueueVisible(true);
 };
 
 const isFavorite = computed(() => {
@@ -477,6 +530,8 @@ const touchStartY = ref(0);
 const lastScrollTop = ref(0);
 const autoScrollTimer = ref<number | null>(null);
 const isSongChanging = ref(false);
+const showSyncButton = ref(false);
+const isProgrammaticScroll = ref(false);
 
 const { width, height } = useWindowSize();
 const isLandscape = computed(() => width.value > height.value);
@@ -559,6 +614,10 @@ const scrollToCurrentLyric = (immediate = false, customScrollerRef?: HTMLElement
       top: scrollTop,
       behavior: immediate ? 'auto' : 'smooth'
     });
+    isProgrammaticScroll.value = true;
+    window.setTimeout(() => {
+      isProgrammaticScroll.value = false;
+    }, immediate ? 120 : 500);
   } catch (err) {
     console.error('Error scrolling lyrics:', err);
   }
@@ -567,7 +626,7 @@ const scrollToCurrentLyric = (immediate = false, customScrollerRef?: HTMLElement
 watch(nowIndex, (newIndex, oldIndex) => {
   console.log(`Lyric index changes: ${oldIndex} -> ${newIndex}`);
 
-  if (isSongChanging.value) return;
+  if (isSongChanging.value || showSyncButton.value) return;
 
   if (showFullLyrics.value) {
     nextTick(() => {
@@ -591,7 +650,7 @@ watch(showFullLyrics, (newVal) => {
 });
 
 watch(nowTime, () => {
-  if (!isThumbDragging.value && !isTouchScrolling.value) {
+  if (!isThumbDragging.value && !isTouchScrolling.value && !showSyncButton.value) {
     if (showFullLyrics.value) {
       scrollToCurrentLyric(false);
     } else if (isLandscape.value) {
@@ -601,6 +660,9 @@ watch(nowTime, () => {
 });
 
 const handleScroll = () => {
+  if (isProgrammaticScroll.value || isSongChanging.value) return;
+
+  showSyncButton.value = true;
   if (!isTouchScrolling.value) return;
 
   isAutoScrollEnabled.value = false;
@@ -610,15 +672,15 @@ const handleScroll = () => {
   }
 
   autoScrollTimer.value = window.setTimeout(() => {
-    isAutoScrollEnabled.value = true;
+    isAutoScrollEnabled.value = false;
     isTouchScrolling.value = false;
-
-    if (showFullLyrics.value) {
-      scrollToCurrentLyric(false);
-    } else if (isLandscape.value) {
-      scrollToCurrentLyric(false, landscapeLyricsRef.value);
-    }
   }, 3000);
+};
+
+const handleManualScroll = () => {
+  if (isProgrammaticScroll.value || isSongChanging.value) return;
+  showSyncButton.value = true;
+  isAutoScrollEnabled.value = false;
 };
 
 const handleTouchStart = (e: TouchEvent) => {
@@ -651,15 +713,21 @@ const handleTouchEnd = () => {
   }
 
   autoScrollTimer.value = window.setTimeout(() => {
-    isAutoScrollEnabled.value = true;
+    isAutoScrollEnabled.value = false;
     isTouchScrolling.value = false;
-
-    if (showFullLyrics.value) {
-      scrollToCurrentLyric(true);
-    } else if (isLandscape.value) {
-      scrollToCurrentLyric(true, landscapeLyricsRef.value);
-    }
   }, 3000);
+};
+
+const syncLyrics = () => {
+  if (showFullLyrics.value) {
+    scrollToCurrentLyric(true);
+  } else if (isLandscape.value) {
+    scrollToCurrentLyric(true, landscapeLyricsRef.value);
+  }
+
+  showSyncButton.value = false;
+  isAutoScrollEnabled.value = true;
+  isTouchScrolling.value = false;
 };
 
 const cycleCoverStyle = () => {
@@ -939,11 +1007,17 @@ watch(
 
       setTimeout(() => {
         if (showFullLyrics.value && lyricsScrollerRef.value) {
+            showSyncButton.value = false;
+            isAutoScrollEnabled.value = true;
+            isTouchScrolling.value = false;
           lyricsScrollerRef.value.scrollTo({
             top: 0,
             behavior: 'smooth'
           });
         } else if (isLandscape.value && landscapeLyricsRef.value) {
+            showSyncButton.value = false;
+            isAutoScrollEnabled.value = true;
+            isTouchScrolling.value = false;
           landscapeLyricsRef.value.scrollTo({
             top: 0,
             behavior: 'smooth'
@@ -1073,6 +1147,16 @@ const getWordStyle = (lineIndex: number, _wordIndex: number, word: any) => {
 </script>
 
 <style scoped lang="scss">
+.cover-image.has-black-bars :deep(img) {
+  width: 135% !important;
+  height: 135% !important;
+  max-width: 135% !important;
+  max-height: 135% !important;
+  position: absolute;
+  top: -17.5%;
+  left: -17.5%;
+}
+
 #compact-drawer-target {
   @apply top-0 left-0 absolute overflow-hidden flex flex-col w-full h-full;
   animation-duration: 300ms;
@@ -1727,6 +1811,19 @@ const getWordStyle = (lineIndex: number, _wordIndex: number, word: any) => {
       @apply text-2xl;
     }
   }
+
+  .lyrics-sync-button {
+    @apply absolute right-5 bottom-24 z-20 inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold;
+    color: var(--text-color-active);
+    background: color-mix(in srgb, var(--background-color, #222) 82%, transparent);
+    border: 1px solid color-mix(in srgb, var(--text-color-active) 35%, transparent);
+    box-shadow: 0 4px 16px rgb(0 0 0 / 25%);
+    backdrop-filter: blur(10px);
+
+    i {
+      font-size: 15px;
+    }
+  }
 }
 
 .control-btn {
@@ -1766,6 +1863,19 @@ const getWordStyle = (lineIndex: number, _wordIndex: number, word: any) => {
         .lyrics-padding-top {
           height: 30px;
           min-height: 30px;
+        }
+
+        .lyrics-sync-button {
+          @apply absolute right-5 bottom-20 z-20 inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold;
+          color: var(--text-color-active);
+          background: color-mix(in srgb, var(--background-color, #222) 82%, transparent);
+          border: 1px solid color-mix(in srgb, var(--text-color-active) 35%, transparent);
+          box-shadow: 0 4px 16px rgb(0 0 0 / 25%);
+          backdrop-filter: blur(10px);
+
+          i {
+            font-size: 15px;
+          }
         }
 
         .lyrics-padding-bottom {
@@ -1862,7 +1972,6 @@ const getWordStyle = (lineIndex: number, _wordIndex: number, word: any) => {
       height: 100%;
       object-fit: cover;
       image-rendering: -webkit-optimize-contrast;
-      image-rendering: crisp-edges;
       filter: none !important;
       backdrop-filter: none !important;
     }

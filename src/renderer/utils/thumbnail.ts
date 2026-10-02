@@ -31,10 +31,10 @@ export const getImgUrl = (url: string | undefined, size: string = '') => {
     return url.replace(/thumbnail=\d+y\d+(?!.*thumbnail)/, `thumbnail=${size}`);
   }
 
-  if (url.includes('lh3.googleusercontent.com') || url.includes('yt3.ggpht.com')) {
+  if (url.includes('googleusercontent.com') || url.includes('yt3.ggpht.com')) {
     const match = size.match(/^(\d+)y(\d+)$/);
     if (match) {
-      const dim = Math.min(parseInt(match[1]), 544);
+      const dim = Math.min(parseInt(match[1]), 1600);
       if (url.includes('=w')) {
         return url.replace(/=w\d+-h\d+/, `=w${dim}-h${dim}`);
       } else {
@@ -44,14 +44,15 @@ export const getImgUrl = (url: string | undefined, size: string = '') => {
     }
   }
   if (url.includes('i.ytimg.com')) {
+    const cleanUrl = url.split('?')[0];
     const match = size.match(/^(\d+)y(\d+)$/);
     if (match) {
       const dim = parseInt(match[1]);
-      if (dim > 300) {
-        return url.replace(/\/(sddefault|maxresdefault|mqdefault|default)\.jpg/, '/hqdefault.jpg');
+      if (dim > 700) {
+        return cleanUrl.replace(/\/(sddefault|maxresdefault|mqdefault|hqdefault|default)\.(jpg|webp)/, '/maxresdefault.jpg');
       }
     }
-    return url.split('?')[0]; // Strip param from standard YT images just in case
+    return cleanUrl;
   }
 
   // Handle NetEase images
@@ -65,7 +66,7 @@ export const getImgUrl = (url: string | undefined, size: string = '') => {
   return `${url}?param=${size}`;
 };
 
-const PLAYER_SIZE = '1000y1000';
+const PLAYER_SIZE = '1600y1600';
 
 const SEARCH_SIZE = '800y800';
 const LIST_SIZE = '100y100';

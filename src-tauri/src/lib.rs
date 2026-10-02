@@ -36,18 +36,30 @@ pub fn run() {
             let progress_handle = handle.clone();
             std::thread::spawn(move || {
                 use tauri::Emitter;
+                let mut was_playing = false;
                 loop {
                     std::thread::sleep(std::time::Duration::from_millis(200));
-                    {
-                        let state = progress_handle.state::<AudioState>();
-                        if let Ok(guard) = state.player.lock() {
-                            if let Some(player) = guard.as_ref() {
-                                if !player.sink.is_paused() && !player.sink.empty() {
-                                    let pos = player.sink.get_pos().as_secs_f32();
-                                    let _ = progress_handle.emit("playback-progress", pos);
-                                }
-                            }
-                        };
+                    let state = progress_handle.state::<AudioState>();
+                    let Ok(guard) = state.player.lock() else {
+                        continue;
+                    };
+
+                    let Some(player) = guard.as_ref() else {
+                        was_playing = false;
+                        continue;
+                    };
+
+                    if player.sink.is_paused() {
+                        was_playing = false;
+                    } else if player.sink.empty() {
+                        if was_playing {
+                            let _ = progress_handle.emit("playback-ended", ());
+                            was_playing = false;
+                        }
+                    } else {
+                        was_playing = true;
+                        let pos = player.sink.get_pos().as_secs_f32();
+                        let _ = progress_handle.emit("playback-progress", pos);
                     }
                 }
             });

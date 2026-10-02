@@ -170,6 +170,15 @@
             'full-width': config.hideCover
           }"
         >
+          <button
+            v-if="showSyncButton && supportAutoScroll"
+            class="lyrics-sync-button"
+            type="button"
+            @click="syncLyrics"
+          >
+            <i class="ri-focus-3-line"></i>
+            Sync
+          </button>
           <n-layout
             ref="lrcSider"
             class="music-lrc"
@@ -282,6 +291,8 @@ import { LYRIC_CONFIG_CHANGE_EVENT, readLyricConfig, writeLyricConfig } from '@/
 
 const lrcSider = ref<any>(null);
 const isMouse = ref(false);
+const showSyncButton = ref(false);
+const isProgrammaticScroll = ref(false);
 const { currentBackground, applyBackground } = useLyricBackground();
 
 const customBackgroundStyle = computed(() => {
@@ -450,10 +461,14 @@ const lrcScroll = (behavior: ScrollBehavior = 'smooth', forceTop: boolean = fals
   if (!isVisible.value || !lrcSider.value || !supportAutoScroll.value) return;
 
   if (forceTop) {
+    isProgrammaticScroll.value = true;
     lrcSider.value.scrollTo({
       top: 0,
       behavior
     });
+    window.setTimeout(() => {
+      isProgrammaticScroll.value = false;
+    }, 250);
     return;
   }
 
@@ -469,7 +484,17 @@ const lrcScroll = (behavior: ScrollBehavior = 'smooth', forceTop: boolean = fals
       top: scrollTop,
       behavior
     });
+    isProgrammaticScroll.value = true;
+    window.setTimeout(() => {
+      isProgrammaticScroll.value = false;
+    }, behavior === 'smooth' ? 500 : 100);
   }
+};
+
+const syncLyrics = () => {
+  showSyncButton.value = false;
+  isMouse.value = false;
+  lrcScroll('instant');
 };
 
 const debouncedLrcScroll = useDebounceFn(lrcScroll, 200);
@@ -492,7 +517,7 @@ const mouseLeaveLayout = () => {
 };
 
 watch(nowIndex, () => {
-  if (isSongChanging.value) return;
+  if (isSongChanging.value || showSyncButton.value) return;
   debouncedLrcScroll();
 });
 
@@ -696,9 +721,14 @@ watch(
 );
 
 const handleScroll = () => {
-  if (!lrcSider.value || !config.value.hideCover) return;
+  if (!lrcSider.value) return;
   const { scrollTop } = lrcSider.value.$el;
-  showStickyHeader.value = scrollTop > 100;
+  if (config.value.hideCover) {
+    showStickyHeader.value = scrollTop > 100;
+  }
+  if (!isProgrammaticScroll.value && !isSongChanging.value) {
+    showSyncButton.value = true;
+  }
 };
 
 const playerStore = usePlayerStore();
@@ -827,6 +857,7 @@ watch(
       isSongChanging.value = true;
 
       setTimeout(() => {
+        showSyncButton.value = false;
         lrcScroll('instant', true);
 
         setTimeout(() => {
@@ -936,6 +967,15 @@ defineExpose({
 
   .right-side {
     @apply flex flex-col justify-center h-full relative overflow-hidden;
+
+    .lyrics-sync-button {
+      @apply absolute right-5 top-5 z-20 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold;
+      @apply bg-black/70 text-white shadow-lg backdrop-blur-md transition-colors;
+
+      &:hover {
+        @apply bg-black/85;
+      }
+    }
 
     &.full-width {
       @apply col-span-2;

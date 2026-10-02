@@ -29,7 +29,15 @@ export const usePlayerStore = defineStore('player', () => {
     isFmPlaying
   } = storeToRefs(playerCore);
 
-  const { playList, playListIndex, playMode, originalPlayList, queueVisible } =
+  const {
+    queueItems,
+    queueIndex,
+    playMode,
+    repeatMode,
+    shuffleEnabled,
+    originalQueueItems,
+    queueVisible
+  } =
     storeToRefs(playlist);
 
   const { favoriteList, favoriteIds, dislikeList } = storeToRefs(favorite);
@@ -38,8 +46,8 @@ export const usePlayerStore = defineStore('player', () => {
 
   const currentSong = computed(() => playerCore.currentSong);
   const isPlaying = computed(() => playerCore.isPlaying);
-  const currentPlayList = computed(() => playlist.currentPlayList);
-  const currentPlayListIndex = computed(() => playlist.currentPlayListIndex);
+  const currentQueueItems = computed(() => playlist.currentQueueItems);
+  const currentQueueIndex = computed(() => playlist.currentQueueIndex);
 
   const currentSleepTimer = computed(() => sleepTimer.currentSleepTimer);
   const hasSleepTimerActive = computed(() => sleepTimer.hasSleepTimerActive);
@@ -51,7 +59,7 @@ export const usePlayerStore = defineStore('player', () => {
 
     const { initializePlayState: initPlayState } = await import('@/services/playbackController');
     await initPlayState();
-    await playlist.initializePlaylist();
+    await playlist.initializeQueue();
   };
 
   const initializeFavoriteList = () => {
@@ -85,21 +93,27 @@ export const usePlayerStore = defineStore('player', () => {
     toggleMute: playerCore.toggleMute,
     handlePause: playerCore.handlePause,
 
-    playList,
-    playListIndex,
+    queueItems,
+    queueIndex,
     playMode,
-    originalPlayList,
+    repeatMode,
+    shuffleEnabled,
+    originalQueueItems,
     queueVisible,
 
-    currentPlayList,
-    currentPlayListIndex,
+    currentQueueItems,
+    currentQueueIndex,
 
-    setPlayList: playlist.setPlayList,
+    setQueue: playlist.setQueue,
     addToNextPlay: playlist.addToNextPlay,
-    removeFromPlayList: playlist.removeFromPlayList,
+    addToQueue: playlist.addToQueue,
+    moveInQueue: playlist.moveInQueue,
+    removeFromQueue: playlist.removeFromQueue,
     clearPlayAll: playlist.clearPlayAll,
     togglePlayMode: playlist.togglePlayMode,
-    shufflePlayList: playlist.shufflePlayList,
+    toggleShuffle: playlist.toggleShuffle,
+    toggleRepeat: playlist.toggleRepeat,
+    shuffleQueue: playlist.shuffleQueue,
     restoreOriginalOrder: playlist.restoreOriginalOrder,
     preloadNextSongs: playlist.preloadNextSongs,
     nextPlay: playlist.nextPlay,

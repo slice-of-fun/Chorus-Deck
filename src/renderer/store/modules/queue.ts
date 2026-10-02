@@ -21,26 +21,45 @@ const getMessage = () => {
   return _message;
 };
 
+const parseDuration = (duration: string): number => {
+  const parts = duration.split(':').map(Number);
+  if (parts.some(Number.isNaN)) return 0;
+
+  if (parts.length === 3) {
+    return (parts[0] * 3600 + parts[1] * 60 + parts[2]) * 1000;
+  }
+  if (parts.length === 2) {
+    return (parts[0] * 60 + parts[1]) * 1000;
+  }
+  return (parts[0] || 0) * 1000;
+};
+
 export const useQueueStore = defineStore(
   'queue',
   () => {
-    const playList = shallowRef<SongResult[]>([]);
-    const playListIndex = ref(0);
-    const playMode = ref(0);
-    const originalPlayList = shallowRef<SongResult[]>([]);
+    const queueItems = shallowRef<SongResult[]>([]);
+    const queueIndex = ref(0);
+    const repeatMode = ref(0);
+    const shuffleEnabled = ref(false);
+    const originalQueueItems = shallowRef<SongResult[]>([]);
     const queueVisible = ref(false);
+    const playMode = computed(() => {
+      if (shuffleEnabled.value) return 2;
+      return repeatMode.value === 2 ? 1 : 0;
+    });
 
     const consecutiveFailCount = ref(0);
     const MAX_CONSECUTIVE_FAILS = 5;
+    let radioRequestId = 0;
 
-    const currentPlayList = computed(() => playList.value);
-    const currentPlayListIndex = computed(() => playListIndex.value);
+    const currentQueueItems = computed(() => queueItems.value);
+    const currentQueueIndex = computed(() => queueIndex.value);
 
     const fetchSongs = async (startIndex: number, endIndex: number) => {
       try {
-        const songs = playList.value.slice(
+        const songs = queueItems.value.slice(
           Math.max(0, startIndex),
-          Math.min(endIndex, playList.value.length)
+          Math.min(endIndex, queueItems.value.length)
         );
         const { getSongDetail } = useSongDetail();
 
@@ -83,12 +102,12 @@ export const useQueueStore = defineStore(
         }
 
         detailedSongs.forEach((song, index) => {
-          if (song && startIndex + index < playList.value.length) {
-            playList.value[startIndex + index] = song;
+          if (song && startIndex + index < queueItems.value.length) {
+            queueItems.value[startIndex + index] = song;
           }
         });
 
-        triggerRef(playList);
+        triggerRef(queueItems);
 
         if (nextSong) {
           if (nextSong.playMusicUrl) {
@@ -115,75 +134,77 @@ export const useQueueStore = defineStore(
     };
 
     const doPreloadNextSongs = (currentIndex: number) => {
-      if (playList.value.length <= 1) return;
+      if (queueItems.value.length <= 1) return;
 
       let nextIndex: number;
 
-      if (playMode.value === 0) {
-        if (currentIndex >= playList.value.length - 1) {
+      if (repeatMode.value === 0 && !shuffleEnabled.value) {
+        if (currentIndex >= queueItems.value.length - 1) {
           return;
         }
         nextIndex = currentIndex + 1;
       } else {
-        nextIndex = (currentIndex + 1) % playList.value.length;
+        nextIndex = (currentIndex + 1) % queueItems.value.length;
       }
 
-      const endIndex = Math.min(nextIndex + 2, playList.value.length);
+      const endIndex = Math.min(nextIndex + 2, queueItems.value.length);
 
-      if (nextIndex < playList.value.length) {
+      if (nextIndex < queueItems.value.length) {
         fetchSongs(nextIndex, endIndex);
 
         if (
-          (playMode.value === 1 || playMode.value === 2) &&
-          nextIndex + 1 >= playList.value.length &&
-          playList.value.length > 2
+          (repeatMode.value === 1 || shuffleEnabled.value) &&
+          nextIndex + 1 >= queueItems.value.length &&
+          queueItems.value.length > 2
         ) {
           fetchSongs(0, 1);
         }
       }
     };
 
-    const shufflePlayList = () => {
-      console.log('[PlaylistStore] shufflePlayList called');
-      if (playList.value.length === 0) return;
+    const shuffleQueue = () => {
+      console.log('[QueueStore] shuffleQueue called');
+      if (queueItems.value.length === 0) return;
 
-      if (originalPlayList.value.length === 0) {
-        console.log('[PlaylistStore] Saving original list, length:', playList.value.length);
-        originalPlayList.value = [...playList.value];
+      if (originalQueueItems.value.length === 0) {
+        console.log('[QueueStore] Saving original queue, length:', queueItems.value.length);
+        originalQueueItems.value = [...queueItems.value];
       }
 
-      const currentSong = playList.value[playListIndex.value];
-      console.log('[PlaylistStore] Current song before shuffle:', currentSong?.name);
+      const currentSong = queueItems.value[queueIndex.value];
+      console.log('[QueueStore] Current song before shuffle:', currentSong?.name);
 
-      const shuffled = performShuffle([...playList.value], currentSong);
+      const shuffled = performShuffle([...queueItems.value], currentSong);
 
-      playList.value = [...shuffled];
-      playListIndex.value = 0;
+      queueItems.value = [...shuffled];
+      queueIndex.value = 0;
+      shuffleEnabled.value = true;
 
-      console.log('[PlaylistStore] List shuffled, new length:', playList.value.length);
-      console.log('[PlaylistStore] New first song:', playList.value[0]?.name);
+      console.log('[QueueStore] Queue shuffled, new length:', queueItems.value.length);
+      console.log('[QueueStore] New first song:', queueItems.value[0]?.name);
     };
 
     const restoreOriginalOrder = () => {
-      console.log('[PlaylistStore] restoreOriginalOrder called');
-      if (originalPlayList.value.length === 0) return;
+      console.log('[QueueStore] restoreOriginalOrder called');
+      if (originalQueueItems.value.length === 0) return;
 
-      const currentSong = playList.value[playListIndex.value];
-      console.log('[PlaylistStore] Current song before restore:', currentSong?.name);
+      const currentSong = queueItems.value[queueIndex.value];
+      console.log('[QueueStore] Current song before restore:', currentSong?.name);
 
-      playList.value = [...originalPlayList.value];
-      originalPlayList.value = [];
+      queueItems.value = [...originalQueueItems.value];
+      originalQueueItems.value = [];
 
       if (currentSong) {
-        const index = playList.value.findIndex((s) => s.id === currentSong.id);
+        const index = queueItems.value.findIndex((s) => s.id === currentSong.id);
         if (index !== -1) {
-          playListIndex.value = index;
+          queueIndex.value = index;
         }
       }
-      console.log('[PlaylistStore] Original order restored, new index:', playListIndex.value);
+      console.log('[QueueStore] Queue order restored, new index:', queueIndex.value);
+      shuffleEnabled.value = false;
     };
 
-    const setPlayList = (
+    const setQueue = (
       list: SongResult[],
       keepIndex: boolean = false,
 
@@ -195,9 +216,9 @@ export const useQueueStore = defineStore(
       }
 
       if (list.length === 0) {
-        playList.value = [];
-        playListIndex.value = 0;
-        originalPlayList.value = [];
+        queueItems.value = [];
+        queueIndex.value = 0;
+        originalQueueItems.value = [];
         return;
       }
 
@@ -205,83 +226,165 @@ export const useQueueStore = defineStore(
       const { playMusic } = storeToRefs(playerCore);
 
       if (preserveOrder) {
-        console.log('Edit playlist in place, keeping given order');
+        console.log('Edit queue in place, keeping given order');
 
-        if (playMode.value === 2) {
+        if (shuffleEnabled.value) {
           const idSet = new Set(list.map((song) => song.id));
-          const reconciled = originalPlayList.value.filter((song) => idSet.has(song.id));
+          const reconciled = originalQueueItems.value.filter((song) => idSet.has(song.id));
           const existingIds = new Set(reconciled.map((song) => song.id));
           for (const song of list) {
             if (!existingIds.has(song.id)) {
               reconciled.push(song);
             }
           }
-          originalPlayList.value = reconciled;
-        } else if (originalPlayList.value.length > 0) {
-          originalPlayList.value = [];
+          originalQueueItems.value = reconciled;
+        } else if (originalQueueItems.value.length > 0) {
+          originalQueueItems.value = [];
         }
 
         const currentSong = playMusic.value;
         const currentIndex =
           currentSong && currentSong.id ? list.findIndex((song) => song.id === currentSong.id) : -1;
-        playListIndex.value =
+        queueIndex.value =
           currentIndex !== -1
             ? currentIndex
-            : Math.min(Math.max(0, playListIndex.value), list.length - 1);
+            : Math.min(Math.max(0, queueIndex.value), list.length - 1);
 
-        playList.value = list;
-      } else if (playMode.value === 2) {
-        console.log('Set new playlist in random mode, save original order and shuffle');
+        queueItems.value = list;
+      } else if (shuffleEnabled.value) {
+        console.log('Set new queue in random mode, save original order and shuffle');
 
-        originalPlayList.value = [...list];
+        originalQueueItems.value = [...list];
 
         const currentSong = playMusic.value;
         const shuffledList = performShuffle(list, currentSong);
 
         if (currentSong && currentSong.id) {
           const currentSongIndex = shuffledList.findIndex((song) => song.id === currentSong.id);
-          playListIndex.value =
-            currentSongIndex !== -1 ? 0 : keepIndex ? Math.max(0, playListIndex.value) : 0;
+          queueIndex.value =
+            currentSongIndex !== -1 ? 0 : keepIndex ? Math.max(0, queueIndex.value) : 0;
         } else {
-          playListIndex.value = keepIndex ? Math.max(0, playListIndex.value) : 0;
+          queueIndex.value = keepIndex ? Math.max(0, queueIndex.value) : 0;
         }
 
-        playList.value = shuffledList;
+        queueItems.value = shuffledList;
       } else {
-        console.log('order/Set up a new playlist in loop mode');
-        if (originalPlayList.value.length > 0) {
-          originalPlayList.value = [];
+        console.log('Set up a new queue in loop mode');
+        if (originalQueueItems.value.length > 0) {
+          originalQueueItems.value = [];
         }
 
         if (!keepIndex) {
           const foundIndex = list.findIndex((item) => item.id === playMusic.value.id);
-          playListIndex.value = foundIndex !== -1 ? foundIndex : 0;
+          queueIndex.value = foundIndex !== -1 ? foundIndex : 0;
         }
 
-        playList.value = list;
+        queueItems.value = list;
+      }
+
+      if (!preserveOrder && list.length === 1) {
+        void appendRadioQueue(list[0]);
+      }
+    };
+
+    const appendRadioQueue = async (song: SongResult) => {
+      if (song.source && song.source !== 'ytmusic') return;
+      if (song.playMusicUrl?.startsWith('local://') || !song.id) return;
+
+      const requestId = ++radioRequestId;
+      try {
+        const { getYTMRadio } = await import('@/api/ytmusic');
+        const radioSongs = await getYTMRadio(String(song.id));
+
+        if (
+          requestId !== radioRequestId ||
+          queueItems.value.length !== 1 ||
+          queueItems.value[0]?.id !== song.id
+        ) {
+          return;
+        }
+
+        const existingIds = new Set(queueItems.value.map((item) => String(item.id)));
+        const additions: SongResult[] = radioSongs
+          .filter((item) => !existingIds.has(String(item.id)))
+          .map((item) => ({
+            id: item.id,
+            name: item.title,
+            artists: item.artists,
+            album: item.album,
+            picUrl: item.thumbnail,
+            dt: item.duration ? parseDuration(item.duration) : undefined,
+            source: 'ytmusic'
+          }));
+
+        if (additions.length > 0) {
+          setQueue([...queueItems.value, ...additions], true, true);
+        }
+      } catch (error) {
+        console.warn('[QueueStore] Failed to load radio queue:', error);
       }
     };
 
     const addToNextPlay = (song: SongResult) => {
-      const list = [...playList.value];
-      const currentIndex = playListIndex.value;
+      const list = [...queueItems.value];
+      const currentIndex = queueIndex.value;
 
       const existingIndex = list.findIndex((item) => item.id === song.id);
       if (existingIndex !== -1) {
         list.splice(existingIndex, 1);
         if (existingIndex <= currentIndex) {
-          playListIndex.value = Math.max(0, playListIndex.value - 1);
+          queueIndex.value = Math.max(0, queueIndex.value - 1);
         }
       }
 
-      const insertIndex = playListIndex.value + 1;
+      const insertIndex = queueIndex.value + 1;
       list.splice(insertIndex, 0, song);
 
-      setPlayList(list, true, true);
+      setQueue(list, true, true);
     };
 
-    const removeFromPlayList = (id: number | string) => {
-      const index = playList.value.findIndex((item) => item.id === id);
+    const addToQueue = (song: SongResult) => {
+      setQueue([...queueItems.value, song], true, true);
+    };
+
+    const moveInQueue = (fromIndex: number, toIndex: number) => {
+      if (
+        fromIndex === toIndex ||
+        fromIndex < 0 ||
+        toIndex < 0 ||
+        fromIndex >= queueItems.value.length ||
+        toIndex >= queueItems.value.length
+      ) {
+        return;
+      }
+
+      const list = [...queueItems.value];
+      const [song] = list.splice(fromIndex, 1);
+      list.splice(toIndex, 0, song);
+
+      if (queueIndex.value === fromIndex) {
+        queueIndex.value = toIndex;
+      } else if (fromIndex < queueIndex.value && toIndex >= queueIndex.value) {
+        queueIndex.value -= 1;
+      } else if (fromIndex > queueIndex.value && toIndex <= queueIndex.value) {
+        queueIndex.value += 1;
+      }
+
+      if (shuffleEnabled.value) {
+        const originalIds = new Set(originalQueueItems.value.map((item) => item.id));
+        originalQueueItems.value = originalQueueItems.value.filter((item) =>
+          list.some((queuedItem) => queuedItem.id === item.id)
+        );
+        for (const item of list) {
+          if (!originalIds.has(item.id)) originalQueueItems.value.push(item);
+        }
+      }
+
+      queueItems.value = list;
+    };
+
+    const removeFromQueue = (id: number | string) => {
+      const index = queueItems.value.findIndex((item) => item.id === id);
       if (index === -1) return;
 
       const playerCore = usePlayerCoreStore();
@@ -291,10 +394,10 @@ export const useQueueStore = defineStore(
         nextPlay();
       }
 
-      const newPlayList = [...playList.value];
-      newPlayList.splice(index, 1);
+      const newQueueItems = [...queueItems.value];
+      newQueueItems.splice(index, 1);
 
-      setPlayList(newPlayList, false, true);
+      setQueue(newQueueItems, false, true);
     };
 
     const clearPlayAll = async () => {
@@ -305,34 +408,31 @@ export const useQueueStore = defineStore(
       setTimeout(() => {
         playerCore.playMusic = {} as SongResult;
         playerCore.playMusicUrl = '';
-        playList.value = [];
-        playListIndex.value = 0;
-        originalPlayList.value = [];
+        queueItems.value = [];
+        queueIndex.value = 0;
+        originalQueueItems.value = [];
 
         localStorage.removeItem('currentPlayMusic');
         localStorage.removeItem('currentPlayMusicUrl');
       }, 500);
     };
 
-    const togglePlayMode = async () => {
-      const wasRandom = playMode.value === 2;
-
-      const newMode = (playMode.value + 1) % 3;
-
-      const isRandom = newMode === 2;
-
-      console.log(`[PlaylistStore] togglePlayMode: ${playMode.value} -> ${newMode}`);
-      playMode.value = newMode;
-
-      if (isRandom && !wasRandom && playList.value.length > 0) {
-        shufflePlayList();
-        console.log('Switch to random mode and shuffle the playlist');
-      }
-
-      if (!isRandom && wasRandom) {
+    const toggleShuffle = () => {
+      if (shuffleEnabled.value) {
         restoreOriginalOrder();
-        console.log('Switch out of random mode and restore original order');
+      } else if (queueItems.value.length > 0) {
+        shuffleQueue();
+      } else {
+        shuffleEnabled.value = true;
       }
+    };
+
+    const toggleRepeat = () => {
+      repeatMode.value = (repeatMode.value + 1) % 3;
+    };
+
+    const togglePlayMode = () => {
+      toggleRepeat();
     };
 
     let nextPlayRetryTimer: ReturnType<typeof setTimeout> | null = null;
@@ -348,7 +448,7 @@ export const useQueueStore = defineStore(
       try {
         const playerCore = usePlayerCoreStore();
 
-        if (playList.value.length === 0) return;
+        if (queueItems.value.length === 0) return;
 
         if (!fromFailover) {
           cancelRetryTimer();
@@ -362,20 +462,24 @@ export const useQueueStore = defineStore(
             `[nextPlay] continuous${MAX_CONSECUTIVE_FAILS}The first playback failed and stopped.`
           );
           getMessage().warning(
-            'Playback error, possibly due to network issues or invalid source. Please switch playlist or try again later'
+            'Playback error, possibly due to network issues or invalid source. Please switch queue or try again later'
           );
           consecutiveFailCount.value = 0;
           playerCore.setIsPlay(false);
           return;
         }
 
-        if (playMode.value === 0 && playListIndex.value >= playList.value.length - 1) {
+        if (
+          repeatMode.value === 0 &&
+          !shuffleEnabled.value &&
+          queueIndex.value >= queueItems.value.length - 1
+        ) {
           if (autoEnd) {
             console.log('[nextPlay] Sequential playback: After the last song is played, stop');
             if (sleepTimerStore.sleepTimer.type === 'end') {
               sleepTimerStore.stopPlayback();
             }
-            getMessage().info('Reached the end of the playlist');
+            getMessage().info('Reached the end of the queue');
             playerCore.setIsPlay(false);
             const { audioService } = await import('@/services/audioService');
             audioService.pause();
@@ -383,16 +487,16 @@ export const useQueueStore = defineStore(
             console.log(
               '[nextPlay] Sequential playback: Already the last song, keep playing currently'
             );
-            getMessage().info('Reached the end of the playlist');
+            getMessage().info('Reached the end of the queue');
           }
           return;
         }
 
-        const nowPlayListIndex = (playListIndex.value + 1) % playList.value.length;
-        const nextSong = { ...playList.value[nowPlayListIndex] };
+        const nowQueueIndex = (queueIndex.value + 1) % queueItems.value.length;
+        const nextSong = { ...queueItems.value[nowQueueIndex] };
 
         console.log(
-          `[nextPlay] ${nextSong.name}, index: ${playListIndex.value} -> ${nowPlayListIndex}`
+          `[nextPlay] ${nextSong.name}, index: ${queueIndex.value} -> ${nowQueueIndex}`
         );
 
         const { playTrack } = await import('@/services/playbackController');
@@ -405,16 +509,16 @@ export const useQueueStore = defineStore(
 
         if (success) {
           consecutiveFailCount.value = 0;
-          playListIndex.value = nowPlayListIndex;
-          console.log(`[nextPlay] Play successfully, index: ${nowPlayListIndex}`);
+          queueIndex.value = nowQueueIndex;
+          console.log(`[nextPlay] Play successfully, index: ${nowQueueIndex}`);
           sleepTimerStore.handleSongChange();
         } else {
           consecutiveFailCount.value++;
           console.log(
             `[nextPlay] Playback fails, skips directly, fails continuously: ${consecutiveFailCount.value}/${MAX_CONSECUTIVE_FAILS}`
           );
-          if (playList.value.length > 1) {
-            playListIndex.value = nowPlayListIndex;
+          if (queueItems.value.length > 1) {
+            queueIndex.value = nowQueueIndex;
             nextPlayRetryTimer = setTimeout(() => {
               nextPlayRetryTimer = null;
               _nextPlay(false, true);
@@ -439,23 +543,39 @@ export const useQueueStore = defineStore(
       try {
         const playerCore = usePlayerCoreStore();
 
-        if (playList.value.length === 0) return;
+        if (queueItems.value.length === 0) return;
 
         cancelRetryTimer();
-        const nowPlayListIndex =
-          (playListIndex.value - 1 + playList.value.length) % playList.value.length;
-        const prevSong = { ...playList.value[nowPlayListIndex] };
+
+        try {
+          const currentTime = await window.api.audioGetTime();
+          if (currentTime > 3) {
+            audioService.seek(0);
+            return;
+          }
+        } catch (error) {
+          console.warn('Unable to read current playback position:', error);
+        }
+
+        if (queueIndex.value === 0 && !shuffleEnabled.value) {
+          audioService.seek(0);
+          return;
+        }
+
+        const nowQueueIndex =
+          (queueIndex.value - 1 + queueItems.value.length) % queueItems.value.length;
+        const prevSong = { ...queueItems.value[nowQueueIndex] };
 
         console.log(
-          `[prevPlay] ${prevSong.name}, index: ${playListIndex.value} -> ${nowPlayListIndex}`
+          `[prevPlay] ${prevSong.name}, index: ${queueIndex.value} -> ${nowQueueIndex}`
         );
 
         const { playTrack } = await import('@/services/playbackController');
         const success = await playTrack(prevSong);
 
         if (success) {
-          playListIndex.value = nowPlayListIndex;
-          console.log(`[prevPlay] Play successfully, index: ${nowPlayListIndex}`);
+          queueIndex.value = nowQueueIndex;
+          console.log(`[prevPlay] Play successfully, index: ${nowQueueIndex}`);
         } else if (playerCore.playMusic.id === prevSong.id) {
           playerCore.setIsPlay(false);
           getMessage().error('Play Failed, Play Next Song');
@@ -495,6 +615,8 @@ export const useQueueStore = defineStore(
             playerCore.setPlayMusic(true);
             playerCore.userPlayIntent = true;
             try {
+              const duration = await window.api.audioGetDuration();
+              if (duration === null) throw new Error("Native player is not running");
               await window.api.audioResume();
             } catch {
               // Native player is not running; restart the track from scratch.
@@ -518,12 +640,12 @@ export const useQueueStore = defineStore(
 
         if (song.isFirstPlay) song.isFirstPlay = false;
 
-        const songIndex = playList.value.findIndex(
+        const songIndex = queueItems.value.findIndex(
           (item: SongResult) => item.id === song.id && item.source === song.source
         );
-        if (songIndex !== -1 && songIndex !== playListIndex.value) {
+        if (songIndex !== -1 && songIndex !== queueIndex.value) {
           console.log('Song index does not match, update to:', songIndex);
-          playListIndex.value = songIndex;
+          queueIndex.value = songIndex;
         }
 
         const { playTrack } = await import('@/services/playbackController');
@@ -532,7 +654,7 @@ export const useQueueStore = defineStore(
         if (success) {
           playerCore.isPlay = true;
           if (songIndex !== -1) {
-            preloadNextSongs(playListIndex.value);
+            preloadNextSongs(queueIndex.value);
           }
         }
         return success;
@@ -542,35 +664,45 @@ export const useQueueStore = defineStore(
       }
     };
 
-    const initializePlaylist = async () => {
-      if (playMode.value === 2 && playList.value.length > 0) {
-        if (originalPlayList.value.length === 0) {
-          console.log('After restarting, restore random play mode and reshuffle the playlist.');
-          shufflePlayList();
+    const initializeQueue = async () => {
+      if (queueItems.value.length === 1) {
+        void appendRadioQueue(queueItems.value[0]);
+      }
+
+      if (shuffleEnabled.value && queueItems.value.length > 0) {
+        if (originalQueueItems.value.length === 0) {
+          console.log('After restarting, restore random queue mode and reshuffle the queue.');
+          shuffleQueue();
         } else {
           console.log(
-            'After restarting, the random play mode is restored, and the playlist is already in a shuffled state.'
+            'After restarting, the random queue mode is restored, and the queue is already shuffled.'
           );
         }
       }
     };
 
     return {
-      playList,
-      playListIndex,
+      queueItems,
+      queueIndex,
       playMode,
-      originalPlayList,
+      repeatMode,
+      shuffleEnabled,
+      originalQueueItems,
       queueVisible,
 
-      currentPlayList,
-      currentPlayListIndex,
+      currentQueueItems,
+      currentQueueIndex,
 
-      setPlayList,
+      setQueue,
       addToNextPlay,
-      removeFromPlayList,
+      addToQueue,
+      moveInQueue,
+      removeFromQueue,
       clearPlayAll,
       togglePlayMode,
-      shufflePlayList,
+      toggleShuffle,
+      toggleRepeat,
+      shuffleQueue,
       restoreOriginalOrder,
       preloadNextSongs,
       nextPlay: nextPlay as unknown as typeof _nextPlay,
@@ -578,16 +710,16 @@ export const useQueueStore = defineStore(
       prevPlay: prevPlay as unknown as typeof _prevPlay,
       setQueueVisible,
       setPlay,
-      initializePlaylist,
+      initializeQueue,
       fetchSongs,
       updateSong: (song: SongResult) => {
-        const index = playList.value.findIndex(
+        const index = queueItems.value.findIndex(
           (item) => item.id === song.id && item.source === song.source
         );
         if (index !== -1) {
-          playList.value[index] = song;
+          queueItems.value[index] = song;
 
-          playList.value = [...playList.value];
+          queueItems.value = [...queueItems.value];
         }
       }
     };
@@ -596,13 +728,13 @@ export const useQueueStore = defineStore(
     persist: {
       key: 'queue-store',
       storage: debouncedLocalStorage,
-      pick: ['playList', 'playListIndex', 'playMode', 'originalPlayList'],
+      pick: ['queueItems', 'queueIndex', 'repeatMode', 'shuffleEnabled', 'originalQueueItems'],
       serializer: {
         serialize: (state: any) => {
           return JSON.stringify({
             ...state,
-            playList: minifySongList(state.playList),
-            originalPlayList: minifySongList(state.originalPlayList)
+            queueItems: minifySongList(state.queueItems),
+            originalQueueItems: minifySongList(state.originalQueueItems)
           });
         },
         deserialize: JSON.parse

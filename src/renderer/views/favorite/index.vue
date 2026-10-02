@@ -303,7 +303,7 @@ watch(
 );
 
 const handlePlay = () => {
-  playerStore.setPlayList(favoriteSongs.value);
+  playerStore.setQueue(favoriteSongs.value);
 };
 
 const getItemAnimationDelay = (index: number) => {

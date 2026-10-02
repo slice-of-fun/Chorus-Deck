@@ -615,7 +615,7 @@ async function handleScan(): Promise<void> {
 
 async function handlePlaySong(_song: SongResult): Promise<void> {
   try {
-    playerStore.setPlayList(filteredSongResults.value);
+    playerStore.setQueue(filteredSongResults.value);
   } catch (error) {
     console.error('Failed to play local music:', error);
   }
@@ -644,7 +644,7 @@ async function handlePlayAll(): Promise<void> {
       return;
     }
 
-    playerStore.setPlayList(filteredSongResults.value);
+    playerStore.setQueue(filteredSongResults.value);
     await playerStore.setPlay(firstSong);
   } catch (error) {
     console.error('Failed to play all:', error);

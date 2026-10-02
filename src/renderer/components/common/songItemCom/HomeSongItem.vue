@@ -14,6 +14,7 @@
         preview-disabled
         :img-props="{
           crossorigin: 'anonymous',
+          referrerpolicy: 'no-referrer',
           loading: 'lazy',
           alt: item.name
         }"

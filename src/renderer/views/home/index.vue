@@ -235,7 +235,7 @@ function playSong(item: YTMSong | YTMPlaylist) {
     source: 'ytmusic',
     artists: item.artists.map((a) => ({ name: a.name }))
   };
-  playlistStore.setPlayList([track], false, false);
+  playlistStore.setQueue([track], false, false);
   // Emit play event — existing playback controller will handle it
   window.dispatchEvent(new CustomEvent('ytm:play', { detail: track }));
 }

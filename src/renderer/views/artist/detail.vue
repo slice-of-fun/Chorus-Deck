@@ -182,7 +182,7 @@ const loadArtist = async () => {
 
 const playAll = () => {
   if (!songs.value.length) return;
-  playerStore.setPlayList(songs.value, false, true);
+  playerStore.setQueue(songs.value, false, true);
 };
 
 const albumItems = computed(() =>
