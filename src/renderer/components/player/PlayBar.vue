@@ -153,7 +153,7 @@
             <i class="ri-play-list-fill text-xl transition-colors cursor-pointer"></i>
           </div>
         </template>
-        Play List
+        Queue
       </n-tooltip>
 
       <div class="audio-volume custom-slider" @click.stop @wheel.prevent="handleVolumeWheel">

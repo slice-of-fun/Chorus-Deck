@@ -211,7 +211,7 @@
 </template>
 
 <script setup lang="ts">
-import { NDropdown, useDialog, useMessage } from 'naive-ui';
+import { NDropdown, useDialog, useMessage, useThemeVars } from 'naive-ui';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 
 import logoImg from '@/assets/logo.png';
@@ -228,6 +228,7 @@ const dialog = useDialog();
 const playerStore = usePlayerStore();
 const settingsStore = useSettingsStore();
 const { isPlaying } = usePlaybackControl();
+const themeVars = useThemeVars();
 
 const internalVisible = ref(false);
 const closing = ref(false);
@@ -241,7 +242,7 @@ const shuffleEnabled = computed(() => playerStore.shuffleEnabled);
 
 // ── Color palette derived from song ──────────────────────────────────────────
 const accentColor = computed(
-  () => playMusic.value?.primaryColor || 'var(--primary-color, #6366f1)'
+  () => themeVars.value.primaryColor || 'var(--primary-color, #6366f1)'
 );
 
 const panelStyle = computed(() => ({
