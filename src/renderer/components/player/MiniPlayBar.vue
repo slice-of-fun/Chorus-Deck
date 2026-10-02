@@ -101,7 +101,6 @@ const settingsStore = useSettingsStore();
 const router = useRouter();
 const { navigateToArtist } = useArtist();
 
-
 const { isPlaying: play, playMusicEvent, handleNext, handlePrev } = usePlaybackControl();
 
 const {
@@ -124,8 +123,6 @@ withDefaults(
   }
 );
 
-
-
 const updateWindowSize = () => {};
 
 const restoreMainWindow = () => {
@@ -136,7 +133,9 @@ const restoreMainWindow = () => {
     settingsStore.setMiniMode(false);
     try {
       router.push('/');
-    } catch (e) {}
+    } catch (e) {
+      console.error(e);
+    }
     if (window.api && typeof window.api.setMiniConstraints === 'function') {
       window.api.setMiniConstraints(false);
     }
@@ -150,7 +149,6 @@ const restoreMainWindow = () => {
 };
 
 const handleArtistClick = (id: string | undefined) => {};
-
 
 const handleProgressClick = (e: MouseEvent) => {
   const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -361,7 +359,7 @@ const setMusicFull = () => {
     --n-rail-height: 4px;
     --n-rail-color: theme('colors.gray.200');
     --n-rail-color-dark: theme('colors.gray.700');
-    --n-fill-color: var(--n-fill-color-override, rgba(255,255,255,0.7));
+    --n-fill-color: var(--n-fill-color-override, rgba(255, 255, 255, 0.7));
     --n-handle-size: 12px;
     --n-handle-color: rgba(255, 255, 255, 0.85);
 

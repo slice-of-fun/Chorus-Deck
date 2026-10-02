@@ -15,13 +15,16 @@
           @click="activeTab = tab.key"
           :class="[
             'flex-1 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200',
-            activeTab === tab.key
-              ? 'text-white shadow-lg'
-              : 'hover:bg-white/5'
+            activeTab === tab.key ? 'text-white shadow-lg' : 'hover:bg-white/5'
           ]"
           :style="[
             activeTab !== tab.key ? { color: 'rgba(255, 255, 255, 0.7)' } : {},
-            activeTab === tab.key ? { backgroundColor: accentColor, boxShadow: `0 4px 14px 0 color-mix(in srgb, ${accentColor} 40%, transparent)` } : {}
+            activeTab === tab.key
+              ? {
+                  backgroundColor: accentColor,
+                  boxShadow: `0 4px 14px 0 color-mix(in srgb, ${accentColor} 40%, transparent)`
+                }
+              : {}
           ]"
         >
           {{ tab.label }}

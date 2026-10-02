@@ -234,16 +234,10 @@ const internalVisible = ref(false);
 const closing = ref(false);
 const activeTab = ref<'queue' | 'lyrics'>('queue');
 const isMiniMode = computed(() => settingsStore.isMiniMode);
-// Desktop shell: Queue is a right-side layout column beside Main.
-// Compact + mini mode keep the existing overlay / bottom-sheet behaviour.
 const isShellLayout = computed(() => !isCompact.value && !isMiniMode.value);
 const repeatMode = computed(() => playerStore.repeatMode);
 const shuffleEnabled = computed(() => playerStore.shuffleEnabled);
-
-// ── Color palette derived from song ──────────────────────────────────────────
-const accentColor = computed(
-  () => themeVars.value.primaryColor || 'var(--primary-color, #6366f1)'
-);
+const accentColor = computed(() => themeVars.value.primaryColor || 'var(--primary-color, #6366f1)');
 
 const panelStyle = computed(() => ({
   '--accent': accentColor.value
@@ -307,7 +301,6 @@ watch(
   { immediate: true }
 );
 
-
 const handleOpenTab = (e: CustomEvent) => {
   if (e.detail) activeTab.value = e.detail;
 };
@@ -318,12 +311,12 @@ const handleKeyDown = (event: KeyboardEvent) => {
 
 onMounted(() => {
   window.addEventListener('keydown', handleKeyDown);
-  window.addEventListener('open-queue-tab', handleOpenTab as EventListener);
+  window.addEventListener('open-queue-tab', handleOpenTab as any);
 });
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeyDown);
-  window.removeEventListener('open-queue-tab', handleOpenTab as EventListener);
+  window.removeEventListener('open-queue-tab', handleOpenTab as any);
 });
 
 const queueItems = computed(() => playerStore.queueItems as SongResult[]);

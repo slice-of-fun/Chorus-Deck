@@ -38,19 +38,36 @@
         </n-popover>
 
         <div v-if="isDesktop()" class="control-btn" title="Mini Window" @click="miniWindow">
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+          >
             <rect x="2" y="3" width="12" height="10" rx="1.5" />
             <rect x="7" y="7" width="6" height="5" rx="1" fill="currentColor" stroke="none" />
           </svg>
         </div>
 
         <div class="control-btn" title="Toggle Fullscreen" @click="toggleFullScreen">
-          <i :class="isFullScreen ? 'ri-fullscreen-exit-line' : 'ri-fullscreen-line'" style="font-size: 14px"></i>
+          <i
+            :class="isFullScreen ? 'ri-fullscreen-exit-line' : 'ri-fullscreen-line'"
+            style="font-size: 14px"
+          ></i>
         </div>
 
         <template v-if="isDesktop()">
           <div class="control-btn" title="Maximize" @click="maximizeWindow">
-            <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+            <svg
+              width="11"
+              height="11"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+            >
               <rect x="3" y="3" width="10" height="10" rx="1.5" />
             </svg>
           </div>
@@ -61,7 +78,9 @@
           </div>
           <div class="control-btn close-window-btn" title="Close" @click="handleCloseApp">
             <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M4.29 4.29a1 1 0 0 1 1.42 0L8 6.59l2.29-2.3a1 1 0 0 1 1.42 1.42L9.41 8l2.3 2.29a1 1 0 0 1-1.42 1.42L8 9.41l-2.29 2.3a1 1 0 0 1-1.42-1.42L6.59 8 4.29 5.71a1 1 0 0 1 0-1.42z" />
+              <path
+                d="M4.29 4.29a1 1 0 0 1 1.42 0L8 6.59l2.29-2.3a1 1 0 0 1 1.42 1.42L9.41 8l2.3 2.29a1 1 0 0 1-1.42 1.42L8 9.41l-2.29 2.3a1 1 0 0 1-1.42-1.42L6.59 8 4.29 5.71a1 1 0 0 1 0-1.42z"
+              />
             </svg>
           </div>
         </template>

@@ -13,7 +13,9 @@
       color: 'var(--text-color, inherit)',
       boxShadow: '0 -4px 20px rgba(0,0,0,0.05)',
       '--fill-color': playMusic?.primaryColor || 'var(--primary-color)',
-      '--fill-color-light': playMusic?.primaryColor ? playMusic.primaryColor + '99' : 'var(--primary-color)'
+      '--fill-color-light': playMusic?.primaryColor
+        ? playMusic.primaryColor + '99'
+        : 'var(--primary-color)'
     }"
     @click="handleBarClick"
   >
@@ -34,9 +36,7 @@
               class="text-3xl"
               :class="musicFullVisible ? 'ri-arrow-down-s-line' : 'ri-arrow-up-s-line'"
             ></i>
-            <span class="hover-text">{{
-              musicFullVisible ? 'Collapse' : 'Expand'
-            }}</span>
+            <span class="hover-text">{{ musicFullVisible ? 'Collapse' : 'Expand' }}</span>
           </div>
         </div>
       </div>
@@ -77,7 +77,10 @@
         <div class="icon-btn tooltip-btn" @click.stop="playerStore.toggleShuffle()">
           <n-tooltip trigger="hover" :z-index="9999999">
             <template #trigger>
-              <i :class="shuffleEnabled ? 'ri-shuffle-fill text-primary' : 'ri-shuffle-line'" class="text-lg"></i>
+              <i
+                :class="shuffleEnabled ? 'ri-shuffle-fill text-primary' : 'ri-shuffle-line'"
+                class="text-lg"
+              ></i>
             </template>
             Shuffle
           </n-tooltip>
@@ -106,17 +109,22 @@
         <div class="icon-btn tooltip-btn" @click.stop="playerStore.toggleRepeat()">
           <n-tooltip trigger="hover" :z-index="9999999">
             <template #trigger>
-              <i :class="[
-                repeatMode === 1 ? 'ri-repeat-2-line text-primary' : 
-                repeatMode === 2 ? 'ri-repeat-one-line text-primary' : 
-                'ri-repeat-2-line'
-              ]" class="text-lg"></i>
+              <i
+                :class="[
+                  repeatMode === 1
+                    ? 'ri-repeat-2-line text-primary'
+                    : repeatMode === 2
+                      ? 'ri-repeat-one-line text-primary'
+                      : 'ri-repeat-2-line'
+                ]"
+                class="text-lg"
+              ></i>
             </template>
             Repeat
           </n-tooltip>
         </div>
       </div>
-      
+
       <div class="playback-timeline custom-slider">
         <span class="time-text">{{ secondToMinute(nowTime) }}</span>
         <div class="timeline-slider" @click.stop>
@@ -139,7 +147,10 @@
       <div class="icon-btn tooltip-btn" @click.stop="handleDownload">
         <n-tooltip trigger="hover" :z-index="9999999">
           <template #trigger>
-            <i :class="isDownloading ? 'ri-loader-4-line loading-icon' : 'ri-download-2-line'" class="text-xl transition-colors cursor-pointer"></i>
+            <i
+              :class="isDownloading ? 'ri-loader-4-line loading-icon' : 'ri-download-2-line'"
+              class="text-xl transition-colors cursor-pointer"
+            ></i>
           </template>
           Download
         </n-tooltip>
@@ -369,10 +380,10 @@ const openQueue = () => {
 
 .play-bar-left {
   @apply flex items-center gap-3 w-1/3 min-w-[200px];
-  
+
   .music-content {
     @apply flex flex-col justify-center overflow-hidden;
-    
+
     &-title {
       @apply text-sm font-semibold;
     }
@@ -380,27 +391,31 @@ const openQueue = () => {
       @apply text-xs opacity-70;
     }
   }
-  
+
   .favorite-btn {
     @apply flex items-center justify-center rounded-full transition-all w-8 h-8 ml-2 cursor-pointer;
-    i { @apply text-lg; }
-    &:hover { @apply bg-gray-100 dark:bg-dark-300; }
+    i {
+      @apply text-lg;
+    }
+    &:hover {
+      @apply bg-gray-100 dark:bg-dark-300;
+    }
   }
 }
 
 .play-bar-center {
   @apply flex flex-col items-center justify-center w-1/3 min-w-[300px];
-  
+
   .music-buttons {
     @apply flex items-center justify-center gap-3 mb-1;
-    
+
     .tooltip-btn {
       @apply text-gray-500 hover:text-primary transition-colors cursor-pointer flex items-center justify-center w-8 h-8 rounded-full;
       &:hover {
         @apply bg-gray-100 dark:bg-dark-300;
       }
     }
-    
+
     &-prev,
     &-next {
       @apply flex items-center justify-center rounded-full bg-gray-100 dark:bg-dark-300 transition-all cursor-pointer;
@@ -436,15 +451,15 @@ const openQueue = () => {
       }
     }
   }
-  
+
   .playback-timeline {
     @apply flex items-center w-full gap-3;
-    
+
     .time-text {
       @apply text-xs opacity-60 w-10 text-center;
       font-variant-numeric: tabular-nums;
     }
-    
+
     .timeline-slider {
       @apply flex-1;
       padding: 6px 0;
@@ -454,17 +469,17 @@ const openQueue = () => {
 
 .play-bar-right {
   @apply flex items-center justify-end w-1/3 min-w-[200px] gap-1;
-  
+
   .audio-volume {
     @apply flex items-center gap-2 ml-1 w-28;
-    
+
     .volume-icon {
       @apply cursor-pointer flex items-center;
       i {
         @apply text-lg hover:text-primary transition-colors;
       }
     }
-    
+
     .volume-slider-horizontal {
       @apply flex-1 flex items-center;
     }

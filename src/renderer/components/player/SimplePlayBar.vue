@@ -386,10 +386,11 @@ onMounted(() => {
       height: 16px;
       background-color: var(--fill-color, rgba(255, 255, 255, 0.85));
       opacity: 0;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
     }
 
-    &:hover, &.is-dragging {
+    &:hover,
+    &.is-dragging {
       .progress-track {
         background-color: var(--track-color-hover);
       }
@@ -524,7 +525,7 @@ onMounted(() => {
       .n-slider-handle {
         @apply transition-all duration-200;
         background-color: var(--fill-color, rgba(255, 255, 255, 0.85)) !important;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.3) !important;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
         border: none !important;
         opacity: 0;
         transform: scale(0.5);
