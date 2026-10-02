@@ -1,5 +1,5 @@
 <template>
-  <div class="charts-page h-full w-full ">
+  <div class="charts-page h-full w-full">
     <n-scrollbar class="h-full">
       <div class="charts-content w-full pb-32 pt-6">
         <div class="mb-10 flex items-end justify-between">
@@ -183,12 +183,10 @@ import type { SongResult } from '@/types/music';
 
 defineOptions({ name: 'Charts' });
 
-
 const sections = ref<YTMSection[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
 const playlistStore = useQueueStore();
-
 
 function getSubtitle(item: YTMSong | YTMPlaylist): string {
   if (isYTMSong(item)) {

@@ -41,13 +41,25 @@
       </div>
 
       <div class="mini-playback-controls">
-        <div class="mini-control-btn prev" :style="{ color: playMusic?.primaryColor }" @click.stop="handlePrev">
+        <div
+          class="mini-control-btn prev"
+          :style="{ color: playMusic?.primaryColor }"
+          @click.stop="handlePrev"
+        >
           <i class="ri-skip-back-line"></i>
         </div>
         <div class="mini-control-btn play play-animated">
-          <AnimatedPlayPause :is-playing="play" @click.stop="playMusicEvent" :bg-color="playMusic?.primaryColor" />
+          <animated-play-pause
+            :is-playing="play"
+            @click.stop="playMusicEvent"
+            :bg-color="playMusic?.primaryColor"
+          />
         </div>
-        <div class="mini-control-btn next" :style="{ color: playMusic?.primaryColor }" @click.stop="handleNext">
+        <div
+          class="mini-control-btn next"
+          :style="{ color: playMusic?.primaryColor }"
+          @click.stop="handleNext"
+        >
           <i class="ri-skip-forward-line"></i>
         </div>
         <i class="ri-play-list-line mini-list-icon ml-2" @click="openQueue"></i>
@@ -101,8 +113,6 @@ watch(
 const openQueue = () => {
   playerStore.setQueueVisible(true);
 };
-
-
 
 const playBarRef = ref<HTMLElement | null>(null);
 onMounted(() => {
@@ -279,7 +289,7 @@ watch(
         @apply flex items-center justify-center cursor-pointer transition mx-1;
         width: 36px;
         height: 36px;
-        
+
         i {
           font-size: 24px;
         }
@@ -288,7 +298,7 @@ watch(
           @apply rounded-full flex items-center justify-center mx-1;
           width: 48px;
           height: 48px;
-          
+
           &.play-animated {
             background: transparent !important;
             :deep(.animated-play-pause) {

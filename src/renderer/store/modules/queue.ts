@@ -7,10 +7,10 @@ import { useSongDetail } from '@/hooks/usePlayerHooks';
 import { audioService } from '@/services/audioService';
 import { preloadService } from '@/services/preloadService';
 import type { SongResult } from '@/types/music';
-import { thumbTiny } from '@/utils/thumbnail';
 import { debouncedLocalStorage } from '@/utils/debouncedStorage';
 import { minifySongList } from '@/utils/persistedSong';
 import { performShuffle, preloadCoverImage } from '@/utils/playerUtils';
+import { thumbTiny } from '@/utils/thumbnail';
 
 import { usePlayerCoreStore } from './playerCore';
 import { useSleepTimerStore } from './sleepTimer';

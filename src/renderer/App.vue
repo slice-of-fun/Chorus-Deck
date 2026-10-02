@@ -194,6 +194,28 @@ onMounted(async () => {
         '--color-secondary-dark',
         isDark ? secondaryDarkVariant2Rgb : secondaryLightVariant2Rgb
       );
+
+      const surfaceDark = hexFromArgb(m3Theme.palettes.neutral.tone(10));
+      const canvasDark = hexFromArgb(m3Theme.palettes.neutral.tone(4));
+      const surfaceLight = hexFromArgb(m3Theme.palettes.neutral.tone(99));
+      const canvasLight = hexFromArgb(m3Theme.palettes.neutral.tone(94));
+
+      document.documentElement.style.setProperty(
+        '--shell-surface',
+        isDark ? surfaceDark : surfaceLight
+      );
+      document.documentElement.style.setProperty(
+        '--shell-canvas',
+        isDark ? canvasDark : canvasLight
+      );
+      document.documentElement.style.setProperty(
+        '--bg-color-100',
+        isDark ? surfaceDark : surfaceLight
+      );
+      document.documentElement.style.setProperty(
+        '--bg-color-200',
+        isDark ? canvasDark : canvasLight
+      );
     };
 
     applyColors(theme.value === 'dark');
@@ -211,15 +233,13 @@ onMounted(async () => {
   }
 
   const applySystemAccentColor = async () => {
-    if (window.api && window.api.getSystemAccentColor) {
-      try {
-        const accent = await window.api.getSystemAccentColor();
-        if (accent) {
-          applyThemeFromColor(argbFromHex(accent));
-        }
-      } catch (e) {
-        console.error('Failed to apply system accent color', e);
-      }
+    try {
+      const brandColor = '#4f4f4f';
+      applyThemeFromColor(argbFromHex(brandColor));
+    } catch (e) {
+      console.error('Failed to apply brand color', e);
+      const brandColor = '#22c55e';
+      applyThemeFromColor(argbFromHex(brandColor));
     }
   };
 

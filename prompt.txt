@@ -1,0 +1,943 @@
+<USER_REQUEST>
+# =====================================================================
+# FINAL SIDEBAR ARCHITECTURE FIX
+# =====================================================================
+
+IMPORTANT:
+
+The Sidebar component already contains ALL of its internal content:
+
+    Logo
+    Home
+    Search
+    Library
+    History
+    Settings
+    other navigation items
+
+DO NOT move those individual controls into separate components merely
+to solve the layout problem.
+
+THE PROBLEM IS NOT THE SIDEBAR CONTENT.
+
+THE PROBLEM IS THE SIDEBAR'S POSITION IN THE APPLICATION SHELL.
+
+Currently the Sidebar component is effectively stretched at the
+application/viewport level instead of being placed as an actual
+SIDEBAR SURFACE inside the main application shell.
+
+Fix this at the APPLICATION LAYOUT level.
+
+
+# =====================================================================
+# 1. REQUIRED FINAL ARCHITECTURE
+# =====================================================================
+
+The application root must conceptually be:
+
+    ApplicationShell
+    │
+    ├── SidebarSurface
+    │     │
+    │     ├── Logo
+    │     ├── Home
+    │     ├── Search
+    │     ├── Library
+    │     ├── History
+    │     ├── ...
+    │     └── Settings
+    │
+    ├── MainSurface
+    │     └── CurrentPage
+    │
+    └── QueueSurface
+          └── Queue
+
+
+The Player is separate:
+
+    ApplicationShell
+    │
+    └── ImmersivePlayer
+
+
+The exact component names can differ.
+
+The ARCHITECTURE must not.
+
+
+# =====================================================================
+# 2. SIDEBAR MUST BE A SHELL ITEM
+# =====================================================================
+
+The Sidebar itself must be a direct layout participant in the
+ApplicationShell.
+
+Do NOT allow:
+
+    Sidebar
+        position: fixed
+        height: 100vh
+        top: 0
+        left: 0
+
+to independently escape the shell.
+
+Avoid viewport-level positioning unless the existing desktop/mobile
+architecture genuinely requires it.
+
+The Sidebar must receive its dimensions from the ApplicationShell.
+
+
+# =====================================================================
+# 3. CREATE A SIDEBAR SURFACE WRAPPER
+# =====================================================================
+
+The Sidebar needs TWO conceptual layers:
+
+    SidebarSurface
+        ↓
+    SidebarContent
+
+
+SidebarSurface controls:
+
+    background
+    border-radius
+    shell position
+    shell gap
+    height
+    overflow
+    theme
+    outer spacing
+
+
+SidebarContent controls:
+
+    logo
+    navigation
+    icons
+    active states
+    tooltips
+
+
+Do NOT mix these responsibilities.
+
+
+# =====================================================================
+# 4. THE LOGO MUST BE INSIDE THE SIDEBAR SURFACE
+# =====================================================================
+
+THIS IS A HARD REQUIREMENT.
+
+The Logo must be physically inside the SidebarSurface.
+
+Correct:
+
+    ╭────────────────╮
+    │                │
+    │     LOGO       │
+    │                │
+    │     HOME       │
+    │     SEARCH     │
+    │     LIBRARY    │
+    │     HISTORY    │
+    │                │
+    │     SETTINGS   │
+    │                │
+    ╰────────────────╯
+
+
+Incorrect:
+
+    LOGO
+
+    ╭────────────────╮
+    │                │
+    │     HOME       │
+    │     SEARCH     │
+    │     LIBRARY    │
+    ╰────────────────╯
+
+
+The logo must be part of the same visual panel.
+
+This is necessary so the Sidebar looks like ONE unified section.
+
+
+# =====================================================================
+# 5. SIDEBAR MUST HAVE ITS OWN CURVED EDGES
+# =====================================================================
+
+The SidebarSurface must have all four outer corners:
+
+    top-left
+    top-right
+    bottom-left
+    bottom-right
+
+with the same shell-level radius family as Main and Queue.
+
+Use the existing radius token if available.
+
+Otherwise use a subtle radius around:
+
+    8px–10px
+
+Do NOT apply the radius only to individual navigation buttons.
+
+The CURVE MUST BELONG TO THE ENTIRE SIDEBAR SURFACE.
+
+
+# =====================================================================
+# 6. CURRENT BUG
+# =====================================================================
+
+The current appearance is effectively:
+
+    ┌───────────────────────
+    │ LOGO
+    │
+    │ HOME
+    │ SEARCH
+    │
+    │ SIDEBAR CONTENT
+    │
+    │
+    │
+    └───────────────────────
+    │
+    │ MAIN
+
+
+This makes the Sidebar look like it is stretched along the viewport.
+
+That is WRONG.
+
+
+# =====================================================================
+# 7. TARGET APPEARANCE
+# =====================================================================
+
+The Sidebar must look like a physical panel placed onto the
+application canvas:
+
+        OUTER APPLICATION CANVAS
+
+          ╭────────────────╮
+          │                │
+          │      LOGO      │
+          │                │
+          │      HOME      │
+          │      SEARCH    │
+          │      LIBRARY   │
+          │      HISTORY   │
+          │                │
+          │      SETTINGS  │
+          │                │
+          ╰────────────────╯
+
+              SMALL GAP
+
+          ╭──────────────────────────────╮
+          │                              │
+          │             MAIN             │
+          │                              │
+          ╰──────────────────────────────╯
+
+
+The Sidebar must visually feel like a separate piece sitting on the
+same application canvas as Main and Queue.
+
+
+# =====================================================================
+# 8. SIDEBAR MUST HAVE OUTER SHELL PADDING
+# =====================================================================
+
+The ApplicationShell itself should provide a small outer inset.
+
+Conceptually:
+
+    application window
+    │
+    │  small outer inset
+    ↓
+    ╭──────────────╮
+    │   SIDEBAR    │
+    ╰──────────────╯
+
+
+Do NOT allow Sidebar to touch:
+
+    top edge
+    left edge
+    bottom edge
+
+unless a responsive/mobile layout intentionally requires it.
+
+
+# =====================================================================
+# 9. SIDEBAR → MAIN GAP
+# =====================================================================
+
+The shell must provide an actual gap:
+
+    ╭──────────────╮
+    │   SIDEBAR    │
+    ╰──────────────╯
+
+          GAP
+
+    ╭────────────────────────╮
+    │         MAIN           │
+    ╰────────────────────────╯
+
+
+The gap must be:
+
+    small
+    consistent
+    theme-aware
+
+
+It must NOT be:
+
+    border
+    divider
+    shadow
+    fake transparent border
+
+
+# =====================================================================
+# 10. SIDEBAR → MAIN → QUEUE MUST SHARE ONE GRID
+# =====================================================================
+
+Do not position these independently.
+
+Use one shell-level layout:
+
+    Sidebar | Gap | Main | Gap | Queue
+
+
+Conceptually:
+
+    ApplicationShell
+    ┌──────────────────────────────────────────────────────────┐
+    │                                                          │
+    │  Sidebar   Gap   Main                  Gap   Queue       │
+    │                                                          │
+    └──────────────────────────────────────────────────────────┘
+
+
+Use CSS Grid or Flexbox according to the existing application
+architecture.
+
+Prefer CSS Grid if it makes the three-panel relationship clearer.
+
+
+# =====================================================================
+# 11. SIDEBAR WIDTH
+# =====================================================================
+
+Sidebar should have a stable shell width on desktop.
+
+Do NOT let it stretch to fill arbitrary remaining space.
+
+Conceptually:
+
+    Sidebar = fixed/minmax shell column
+    Main    = flexible column
+    Queue   = conditional column
+
+
+For example conceptually:
+
+    grid-template-columns:
+        SidebarWidth
+        1fr
+        QueueWidth
+
+
+Do NOT blindly hardcode the screenshot's exact pixel width.
+
+Use the existing Sidebar width if the project already defines one.
+
+
+# =====================================================================
+# 12. SIDEBAR HEIGHT
+# =====================================================================
+
+Sidebar should occupy the same upper-shell vertical region as Main and
+Queue.
+
+It should NOT independently use:
+
+    100vh
+
+
+if that causes it to extend behind or below the Player.
+
+The shell should determine the available height.
+
+
+Conceptually:
+
+    Application
+    │
+    ├── UpperShell
+    │      ├── Sidebar
+    │      ├── Main
+    │      └── Queue
+    │
+    └── Player
+
+
+# =====================================================================
+# 13. PLAYER MUST REMAIN SEPARATE
+# =====================================================================
+
+The Player is NOT inside Sidebar.
+
+The Player is NOT inside Main.
+
+The Player is NOT inside Queue.
+
+It is an application-level immersive surface.
+
+Structure:
+
+    ApplicationShell
+        │
+        ├── UpperShell
+        │     ├── SidebarSurface
+        │     ├── MainSurface
+        │     └── QueueSurface
+        │
+        └── ImmersivePlayer
+
+
+The Player remains full width.
+
+
+# =====================================================================
+# 14. PLAYER AND SIDEBAR
+# =====================================================================
+
+When Player is visible:
+
+    Sidebar
+    Main
+    Queue
+
+occupy the upper shell.
+
+Player occupies the lower shell.
+
+Do NOT let Sidebar continue through the Player region.
+
+Do NOT let Sidebar become 100vh behind Player.
+
+
+This is one of the reasons the current Sidebar appears stretched.
+
+
+# =====================================================================
+# 15. SIDEBAR OVERFLOW
+# =====================================================================
+
+The SidebarSurface itself should define the clipping boundary.
+
+If necessary:
+
+    overflow: hidden
+
+
+But if navigation needs scrolling:
+
+    SidebarContent
+        overflow-y: auto
+
+
+Do NOT make the entire application viewport scroll because of Sidebar.
+
+
+# =====================================================================
+# 16. THEME
+# =====================================================================
+
+The SidebarSurface must participate in the existing theme system.
+
+DARK:
+
+    dark outer canvas
+    dark/dark-gray Sidebar surface
+
+
+LIGHT:
+
+    light outer canvas
+    light/light-gray Sidebar surface
+
+
+The exact colors must come from existing semantic theme tokens.
+
+
+IMPORTANT:
+
+Do not only change the page background.
+
+The SidebarSurface itself must react to theme changes.
+
+
+# =====================================================================
+# 17. LIGHT THEME
+# =====================================================================
+
+In Light Theme:
+
+    SidebarSurface = light
+    MainSurface = light
+    QueueSurface = light
+    outer canvas = light
+
+
+Do not leave Sidebar white while Main remains unrelated black unless
+that is explicitly part of the application's intentional design.
+
+The shell must be coherent.
+
+
+# =====================================================================
+# 18. DARK THEME
+# =====================================================================
+
+In Dark Theme:
+
+    SidebarSurface = dark/dark-gray
+    MainSurface = dark/dark-gray
+    QueueSurface = dark/dark-gray
+    outer canvas = black/dark
+
+
+The surfaces should be subtly distinguishable from the outer canvas.
+
+
+# =====================================================================
+# 19. INTERNAL SIDEBAR STRUCTURE
+# =====================================================================
+
+The existing Sidebar file can remain responsible for its content.
+
+Organize it conceptually as:
+
+    SidebarSurface
+        │
+        └── SidebarContent
+              │
+              ├── LogoSection
+              │
+              ├── PrimaryNavigation
+              │     ├── Home
+              │     ├── Search
+              │     ├── Library
+              │     └── ...
+              │
+              └── SecondaryNavigation
+                    └── Settings
+
+
+Do not unnecessarily split every icon into a new component.
+
+
+# =====================================================================
+# 20. LOGO POSITION
+# =====================================================================
+
+The Logo should have proper internal spacing from the SidebarSurface.
+
+Example:
+
+    ╭────────────────╮
+    │                │
+    │     LOGO       │
+    │                │
+    │   HOME         │
+    │   SEARCH       │
+    │   ...          │
+    ╰────────────────╯
+
+
+Do not put Logo outside the panel.
+
+Do not position Logo relative to the physical browser/window.
+
+
+# =====================================================================
+# 21. NAVIGATION ACTIVE STATE
+# =====================================================================
+
+Keep existing active states.
+
+Home:
+
+    active when Home selected.
+
+
+Search:
+
+    active when Search selected.
+
+
+Settings:
+
+    active when Settings selected.
+
+
+The active navigation item should NOT replace the Sidebar surface.
+
+It is an element inside the Sidebar surface.
+
+
+# =====================================================================
+# 22. TOOLTIP / HOVER
+# =====================================================================
+
+The screenshot may show a tooltip near Home.
+
+Preserve the existing tooltip system.
+
+IMPORTANT:
+
+Tooltip must be allowed to escape the Sidebar's internal clipping
+when necessary.
+
+Do not break tooltips by blindly applying:
+
+    overflow: hidden
+
+to the wrong ancestor.
+
+The SidebarSurface may clip its visual background, but interactive
+popovers/tooltips should use the existing portal/overlay mechanism.
+
+
+# =====================================================================
+# 23. MAIN CONTENT
+# =====================================================================
+
+Main remains a separate panel:
+
+    Sidebar
+       ↓
+    shell gap
+       ↓
+    MainSurface
+
+
+Inside Main:
+
+    MainSurface
+       ↓
+    internal padding
+       ↓
+    CurrentPage
+
+
+Do not allow page content to touch the Sidebar.
+
+
+# =====================================================================
+# 24. QUEUE
+# =====================================================================
+
+Queue remains:
+
+    Main
+       ↓
+    shell gap
+       ↓
+    Queue
+
+
+Queue is conditional.
+
+Queue closed:
+
+    Sidebar | Main
+
+
+Queue open:
+
+    Sidebar | Main | Queue
+
+
+No invisible Queue column when closed.
+
+
+# =====================================================================
+# 25. RESPONSIVE
+# =====================================================================
+
+Desktop:
+
+    Sidebar
+    Main
+    optional Queue
+
+
+Smaller screens:
+
+    preserve existing responsive behavior.
+
+If Sidebar becomes a drawer:
+
+    it may become an overlay.
+
+If Queue becomes a drawer:
+
+    preserve that behavior.
+
+Do NOT force desktop shell geometry into mobile.
+
+
+# =====================================================================
+# 26. DO NOT USE VIEWPORT HACKS
+# =====================================================================
+
+Remove/rework conflicting Sidebar rules such as:
+
+    width: 100vw
+    height: 100vh
+    position: fixed
+    top: 0
+    left: 0
+
+if they cause the Sidebar to escape ApplicationShell.
+
+
+Do not solve this with:
+
+    negative margins
+    transforms
+    arbitrary offsets
+
+
+Fix the DOM/layout hierarchy.
+
+
+# =====================================================================
+# 27. IMPORTANT — DOM HIERARCHY
+# =====================================================================
+
+Inspect the actual rendered DOM.
+
+The Sidebar should be a sibling of Main and Queue at the shell level.
+
+NOT:
+
+    App
+      └── MainLayout
+            └── Main
+                  └── Sidebar
+
+
+NOT:
+
+    App
+      ├── Sidebar fixed to viewport
+      └── MainLayout
+
+
+Prefer:
+
+    App
+      └── ApplicationShell
+            ├── SidebarSurface
+            ├── MainSurface
+            └── QueueSurface
+
+
+Then:
+
+    ApplicationShell
+      └── ImmersivePlayer
+
+
+The exact nesting may differ if required by the framework,
+but Sidebar must participate in the same shell layout system.
+
+
+# =====================================================================
+# 28. DO NOT REWRITE THE SIDEBAR CONTENT
+# =====================================================================
+
+The current Sidebar file already contains the desired controls.
+
+Keep it.
+
+The fix is:
+
+    WHERE Sidebar is rendered
+    +
+    WHAT WRAPPER PROVIDES ITS SURFACE
+    +
+    HOW THE SHELL SIZES IT
+
+
+Not:
+
+    replacing Sidebar.
+
+
+# =====================================================================
+# 29. FINAL VISUAL TARGET
+# =====================================================================
+
+The final application should look conceptually like:
+
+    OUTER CANVAS
+
+       ╭──────────────╮     ╭──────────────────────╮
+       │              │     │                      │
+       │     LOGO     │     │                      │
+       │              │     │                      │
+       │     HOME     │     │        MAIN          │
+       │     SEARCH   │     │                      │
+       │     LIBRARY  │     │                      │
+       │     HISTORY  │     │                      │
+       │              │     │                      │
+       │     SETTINGS │     │                      │
+       │              │     ╰──────────────────────╯
+       ╰──────────────╯
+             ↑
+        actual rounded
+        Sidebar surface
+
+
+    Sidebar ↔ Main:
+
+             SMALL GAP
+
+
+    Main ↔ Queue:
+
+             SMALL GAP
+
+
+    Bottom:
+
+    ─────────────────────────────────────────────────────────────
+                         IMMERSIVE PLAYER
+    ─────────────────────────────────────────────────────────────
+
+
+# =====================================================================
+# 30. FINAL VALIDATION
+# =====================================================================
+
+Before declaring this fixed, inspect the actual rendered application.
+
+Verify:
+
+[ ] Sidebar is inside ApplicationShell.
+[ ] Sidebar is a sibling of Main at shell level.
+[ ] Sidebar is NOT viewport-fixed unnecessarily.
+[ ] Sidebar does not stretch beyond the upper shell.
+[ ] Sidebar has its own surface.
+[ ] Sidebar has all four rounded outer corners.
+[ ] Logo is INSIDE SidebarSurface.
+[ ] Logo and navigation visually belong to one panel.
+[ ] Sidebar has internal padding.
+[ ] Sidebar has outer shell spacing.
+[ ] Sidebar does not touch the application window edge.
+[ ] Sidebar does not touch Main.
+[ ] Sidebar/Main gap is real layout space.
+[ ] Main has its own rounded surface.
+[ ] Queue has its own rounded surface.
+[ ] Main/Queue gap works.
+[ ] Queue gap disappears when Queue closes.
+[ ] Player remains separate.
+[ ] Player remains full-width and immersive.
+[ ] Sidebar does not extend behind Player.
+[ ] Dark Theme works.
+[ ] Light Theme works.
+[ ] Navigation still works.
+[ ] Home remains default.
+[ ] Search works.
+[ ] Settings works.
+[ ] Existing Sidebar controls still work.
+[ ] Playback is not broken.
+[ ] Queue is not broken.
+[ ] Resize does not stretch Sidebar incorrectly.
+[ ] No negative-margin workaround was used.
+[ ] No arbitrary positioning hack was used.
+
+
+# =====================================================================
+# FINAL INSTRUCTION
+# =====================================================================
+
+DO NOT PATCH THE CURRENT SIDEBAR WITH RANDOM CSS.
+
+FIX ITS ARCHITECTURE.
+
+THE SIDEBAR ITSELF MUST BECOME A REAL PANEL INSIDE THE APPLICATION
+SHELL.
+
+The final component relationship should be conceptually:
+
+    ApplicationShell
+    │
+    ├── SidebarSurface
+    │     └── Existing Sidebar content
+    │           ├── Logo
+    │           ├── Home
+    │           ├── Search
+    │           ├── Library
+    │           ├── History
+    │           └── Settings
+    │
+    ├── MainSurface
+    │     └── CurrentPage
+    │
+    └── QueueSurface
+          └── Queue
+
+
+    ImmersivePlayer
+    ──────────────────────────────────────────────
+
+
+THE LOGO MUST BE INSIDE THE SIDEBAR SURFACE.
+
+THE SIDEBAR MUST HAVE ITS OWN CURVED OUTER EDGES.
+
+THE SIDEBAR MUST HAVE THE SAME SHELL-LEVEL STATUS AS MAIN AND QUEUE.
+
+THE SIDEBAR MUST NOT BE A VIEWPORT-LEVEL STRIP.
+
+THE SIDEBAR MUST NOT BE STRETCHED TO 100VH INDEPENDENTLY OF THE
+APPLICATION SHELL.
+
+DO THIS AT THE LAYOUT/DOM ARCHITECTURE LEVEL FIRST.
+
+ONLY AFTER THE DOM/SHELL STRUCTURE IS CORRECT SHOULD YOU ADJUST CSS.
+
+And the sidebar and the edges are all in the whole app layout in the image. I want exact edges and exact shell. I want the sidebar in its own shell, and for now, no hover thing. The app layout: the sidebar is stretched too much. Fix it all. 
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-10-02T15:03:55+05:30.
+
+The user's current state is as follows:
+Active Document: c:\Users\pushk\OneDrive\Desktop\Chorus Deck\Chorus-Deck\src\renderer\store\modules\queue.ts (LANGUAGE_TYPESCRIPT)
+Cursor is on line: 1
+Other open documents:
+- c:\Users\pushk\OneDrive\Desktop\Chorus Deck\Chorus-Deck\src\renderer\store\modules\queue.ts (LANGUAGE_TYPESCRIPT)
+- c:\Users\pushk\OneDrive\Desktop\Chorus Deck\Chorus-Deck\src\renderer\components\cover\Cover3D.vue (LANGUAGE_VUE)
+- c:\Users\pushk\OneDrive\Desktop\Chorus Deck\Chorus-Deck\src\renderer\views\playlist\PlaylistDetail.vue (LANGUAGE_VUE)
+- c:\Users\pushk\OneDrive\Desktop\Chorus Deck\Chorus-Deck\src\renderer\components\lyric\MusicFullCompact.vue (LANGUAGE_VUE)
+- c:\Users\pushk\OneDrive\Desktop\Chorus Deck\Chorus-Deck\src\renderer\utils\thumbnail.ts (LANGUAGE_TYPESCRIPT)
+</ADDITIONAL_METADATA>
+<USER_SETTINGS_CHANGE>
+The user changed setting `Model Selection` from None to Gemini 3.1 Pro (Low). No need to comment on this change if the user doesn't ask about it. If reporting what model you are, please use a human readable name instead of the exact string.
+</USER_SETTINGS_CHANGE>

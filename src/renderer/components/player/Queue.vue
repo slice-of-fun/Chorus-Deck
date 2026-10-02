@@ -25,13 +25,17 @@
           :class="{ active: activeTab === 'queue' }"
           :style="activeTab === 'queue' ? activeTabStyle : {}"
           @click="switchTab('queue')"
-        >Queue</div>
+        >
+          Queue
+        </div>
         <div
           class="tab"
           :class="{ active: activeTab === 'lyrics' }"
           :style="activeTab === 'lyrics' ? activeTabStyle : {}"
           @click="switchTab('lyrics')"
-        >Lyrics</div>
+        >
+          Lyrics
+        </div>
       </div>
       <div class="header-actions">
         <n-tooltip v-if="activeTab === 'queue'" trigger="hover">
@@ -51,7 +55,6 @@
     <div class="panel-body">
       <!-- Queue Tab -->
       <template v-if="activeTab === 'queue'">
-
         <!-- Current Song Info -->
         <div class="now-playing-card" v-if="playMusic" :style="nowPlayingCardStyle">
           <div class="now-playing-art">
@@ -141,7 +144,13 @@
                   class="item-img"
                   preview-disabled
                 />
-                <div v-if="item.id === playerStore.playMusic?.id" class="item-playing-overlay" :style="{ backgroundColor: `color-mix(in srgb, ${accentColor} 80%, transparent)` }">
+                <div
+                  v-if="item.id === playerStore.playMusic?.id"
+                  class="item-playing-overlay"
+                  :style="{
+                    backgroundColor: `color-mix(in srgb, ${accentColor} 80%, transparent)`
+                  }"
+                >
                   <i class="ri-equalizer-line" :style="{ color: '#fff' }"></i>
                 </div>
               </div>
@@ -150,9 +159,11 @@
                 <div
                   class="item-title"
                   :style="item.id === playerStore.playMusic?.id ? { color: accentColor } : {}"
-                >{{ item.name }}</div>
+                >
+                  {{ item.name }}
+                </div>
                 <div class="item-artist">
-                  <span v-for="(ar, i) in (item.ar || item.artists || [])" :key="i">
+                  <span v-for="(ar, i) in item.ar || item.artists || []" :key="i">
                     {{ ar.name }}{{ i < (item.ar || item.artists || []).length - 1 ? ' · ' : '' }}
                   </span>
                 </div>
@@ -229,41 +240,41 @@ const repeatMode = computed(() => playerStore.repeatMode);
 const shuffleEnabled = computed(() => playerStore.shuffleEnabled);
 
 // ── Color palette derived from song ──────────────────────────────────────────
-const accentColor = computed(() =>
-  playMusic.value?.primaryColor || 'var(--primary-color, #6366f1)'
+const accentColor = computed(
+  () => playMusic.value?.primaryColor || 'var(--primary-color, #6366f1)'
 );
 
 const panelStyle = computed(() => ({
-  '--accent': accentColor.value,
+  '--accent': accentColor.value
 }));
 
 const headerStyle = computed(() => ({
-  borderBottomColor: `color-mix(in srgb, ${accentColor.value} 30%, transparent)`,
+  borderBottomColor: `color-mix(in srgb, ${accentColor.value} 30%, transparent)`
 }));
 
 const activeTabStyle = computed(() => ({
   color: accentColor.value,
-  borderBottomColor: accentColor.value,
+  borderBottomColor: accentColor.value
 }));
 
 const nowPlayingCardStyle = computed(() => ({
   background: `color-mix(in srgb, ${accentColor.value} 12%, transparent)`,
-  borderColor: `color-mix(in srgb, ${accentColor.value} 25%, transparent)`,
+  borderColor: `color-mix(in srgb, ${accentColor.value} 25%, transparent)`
 }));
 
 const controlsStyle = computed(() => ({
-  borderBottomColor: `color-mix(in srgb, ${accentColor.value} 15%, transparent)`,
+  borderBottomColor: `color-mix(in srgb, ${accentColor.value} 15%, transparent)`
 }));
 
 const ctrlActiveStyle = computed(() => ({
   background: `color-mix(in srgb, ${accentColor.value} 20%, transparent)`,
   color: accentColor.value,
-  borderColor: `color-mix(in srgb, ${accentColor.value} 40%, transparent)`,
+  borderColor: `color-mix(in srgb, ${accentColor.value} 40%, transparent)`
 }));
 
 const playingItemStyle = computed(() => ({
   background: `color-mix(in srgb, ${accentColor.value} 10%, transparent)`,
-  borderLeftColor: accentColor.value,
+  borderLeftColor: accentColor.value
 }));
 
 const switchTab = (tab: 'queue' | 'lyrics') => {
@@ -287,35 +298,14 @@ watch(
       nextTick(() => {
         if (activeTab.value === 'queue') scrollToCurrentSong();
       });
-      if (isMiniMode.value) updateMiniWindowSize(true);
     } else {
       if (!internalVisible.value) return;
       closing.value = true;
-      if (isMiniMode.value) updateMiniWindowSize(false);
     }
   },
   { immediate: true }
 );
 
-const updateMiniWindowSize = (open: boolean) => {
-  try {
-    if (open) {
-      document.body.style.height = 'auto';
-      document.body.style.overflow = 'visible';
-      if (window.api && typeof window.api.resizeMiniWindow === 'function') {
-        window.api.resizeMiniWindow(true);
-      }
-    } else {
-      document.body.style.height = '72px';
-      document.body.style.overflow = 'hidden';
-      if (window.api && typeof window.api.resizeMiniWindow === 'function') {
-        window.api.resizeMiniWindow(false);
-      }
-    }
-  } catch (error) {
-    console.error('Failed to resize window:', error);
-  }
-};
 
 const handleOpenTab = (e: CustomEvent) => {
   if (e.detail) activeTab.value = e.detail;
@@ -352,7 +342,9 @@ const queueItemOptions = [
   { label: 'Remove', key: 'remove' }
 ];
 
-const closePanel = () => { show.value = false; };
+const closePanel = () => {
+  show.value = false;
+};
 const onAnimationEnd = () => {
   if (closing.value) internalVisible.value = false;
 };
@@ -460,7 +452,9 @@ const handleClearQueue = () => {
 
   // Own four edges + subtle outer corners when acting as a shell surface.
   border-radius: v-bind('isMiniMode ? "20px" : isShellLayout ? "var(--shell-radius)" : "0"');
-  border-left: v-bind('isMiniMode ? "none" : isShellLayout ? "none" : "1px solid rgba(255,255,255,0.08)"');
+  border-left: v-bind(
+    'isMiniMode ? "none" : isShellLayout ? "none" : "1px solid rgba(255,255,255,0.08)"'
+  );
 
   animation-duration: 0.3s !important;
   backdrop-filter: blur(20px);
@@ -471,10 +465,10 @@ const handleClearQueue = () => {
 // ── Header ────────────────────────────────────────────────────────────────────
 .panel-header {
   @apply flex items-center justify-between px-4 py-3 flex-shrink-0;
-  border-bottom: 1px solid rgba(0,0,0,0.08);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 
   .dark & {
-    border-bottom-color: rgba(255,255,255,0.08);
+    border-bottom-color: rgba(255, 255, 255, 0.08);
   }
 
   .tabs {
@@ -506,10 +500,14 @@ const handleClearQueue = () => {
     @apply text-gray-500 dark:text-gray-400;
     @apply hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors;
 
-    i { font-size: 18px; }
+    i {
+      font-size: 18px;
+    }
   }
 
-  .action-btn:hover { @apply text-red-500; }
+  .action-btn:hover {
+    @apply text-red-500;
+  }
 }
 
 // ── Body ──────────────────────────────────────────────────────────────────────
@@ -529,12 +527,14 @@ const handleClearQueue = () => {
 
     .art-img {
       @apply w-full h-full rounded-xl object-cover;
-      :deep(img) { @apply rounded-xl w-full h-full object-cover; }
+      :deep(img) {
+        @apply rounded-xl w-full h-full object-cover;
+      }
     }
 
     .now-playing-indicator {
       @apply absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center;
-      
+
       .eq-icon {
         font-size: 11px;
         color: white;
@@ -565,9 +565,11 @@ const handleClearQueue = () => {
 // ── Controls (Shuffle / Repeat) ───────────────────────────────────────────────
 .queue-controls {
   @apply flex items-center gap-2 px-3 pb-3 flex-shrink-0;
-  border-bottom: 1px solid rgba(0,0,0,0.06);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 
-  .dark & { border-bottom-color: rgba(255,255,255,0.06); }
+  .dark & {
+    border-bottom-color: rgba(255, 255, 255, 0.06);
+  }
 
   .ctrl-btn {
     @apply flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold cursor-pointer transition-all duration-200;
@@ -578,7 +580,9 @@ const handleClearQueue = () => {
       @apply bg-gray-100 dark:bg-gray-800;
     }
 
-    i { font-size: 14px; }
+    i {
+      font-size: 14px;
+    }
 
     &.ctrl-active {
       // overridden by inline style
@@ -623,13 +627,17 @@ const handleClearQueue = () => {
 
     .item-img {
       @apply w-full h-full rounded-lg object-cover;
-      :deep(img) { @apply rounded-lg w-full h-full object-cover; }
+      :deep(img) {
+        @apply rounded-lg w-full h-full object-cover;
+      }
     }
 
     .item-playing-overlay {
       @apply absolute inset-0 rounded-lg flex items-center justify-center;
 
-      i { font-size: 16px; }
+      i {
+        font-size: 16px;
+      }
     }
   }
 
@@ -656,13 +664,17 @@ const handleClearQueue = () => {
       @apply w-8 h-8 flex items-center justify-center rounded-full cursor-pointer;
       @apply text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:hover:text-gray-200 dark:hover:bg-gray-800 transition-all;
 
-      i { font-size: 16px; }
+      i {
+        font-size: 16px;
+      }
     }
 
     .drag-handle {
       cursor: grab;
 
-      &:active { cursor: grabbing; }
+      &:active {
+        cursor: grabbing;
+      }
     }
   }
 }
@@ -672,8 +684,13 @@ const handleClearQueue = () => {
   @apply flex flex-col items-center justify-center flex-1 py-16;
   @apply text-gray-400 dark:text-gray-500;
 
-  i { font-size: 48px; @apply mb-3; }
-  p { @apply text-sm; }
+  i {
+    font-size: 48px;
+    @apply mb-3;
+  }
+  p {
+    @apply text-sm;
+  }
 }
 
 // ── Lyrics ────────────────────────────────────────────────────────────────────
@@ -682,8 +699,12 @@ const handleClearQueue = () => {
 
   .lyrics-placeholder {
     @apply flex flex-col items-center gap-3 text-gray-400 dark:text-gray-500;
-    i { font-size: 40px; }
-    p { @apply text-sm; }
+    i {
+      font-size: 40px;
+    }
+    p {
+      @apply text-sm;
+    }
   }
 }
 

@@ -137,7 +137,7 @@ pub fn run() {
             commands::window::restart,
             commands::window::restore_window,
             commands::window::resize_window,
-            commands::window::resize_mini_window,
+            commands::window::set_mini_constraints,
             commands::window::mini_window,
             commands::window::mini_tray,
             commands::window::get_platform,

@@ -38,14 +38,12 @@
           </div>
           <div class="shell-surface shell-main">
             <div class="main-viewport">
-              <router-view
-                v-slot="{ Component }"
-                class="main-page"
-                :class="{ 'no-scroll': route.meta.noScroll }"
-              >
-                <keep-alive :include="keepAliveInclude">
-                  <component :is="Component" />
-                </keep-alive>
+              <router-view v-slot="{ Component }">
+                <div class="main-page" :class="{ 'no-scroll': route.meta.noScroll }">
+                  <keep-alive :include="keepAliveInclude">
+                    <component :is="Component" />
+                  </keep-alive>
+                </div>
               </router-view>
             </div>
           </div>

@@ -96,7 +96,12 @@
                 >
               </div>
 
-              <span v-else :style="getLrcStyle(index)" :class="{ 'bg-vocal': item.text.startsWith('{bg}') }">{{ item.text.replace('{bg}', '') }}</span>
+              <span
+                v-else
+                :style="getLrcStyle(index)"
+                :class="{ 'bg-vocal': item.text.startsWith('{bg}') }"
+                >{{ item.text.replace('{bg}', '') }}</span
+              >
               <div v-if="config.showRoma && item.romaText" class="translation">
                 {{ item.romaText }}
               </div>
@@ -136,7 +141,10 @@
                 :src="currentSrc"
                 preview-disabled
                 class="cover-image"
-                :class="{ 'full-blend': config.compactCoverStyle === 'full', 'has-black-bars': hasBlackBars }"
+                :class="{
+                  'full-blend': config.compactCoverStyle === 'full',
+                  'has-black-bars': hasBlackBars
+                }"
                 :img-props="{ referrerpolicy: 'no-referrer' }"
                 @load="onImageLoad"
                 @error="onImageError"
@@ -182,7 +190,9 @@
                     >
                   </div>
 
-                  <span v-else :class="{ 'bg-vocal': line.text.startsWith('{bg}') }">{{ line.text.replace('{bg}', '') }}</span>
+                  <span v-else :class="{ 'bg-vocal': line.text.startsWith('{bg}') }">{{
+                    line.text.replace('{bg}', '')
+                  }}</span>
                 </div>
               </div>
               <div v-else class="no-lyrics">No lyrics, please enjoy</div>
@@ -208,7 +218,10 @@
                 :src="currentSrc"
                 preview-disabled
                 class="cover-image"
-                :class="{ 'full-blend': config.compactCoverStyle === 'full', 'has-black-bars': hasBlackBars }"
+                :class="{
+                  'full-blend': config.compactCoverStyle === 'full',
+                  'has-black-bars': hasBlackBars
+                }"
                 :img-props="{ referrerpolicy: 'no-referrer' }"
                 @load="onImageLoad"
                 @error="onImageError"
@@ -301,7 +314,12 @@
                 >
               </div>
 
-              <span v-else :style="getLrcStyle(index)" :class="{ 'bg-vocal': item.text.startsWith('{bg}') }">{{ item.text.replace('{bg}', '') }}</span>
+              <span
+                v-else
+                :style="getLrcStyle(index)"
+                :class="{ 'bg-vocal': item.text.startsWith('{bg}') }"
+                >{{ item.text.replace('{bg}', '') }}</span
+              >
               <div v-if="config.showRoma && item.romaText" class="translation">
                 {{ item.romaText }}
               </div>
@@ -323,14 +341,28 @@
           </button>
 
           <div class="landscape-main-controls">
-            <div class="main-button prev" style="width: 48px; height: 48px;" :style="{ color: playMusic?.primaryColor }" @click="prevSong">
-              <i class="ri-skip-back-fill" style="font-size: 36px;"></i>
+            <div
+              class="main-button prev"
+              style="width: 48px; height: 48px"
+              :style="{ color: playMusic?.primaryColor }"
+              @click="prevSong"
+            >
+              <i class="ri-skip-back-fill" style="font-size: 36px"></i>
             </div>
-            <div class="main-button play-pause play-animated" style="width: 64px; height: 64px; border: none; background: none; padding: 0;" @click="togglePlay">
-              <AnimatedPlayPause :is-playing="play" :bg-color="playMusic?.primaryColor" />
+            <div
+              class="main-button play-pause play-animated"
+              style="width: 64px; height: 64px; border: none; background: none; padding: 0"
+              @click="togglePlay"
+            >
+              <animated-play-pause :is-playing="play" :bg-color="playMusic?.primaryColor" />
             </div>
-            <div class="main-button next" style="width: 48px; height: 48px;" :style="{ color: playMusic?.primaryColor }" @click="nextSong">
-              <i class="ri-skip-forward-fill" style="font-size: 36px;"></i>
+            <div
+              class="main-button next"
+              style="width: 48px; height: 48px"
+              :style="{ color: playMusic?.primaryColor }"
+              @click="nextSong"
+            >
+              <i class="ri-skip-forward-fill" style="font-size: 36px"></i>
             </div>
           </div>
         </div>
@@ -376,14 +408,28 @@
           <div class="side-button" @click="togglePlayMode">
             <i :class="playModeIcon"></i>
           </div>
-          <div class="main-button prev" style="width: 48px; height: 48px;" :style="{ color: playMusic?.primaryColor }" @click="prevSong">
-            <i class="ri-skip-back-fill" style="font-size: 36px;"></i>
+          <div
+            class="main-button prev"
+            style="width: 48px; height: 48px"
+            :style="{ color: playMusic?.primaryColor }"
+            @click="prevSong"
+          >
+            <i class="ri-skip-back-fill" style="font-size: 36px"></i>
           </div>
-          <div class="main-button play-pause play-animated" style="width: 64px; height: 64px; border: none; background: none; padding: 0;" @click="togglePlay">
-            <AnimatedPlayPause :is-playing="play" :bg-color="playMusic?.primaryColor" />
+          <div
+            class="main-button play-pause play-animated"
+            style="width: 64px; height: 64px; border: none; background: none; padding: 0"
+            @click="togglePlay"
+          >
+            <animated-play-pause :is-playing="play" :bg-color="playMusic?.primaryColor" />
           </div>
-          <div class="main-button next" style="width: 48px; height: 48px;" :style="{ color: playMusic?.primaryColor }" @click="nextSong">
-            <i class="ri-skip-forward-fill" style="font-size: 36px;"></i>
+          <div
+            class="main-button next"
+            style="width: 48px; height: 48px"
+            :style="{ color: playMusic?.primaryColor }"
+            @click="nextSong"
+          >
+            <i class="ri-skip-forward-fill" style="font-size: 36px"></i>
           </div>
           <div class="side-button" @click="showPlaylist">
             <i class="ri-play-list-fill"></i>
@@ -398,8 +444,8 @@
 import { useWindowSize } from '@vueuse/core';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
-import CompactPlayerSettings from '@/components/player/CompactPlayerSettings.vue';
 import AnimatedPlayPause from '@/components/player/AnimatedPlayPause.vue';
+import CompactPlayerSettings from '@/components/player/CompactPlayerSettings.vue';
 import {
   allTime,
   artistList,
@@ -420,10 +466,10 @@ import { audioService } from '@/services/audioService';
 import { usePlayerStore } from '@/store/modules/player';
 import { DEFAULT_LYRIC_CONFIG, LyricConfig } from '@/types/lyric';
 import { secondToMinute } from '@/utils';
-import { thumbPlayer } from '@/utils/thumbnail';
 import { getTextColors } from '@/utils/linearColor';
 import { LYRIC_CONFIG_CHANGE_EVENT, readLyricConfig } from '@/utils/lyricConfig';
 import { showBottomToast } from '@/utils/shortcutToast';
+import { thumbPlayer } from '@/utils/thumbnail';
 
 const playerStore = usePlayerStore();
 
@@ -433,9 +479,12 @@ const playIcon = computed(() => (play.value ? 'ri-pause-fill' : 'ri-play-fill'))
 const showPlayerSettings = ref(false);
 
 const currentSrc = ref(thumbPlayer(playMusic.value?.picUrl));
-watch(() => playMusic.value?.picUrl, (newVal) => {
-  currentSrc.value = thumbPlayer(newVal);
-});
+watch(
+  () => playMusic.value?.picUrl,
+  (newVal) => {
+    currentSrc.value = thumbPlayer(newVal);
+  }
+);
 
 const hasBlackBars = computed(() => {
   return currentSrc.value?.includes('sddefault') || currentSrc.value?.includes('hqdefault');
@@ -615,9 +664,12 @@ const scrollToCurrentLyric = (immediate = false, customScrollerRef?: HTMLElement
       behavior: immediate ? 'auto' : 'smooth'
     });
     isProgrammaticScroll.value = true;
-    window.setTimeout(() => {
-      isProgrammaticScroll.value = false;
-    }, immediate ? 120 : 500);
+    window.setTimeout(
+      () => {
+        isProgrammaticScroll.value = false;
+      },
+      immediate ? 120 : 500
+    );
   } catch (err) {
     console.error('Error scrolling lyrics:', err);
   }
@@ -1007,17 +1059,17 @@ watch(
 
       setTimeout(() => {
         if (showFullLyrics.value && lyricsScrollerRef.value) {
-            showSyncButton.value = false;
-            isAutoScrollEnabled.value = true;
-            isTouchScrolling.value = false;
+          showSyncButton.value = false;
+          isAutoScrollEnabled.value = true;
+          isTouchScrolling.value = false;
           lyricsScrollerRef.value.scrollTo({
             top: 0,
             behavior: 'smooth'
           });
         } else if (isLandscape.value && landscapeLyricsRef.value) {
-            showSyncButton.value = false;
-            isAutoScrollEnabled.value = true;
-            isTouchScrolling.value = false;
+          showSyncButton.value = false;
+          isAutoScrollEnabled.value = true;
+          isTouchScrolling.value = false;
           landscapeLyricsRef.value.scrollTo({
             top: 0,
             behavior: 'smooth'

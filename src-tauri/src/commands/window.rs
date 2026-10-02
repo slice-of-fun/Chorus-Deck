@@ -61,29 +61,59 @@ pub fn resize_window(window: WebviewWindow, width: f64, height: f64) -> Result<(
         .map_err(|e| e.to_string())
 }
 
-const MINI_SIZE: (u32, u32) = (420, 130);
-const MINI_WITH_PLAYLIST: (u32, u32) = (420, 460);
+const MINI_SIZE: (u32, u32) = (420, 120);
+const MINI_MIN: (f64, f64) = (280.0, 72.0);
+const MINI_MAX: (f64, f64) = (900.0, 260.0);
 
-/// Toggle the compact player size. `showPlaylist` expands the popup playlist.
-#[tauri::command(rename = "resize-mini-window")]
-pub fn resize_mini_window(window: WebviewWindow, show_playlist: bool) -> Result<(), String> {
-    let (w, h) = if show_playlist {
-        MINI_WITH_PLAYLIST
+#[tauri::command(rename = "set-mini-constraints")]
+pub fn set_mini_constraints(window: WebviewWindow, entering: bool) -> Result<(), String> {
+    if entering {
+        let scale = window.scale_factor().unwrap_or(1.0);
+        window
+            .set_min_size(Some(tauri::LogicalSize::new(MINI_MIN.0, MINI_MIN.1)))
+            .map_err(|e| e.to_string())?;
+        window
+            .set_max_size(Some(tauri::LogicalSize::new(MINI_MAX.0, MINI_MAX.1)))
+            .map_err(|e| e.to_string())?;
+        window
+            .set_size(tauri::PhysicalSize::new(
+                (MINI_SIZE.0 as f64 * scale) as u32,
+                (MINI_SIZE.1 as f64 * scale) as u32,
+            ))
+            .map_err(|e| e.to_string())?;
+        window.set_always_on_top(true).map_err(|e| e.to_string())?;
     } else {
-        MINI_SIZE
-    };
-    window
-        .set_size(PhysicalSize::new(w, h))
-        .map_err(|e| e.to_string())
+        window
+            .set_min_size(Some(tauri::LogicalSize::new(800.0_f64, 600.0_f64)))
+            .map_err(|e| e.to_string())?;
+        window
+            .set_max_size(None::<tauri::LogicalSize<f64>>)
+            .map_err(|e| e.to_string())?;
+        window
+            .set_always_on_top(false)
+            .map_err(|e| e.to_string())?;
+    }
+    Ok(())
 }
 
 #[tauri::command(rename = "mini-window")]
 pub fn mini_window(app: AppHandle) -> Result<(), String> {
     let window = main_window(&app)?;
+    let scale = window.scale_factor().unwrap_or(1.0);
     window
-        .set_size(PhysicalSize::new(MINI_SIZE.0, MINI_SIZE.1))
+        .set_min_size(Some(tauri::LogicalSize::new(MINI_MIN.0, MINI_MIN.1)))
+        .map_err(|e| e.to_string())?;
+    window
+        .set_max_size(Some(tauri::LogicalSize::new(MINI_MAX.0, MINI_MAX.1)))
+        .map_err(|e| e.to_string())?;
+    window
+        .set_size(tauri::PhysicalSize::new(
+            (MINI_SIZE.0 as f64 * scale) as u32,
+            (MINI_SIZE.1 as f64 * scale) as u32,
+        ))
         .map_err(|e| e.to_string())
 }
+
 
 #[tauri::command(rename = "mini-tray")]
 pub fn mini_tray(app: AppHandle) -> Result<(), String> {
@@ -94,8 +124,6 @@ pub fn mini_tray(app: AppHandle) -> Result<(), String> {
     window.set_always_on_top(true).map_err(|e| e.to_string())
 }
 
-/// Platform identifier, matching what the renderer expects from
-/// `process.platform` under Electron.
 #[tauri::command(rename = "get-platform")]
 pub fn get_platform(_app: AppHandle) -> &'static str {
     if cfg!(target_os = "windows") {
@@ -109,9 +137,6 @@ pub fn get_platform(_app: AppHandle) -> &'static str {
     }
 }
 
-// ---------------------------------------------------------------- lyric window
-
-/// Create (or focus) the detached lyric window.
 #[tauri::command(rename = "open-lyric")]
 pub fn open_lyric(app: AppHandle) -> Result<(), String> {
     if let Some(existing) = app.get_webview_window("lyric") {
@@ -133,18 +158,13 @@ pub fn open_lyric(app: AppHandle) -> Result<(), String> {
         .build()
         .map_err(|e| e.to_string())?;
 
-    // The lyric window is hidden by default; the renderer reveals it once it
-    // has painted, which is what the renderer waits for on this channel.
     let _ = window.emit("lyric-window-ready", ());
 
-    // Notify the main window that a new lyric window exists.
     if let Some(main) = app.get_webview_window("main") {
         let _ = main.emit("lyric-window-ready", ());
     }
     Ok(())
 }
-
-// ------------------------------------------------------- playback / tray state
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct SongUpdate {
@@ -169,14 +189,12 @@ pub fn update_current_song(app: AppHandle, data: SongUpdate) -> Result<(), Strin
         windows_smtc::set_playback_state(PlaybackState::Playing);
     }
 
-    // Keep the tray tooltip in sync.
     if let Some(tray) = app.tray_by_id("main-tray") {
         if let Some(line) = windows_smtc::display_line() {
             let _ = tray.set_tooltip(Some(&line));
         }
     }
 
-    // Mirror the update to the lyric window if it is open.
     if let Some(lyric) = app.get_webview_window("lyric") {
         let _ = lyric.emit("update-current-song", &data);
     }

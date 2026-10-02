@@ -30,30 +30,39 @@
       >
         <n-popover v-model:show="settingsPopoverVisible" trigger="click" placement="bottom" raw>
           <template #trigger>
-            <div class="control-btn">
+            <div class="control-btn" title="Lyrics Settings">
               <i class="ri-settings-3-line"></i>
             </div>
           </template>
           <lyric-settings ref="lyricSettingsRef" />
         </n-popover>
 
-        <div v-if="isDesktop()" class="control-btn" @click="miniWindow">
-          <i class="ri-picture-in-picture-line"></i>
+        <div v-if="isDesktop()" class="control-btn" title="Mini Window" @click="miniWindow">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="2" y="3" width="12" height="10" rx="1.5" />
+            <rect x="7" y="7" width="6" height="5" rx="1" fill="currentColor" stroke="none" />
+          </svg>
         </div>
 
-        <div class="control-btn" @click="toggleFullScreen">
-          <i :class="isFullScreen ? 'ri-fullscreen-exit-line' : 'ri-fullscreen-line'"></i>
+        <div class="control-btn" title="Toggle Fullscreen" @click="toggleFullScreen">
+          <i :class="isFullScreen ? 'ri-fullscreen-exit-line' : 'ri-fullscreen-line'" style="font-size: 14px"></i>
         </div>
 
         <template v-if="isDesktop()">
-          <div class="control-btn" @click="maximizeWindow">
-            <i class="ri-checkbox-blank-line"></i>
+          <div class="control-btn" title="Maximize" @click="maximizeWindow">
+            <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="3" y="3" width="10" height="10" rx="1.5" />
+            </svg>
           </div>
-          <div class="control-btn" @click="minimizeWindow">
-            <i class="ri-subtract-line"></i>
+          <div class="control-btn" title="Minimize" @click="minimizeWindow">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M3 8h10v1.5H3z" />
+            </svg>
           </div>
-          <div class="control-btn" @click="handleCloseApp">
-            <i class="ri-close-line"></i>
+          <div class="control-btn close-window-btn" title="Close" @click="handleCloseApp">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M4.29 4.29a1 1 0 0 1 1.42 0L8 6.59l2.29-2.3a1 1 0 0 1 1.42 1.42L9.41 8l2.3 2.29a1 1 0 0 1-1.42 1.42L8 9.41l-2.29 2.3a1 1 0 0 1-1.42-1.42L6.59 8 4.29 5.71a1 1 0 0 1 0-1.42z" />
+            </svg>
           </div>
         </template>
       </div>
@@ -232,7 +241,12 @@
                   >
                 </div>
 
-                <span v-else :style="getLrcStyle(index)" :class="{ 'bg-vocal': item.text.startsWith('{bg}') }">{{ item.text.replace('{bg}', '') }}</span>
+                <span
+                  v-else
+                  :style="getLrcStyle(index)"
+                  :class="{ 'bg-vocal': item.text.startsWith('{bg}') }"
+                  >{{ item.text.replace('{bg}', '') }}</span
+                >
                 <div v-show="config.showRoma && item.romaText" class="music-lrc-text-roma">
                   {{ item.romaText }}
                 </div>
@@ -261,6 +275,7 @@
 <script setup lang="ts">
 import { useDebounceFn } from '@vueuse/core';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
 
 import Cover3D from '@/components/cover/Cover3D.vue';
 import LyricCorrectionControl from '@/components/lyric/LyricCorrectionControl.vue';
@@ -284,10 +299,9 @@ import { usePlayerStore } from '@/store/modules/player';
 import { useSettingsStore } from '@/store/modules/settings';
 import { DEFAULT_LYRIC_CONFIG, LyricConfig } from '@/types/lyric';
 import { isCompact, isDesktop } from '@/utils';
-import { thumbPlayer } from '@/utils/thumbnail';
-import { useRouter } from 'vue-router';
 import { getTextColors } from '@/utils/linearColor';
 import { LYRIC_CONFIG_CHANGE_EVENT, readLyricConfig, writeLyricConfig } from '@/utils/lyricConfig';
+import { thumbPlayer } from '@/utils/thumbnail';
 
 const lrcSider = ref<any>(null);
 const isMouse = ref(false);
@@ -485,9 +499,12 @@ const lrcScroll = (behavior: ScrollBehavior = 'smooth', forceTop: boolean = fals
       behavior
     });
     isProgrammaticScroll.value = true;
-    window.setTimeout(() => {
-      isProgrammaticScroll.value = false;
-    }, behavior === 'smooth' ? 500 : 100);
+    window.setTimeout(
+      () => {
+        isProgrammaticScroll.value = false;
+      },
+      behavior === 'smooth' ? 500 : 100
+    );
   }
 };
 
@@ -746,7 +763,7 @@ const miniWindow = () => {
   closeMusicFull();
   settingsStore.setMiniMode(true);
   router.push('/mini');
-  window.api.miniWindow();
+  window.api.setMiniConstraints(true);
 };
 
 const minimizeWindow = () => {
@@ -768,9 +785,9 @@ const handleCloseApp = () => {
     window.api.close();
   } else {
     // If modal is required, we can just close the app for now or trigger the modal.
-    // In MusicFull we might just minimize to tray as a safe default if no action is set, 
+    // In MusicFull we might just minimize to tray as a safe default if no action is set,
     // or call window.api.close() which handles it.
-    window.api.close(); 
+    window.api.close();
   }
 };
 
@@ -1202,6 +1219,7 @@ defineExpose({
 
 .pure-mode-tip-layer {
   @apply absolute inset-0 z-[9999] pointer-events-none;
+  --tip-accent: rgba(255, 255, 255, 0.8);
 }
 
 .pure-mode-tip-highlight {
@@ -1232,7 +1250,7 @@ defineExpose({
 
   i {
     @apply mt-0.5 shrink-0 text-base;
-    color: #10b981;
+    color: rgba(255, 255, 255, 0.85);
   }
 }
 
@@ -1256,13 +1274,14 @@ defineExpose({
   }
 
   &--primary {
-    background: #10b981;
-    border-color: #10b981;
+    background: rgba(255, 255, 255, 0.22);
+    border-color: rgba(255, 255, 255, 0.35);
     color: #fff;
+    font-weight: 600;
 
     &:hover:not(:disabled) {
-      background: #059669;
-      border-color: #059669;
+      background: rgba(255, 255, 255, 0.32);
+      border-color: rgba(255, 255, 255, 0.5);
       color: #fff;
     }
   }
@@ -1276,18 +1295,18 @@ defineExpose({
   }
 
   span.is-active {
-    @apply bg-emerald-400;
+    background: rgba(255, 255, 255, 0.8);
   }
 }
 
 @keyframes pure-tip-pulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.3);
   }
 
   70%,
   100% {
-    box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+    box-shadow: 0 0 0 10px rgba(255, 255, 255, 0);
   }
 }
 
@@ -1308,19 +1327,44 @@ defineExpose({
 }
 
 .control-btn {
-  @apply w-9 h-9 flex items-center justify-center rounded cursor-pointer transition-all duration-300;
-  background: rgba(142, 142, 142, 0.192);
+  @apply flex items-center justify-center cursor-pointer transition-all duration-200;
+  width: 36px;
+  height: 28px;
+  border-radius: 8px;
+  background: rgba(142, 142, 142, 0.18);
   backdrop-filter: blur(12px);
+  color: var(--text-color-active);
 
   i {
-    @apply text-xl;
-    color: var(--text-color-active);
+    font-size: 16px;
+    line-height: 1;
+  }
+
+  svg {
+    flex-shrink: 0;
+    opacity: 0.85;
+    transition: opacity 0.15s ease;
   }
 
   &:hover {
-    background: rgba(126, 121, 121, 0.2);
+    background: rgba(255, 255, 255, 0.18);
+
+    svg {
+      opacity: 1;
+    }
 
     i {
+      opacity: 1;
+    }
+  }
+}
+
+.close-window-btn {
+  &:hover {
+    background: rgba(239, 68, 68, 0.85) !important;
+    color: #fff !important;
+
+    svg {
       opacity: 1;
     }
   }

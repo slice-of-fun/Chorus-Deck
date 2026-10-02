@@ -35,9 +35,7 @@ import { usePlayerStore } from '@/store/modules/player';
 import AppMenu from './components/AppMenu.vue';
 import CompactHeader from './components/CompactHeader.vue';
 const CompactPlayBar = defineAsyncComponent(() => import('@/components/player/CompactPlayBar.vue'));
-const Queue = defineAsyncComponent(
-  () => import('@/components/player/Queue.vue')
-);
+const Queue = defineAsyncComponent(() => import('@/components/player/Queue.vue'));
 
 const props = defineProps<{
   isPhone: boolean;

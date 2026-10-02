@@ -1,11 +1,11 @@
 <template>
   <div
     id="title-bar"
-    class="flex justify-between px-6 py-2 select-none relative text-dark dark:text-white"
+    class="flex items-center justify-between pl-4 pr-2 py-1 select-none relative text-dark dark:text-white text-sm"
     @mousedown="drag"
   >
-    <div id="title">Chorus Deck</div>
-    <div id="buttons" class="flex gap-4" @mousedown.stop>
+    <div id="title" class="font-medium">Chorus Deck</div>
+    <div id="buttons" class="flex items-center gap-1.5" @mousedown.stop>
       <n-button
         v-if="!isDesktop()"
         type="primary"
@@ -18,29 +18,42 @@
         Download desktop version
       </n-button>
       <template v-if="isDesktop()">
-        <div
-          class="text-gray-600 dark:text-gray-400 hover:text-primary cursor-pointer"
-          @click="miniWindow"
-        >
-          <i class="ri-picture-in-picture-line"></i>
+        <div class="window-control-btn" @click="miniWindow" title="Mini Window">
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+          >
+            <rect x="2" y="3" width="12" height="10" rx="1.5" />
+            <rect x="7" y="7" width="6" height="5" rx="1" fill="currentColor" stroke="none" />
+          </svg>
         </div>
-        <div
-          class="text-gray-600 dark:text-gray-400 hover:text-primary cursor-pointer"
-          @click="maximize"
-        >
-          <i class="ri-checkbox-blank-line"></i>
+        <div class="window-control-btn" @click="minimize" title="Minimize">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M3 8h10v1.5H3z" />
+          </svg>
         </div>
-        <div
-          class="text-gray-600 dark:text-gray-400 hover:text-primary cursor-pointer"
-          @click="minimize"
-        >
-          <i class="ri-subtract-line"></i>
+        <div class="window-control-btn" @click="maximize" title="Maximize">
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+          >
+            <rect x="3" y="3" width="10" height="10" rx="1.5" />
+          </svg>
         </div>
-        <div
-          class="text-gray-600 dark:text-gray-400 hover:text-primary cursor-pointer"
-          @click="handleClose"
-        >
-          <i class="ri-close-line"></i>
+        <div class="window-control-btn close-btn" @click="handleClose" title="Close">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+            <path
+              d="M4.29 4.29a1 1 0 0 1 1.42 0L8 6.59l2.29-2.3a1 1 0 0 1 1.42 1.42L9.41 8l2.3 2.29a1 1 0 0 1-1.42 1.42L8 9.41l-2.29 2.3a1 1 0 0 1-1.42-1.42L6.59 8 4.29 5.71a1 1 0 0 1 0-1.42z"
+            />
+          </svg>
         </div>
       </template>
     </div>
@@ -166,7 +179,7 @@ const miniWindow = () => {
   if (!isDesktop()) return;
   settingsStore.setMiniMode(true);
   router.push('/mini');
-  window.api.miniWindow();
+  window.api.setMiniConstraints(true);
 };
 
 const handleAction = (action: 'minimize' | 'close') => {
@@ -216,5 +229,15 @@ const drag = (event: MouseEvent) => {
 
 #buttons {
   -webkit-app-region: no-drag;
+}
+
+.window-control-btn {
+  @apply flex items-center justify-center w-9 h-7 rounded-lg transition-colors duration-150 cursor-pointer;
+  @apply text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100;
+  @apply hover:bg-black/5 dark:hover:bg-white/10;
+}
+
+.close-btn {
+  @apply hover:bg-red-500 hover:text-white dark:hover:bg-red-500 dark:hover:text-white;
 }
 </style>

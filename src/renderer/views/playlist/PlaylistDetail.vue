@@ -68,7 +68,7 @@
 
 <script lang="ts" setup>
 import { useMessage } from 'naive-ui';
-import { onMounted, ref, watch, computed } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
 import { getYTMPlaylistDetail, type YTMPlaylistDetail, type YTMSong } from '@/api/ytmusic';

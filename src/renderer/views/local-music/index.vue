@@ -1,5 +1,5 @@
 <template>
-  <div class="local-music-page h-full w-full ">
+  <div class="local-music-page h-full w-full">
     <n-scrollbar class="h-full">
       <div class="local-music-content pb-32">
         <section class="hero-section relative overflow-hidden rounded-tl-2xl">

@@ -73,7 +73,8 @@
   --text-color-300: #3d3d3d;
   --primary-color: #22c55e;
 
-  --shell-canvas: #f8f9fa;
+  /* Use a darker gray for the canvas to make white surfaces stand out */
+  --shell-canvas: #e9ecef;
   --shell-surface: #fff;
 }
 

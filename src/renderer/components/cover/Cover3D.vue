@@ -7,7 +7,16 @@
     @mouseenter="handleMouseEnter"
   >
     <div ref="coverImage" class="cover-wrapper" :style="coverTransformStyle">
-      <n-image :src="currentSrc" class="cover-image" :class="{ 'has-black-bars': hasBlackBars }" preview-disabled :object-fit="objectFit" :img-props="{ referrerpolicy: 'no-referrer' }" @load="onImageLoad" @error="onImageError" />
+      <n-image
+        :src="currentSrc"
+        class="cover-image"
+        :class="{ 'has-black-bars': hasBlackBars }"
+        preview-disabled
+        :object-fit="objectFit"
+        :img-props="{ referrerpolicy: 'no-referrer' }"
+        @load="onImageLoad"
+        @error="onImageError"
+      />
       <div class="cover-shine" :style="shineStyle"></div>
     </div>
     <div v-if="loading" class="loading-overlay">
@@ -48,9 +57,12 @@ const rafId = ref<number | null>(null);
 
 const currentSrc = ref(props.src);
 
-watch(() => props.src, (newVal) => {
-  currentSrc.value = newVal;
-});
+watch(
+  () => props.src,
+  (newVal) => {
+    currentSrc.value = newVal;
+  }
+);
 
 const hasBlackBars = computed(() => {
   return currentSrc.value?.includes('sddefault') || currentSrc.value?.includes('hqdefault');

@@ -1,5 +1,14 @@
 <template>
-  <div class="animated-play-pause" :class="{ 'is-clicked': isClicked }" @mousedown="handleMouseDown" @mouseup="handleMouseUp" @mouseleave="handleMouseUp" @touchstart="handleMouseDown" @touchend="handleMouseUp" @click="onClick">
+  <div
+    class="animated-play-pause"
+    :class="{ 'is-clicked': isClicked }"
+    @mousedown="handleMouseDown"
+    @mouseup="handleMouseUp"
+    @mouseleave="handleMouseUp"
+    @touchstart="handleMouseDown"
+    @touchend="handleMouseUp"
+    @click="onClick"
+  >
     <div class="background-container" :class="{ 'is-playing': isPlaying }">
       <svg viewBox="0 0 100 100" class="wavy-bg">
         <path :d="pathData" :fill="computedBgColor" />
@@ -12,7 +21,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, onMounted, onUnmounted } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
 const props = defineProps({
   isPlaying: {
@@ -85,11 +94,14 @@ const updateIndent = () => {
   }
 };
 
-watch(() => props.isPlaying, () => {
-  if (!animationFrame) {
-    animationFrame = requestAnimationFrame(updateIndent);
+watch(
+  () => props.isPlaying,
+  () => {
+    if (!animationFrame) {
+      animationFrame = requestAnimationFrame(updateIndent);
+    }
   }
-});
+);
 
 onUnmounted(() => {
   if (animationFrame) cancelAnimationFrame(animationFrame);
@@ -106,7 +118,7 @@ const pathData = computed(() => {
     const theta = (i / steps) * 2 * Math.PI;
     // Smoother, fewer points to avoid the sharp jagged gear look.
     const r = radius * (1 - indent * (0.5 - 0.5 * Math.cos(points * theta)));
-    
+
     const x = 50 + r * Math.cos(theta);
     const y = 50 + r * Math.sin(theta);
 

@@ -1,5 +1,5 @@
 <template>
-  <div class="ytm-home h-full w-full ">
+  <div class="ytm-home h-full w-full">
     <n-scrollbar class="h-full" ref="scrollRef">
       <div class="home-content w-full pb-32">
         <!-- ── Header ──────────────────────────────────────────────── -->
@@ -25,10 +25,8 @@
           </button>
         </div>
 
-        <!-- ── Loading skeleton ───────────────────────────────────── -->
         <div v-if="loading && sections.length === 0" class="space-y-12">
           <div v-for="s in 3" :key="s" class="space-y-5">
-            <!-- Section header skeleton: title + dot + 'More' link -->
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-3">
                 <div class="h-6 w-40 skeleton-shimmer rounded-lg" />
@@ -36,7 +34,6 @@
               </div>
               <div class="h-4 w-10 skeleton-shimmer rounded-lg" />
             </div>
-            <!-- Horizontal scroll row: w-44 cards matching real .ytm-card -->
             <div class="flex gap-5 overflow-hidden">
               <div v-for="i in 6" :key="i" class="flex-shrink-0 w-44 space-y-3">
                 <div class="aspect-square skeleton-shimmer rounded-2xl" />
@@ -47,7 +44,6 @@
           </div>
         </div>
 
-        <!-- ── Error state ───────────────────────────────────────── -->
         <div v-else-if="error" class="flex flex-col items-center justify-center py-24 text-center">
           <i class="ri-wifi-off-line text-5xl text-neutral-300 dark:text-neutral-700 mb-4" />
           <p class="text-neutral-500 dark:text-neutral-400 mb-4">{{ error }}</p>
@@ -59,10 +55,8 @@
           </button>
         </div>
 
-        <!-- ── Sections ──────────────────────────────────────────── -->
         <div v-else class="space-y-12">
           <section v-for="(section, si) in sections" :key="si" class="home-section">
-            <!-- Section header -->
             <div class="flex items-center justify-between mb-5">
               <div class="flex items-center gap-3">
                 <h2 class="text-xl font-bold tracking-tight text-neutral-900 dark:text-white">
@@ -79,7 +73,6 @@
               </button>
             </div>
 
-            <!-- Items grid -->
             <div
               class="home-section-scroll overflow-x-auto pb-2"
               :ref="(el) => (sectionRefs[si] = el as HTMLElement | null)"
@@ -92,7 +85,6 @@
                   :style="{ animationDelay: `${idx * 0.04}s` }"
                   @click="handleItemClick(item)"
                 >
-                  <!-- Cover -->
                   <div
                     class="relative aspect-square overflow-hidden rounded-2xl shadow-md group-hover:shadow-xl transition-all duration-500 mb-3"
                     :class="
@@ -111,7 +103,6 @@
                       loading="lazy"
                       @error="onImgError($event, item.title)"
                     />
-                    <!-- Play button overlay -->
                     <div
                       class="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/30 transition-all duration-300"
                     >
@@ -123,8 +114,6 @@
                       </button>
                     </div>
                   </div>
-
-                  <!-- Info -->
                   <div class="space-y-0.5">
                     <p
                       class="text-sm font-semibold text-neutral-900 dark:text-white line-clamp-1 group-hover:text-primary transition-colors"
@@ -162,8 +151,6 @@ import { useQueueStore } from '@/store/modules/queue';
 import type { SongResult } from '@/types/music';
 
 defineOptions({ name: 'Home' });
-
-// ─── State ────────────────────────────────────────────────────────────────────
 
 const sections = ref<YTMSection[]>([]);
 const loading = ref(false);
@@ -226,8 +213,6 @@ function handleItemClick(item: YTMSong | YTMPlaylist) {
 
 function playSong(item: YTMSong | YTMPlaylist) {
   if (!isYTMSong(item)) return;
-  // Queue single song for playback via ytm video id
-  // The actual playback is handled by the existing Howler/yt service
   const track: SongResult = {
     id: item.id,
     name: item.title,
@@ -236,7 +221,6 @@ function playSong(item: YTMSong | YTMPlaylist) {
     artists: item.artists.map((a) => ({ name: a.name }))
   };
   playlistStore.setQueue([track], false, false);
-  // Emit play event — existing playback controller will handle it
   window.dispatchEvent(new CustomEvent('ytm:play', { detail: track }));
 }
 
@@ -267,8 +251,6 @@ function refresh() {
   sections.value = [];
   loadHome();
 }
-
-// ─── Lifecycle ────────────────────────────────────────────────────────────────
 
 onMounted(() => {
   loadHome();

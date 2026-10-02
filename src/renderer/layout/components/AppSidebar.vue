@@ -4,36 +4,36 @@
     :class="{ 'app-sidebar-expanded': settingsStore.setData.isMenuExpanded }"
   >
     <div class="app-sidebar-content">
-      <div class="app-sidebar-header">
+      <div
+        class="app-sidebar-header"
+        :class="settingsStore.setData.isMenuExpanded ? 'px-2 justify-start' : 'justify-center'"
+      >
         <div class="app-sidebar-logo" @click="toggleMenu">
-          <img :src="icon" class="w-9 h-9" alt="logo" />
+          <img :src="icon" class="w-8 h-8" alt="logo" />
+          <span
+            v-if="settingsStore.setData.isMenuExpanded"
+            class="ml-3 font-bold text-lg whitespace-nowrap overflow-hidden"
+            >Chorus Deck</span
+          >
         </div>
       </div>
       <div class="app-sidebar-list">
         <div v-for="(item, index) in menus" :key="item.path" class="app-sidebar-item">
-          <n-tooltip
-            :delay="200"
-            :disabled="settingsStore.setData.isMenuExpanded || isCompact"
-            placement="right"
-          >
-            <template #trigger>
-              <div class="inline-block w-full">
-                <router-link class="app-sidebar-item-link" :to="item.path">
-                  <i
-                    class="app-sidebar-item-icon"
-                    :style="iconStyle(index)"
-                    :class="item.meta.icon"
-                  ></i>
-                  <span
-                    v-if="settingsStore.setData.isMenuExpanded"
-                    class="app-sidebar-item-text ml-3"
-                    :class="isChecked(index) ? 'text-primary' : ''"
-                  >{{ t(item.meta.title) }}</span>
-                </router-link>
-              </div>
-            </template>
-            {{ t(item.meta.title) }}
-          </n-tooltip>
+          <div class="inline-block w-full">
+            <router-link class="app-sidebar-item-link" :to="item.path">
+              <i
+                class="app-sidebar-item-icon"
+                :style="iconStyle(index)"
+                :class="item.meta.icon"
+              ></i>
+              <span
+                v-if="settingsStore.setData.isMenuExpanded"
+                class="app-sidebar-item-text ml-3"
+                :class="isChecked(index) ? 'text-primary' : ''"
+                >{{ t(item.meta.title) }}</span
+              >
+            </router-link>
+          </div>
         </div>
       </div>
     </div>
@@ -116,11 +116,11 @@ const toggleMenu = () => {
 </script>
 <style lang="scss" scoped>
 .app-sidebar-wrapper {
-  @apply flex flex-col h-full w-[100px] px-2 py-3 transition-all duration-300;
+  @apply flex flex-col h-full w-[76px] px-3 py-4 transition-all duration-300;
 }
 
 .app-sidebar-expanded {
-  width: 260px;
+  width: 240px;
 }
 
 .app-sidebar-content {
@@ -128,11 +128,11 @@ const toggleMenu = () => {
 }
 
 .app-sidebar-header {
-  @apply flex justify-center mb-3;
+  @apply flex mb-6 mt-1 transition-all duration-300;
 }
 
 .app-sidebar-logo {
-  @apply flex items-center justify-center w-10 h-10 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors;
+  @apply flex items-center w-auto h-10 rounded-xl cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 transition-colors px-2;
 }
 
 .app-sidebar-list {
@@ -169,16 +169,16 @@ const toggleMenu = () => {
 }
 
 .app-sidebar-item {
-  @apply mb-1;
+  @apply mb-4;
 }
 
 .app-sidebar-item-link {
-  @apply flex items-center px-2 py-2 rounded-lg transition-colors duration-200;
-  @apply hover:bg-gray-100 dark:hover:bg-gray-800;
+  @apply flex items-center px-3 py-3 rounded-xl transition-colors duration-200;
+  @apply hover:bg-black/5 dark:hover:bg-white/10;
 }
 
 .app-sidebar-item-icon {
-  @apply flex-shrink-0 flex items-center justify-center;
+  @apply flex-shrink-0 flex items-center justify-center w-6 h-6;
   transition: all 0.3s;
 }
 

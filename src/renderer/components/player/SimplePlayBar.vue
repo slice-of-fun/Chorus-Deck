@@ -9,7 +9,9 @@
           @click.stop="handleProgressClick"
         >
           <div class="progress-track"></div>
-          <div class="progress-fill" :style="{ width: `${progressPercentage}%` }"></div>
+          <div class="progress-fill" :style="{ width: `${progressPercentage}%` }">
+            <div class="progress-handle"></div>
+          </div>
         </div>
 
         <div class="time-display">
@@ -21,21 +23,45 @@
       <div class="controls-section">
         <div class="left-controls">
           <button class="control-btn small-btn" @click="togglePlayMode">
-              <i class="" :class="playModeIcon"></i>
+            <i class="" :class="playModeIcon"></i>
           </button>
         </div>
 
         <div class="center-controls">
-          <button class="control-btn" style="width: 48px; height: 48px;" :style="{ color: playerStore.playMusic?.primaryColor }" @click="handlePrev">
-            <i class="ri-skip-back-line" style="font-size: 28px;"></i>
+          <button
+            class="control-btn"
+            style="width: 48px; height: 48px"
+            :style="{ color: playerStore.playMusic?.primaryColor }"
+            @click="handlePrev"
+          >
+            <i class="ri-skip-back-line" style="font-size: 28px"></i>
           </button>
 
-          <div class="control-btn play-btn play-animated" style="width: 64px; height: 64px; background: none; border: none; padding: 0; box-shadow: none;" @click="playMusicEvent">
-            <AnimatedPlayPause :is-playing="play" :bg-color="playerStore.playMusic?.primaryColor" />
+          <div
+            class="control-btn play-btn play-animated"
+            style="
+              width: 64px;
+              height: 64px;
+              background: none;
+              border: none;
+              padding: 0;
+              box-shadow: none;
+            "
+            @click="playMusicEvent"
+          >
+            <animated-play-pause
+              :is-playing="play"
+              :bg-color="playerStore.playMusic?.primaryColor"
+            />
           </div>
 
-          <button class="control-btn" style="width: 48px; height: 48px;" :style="{ color: playerStore.playMusic?.primaryColor }" @click="handleNext">
-            <i class="ri-skip-forward-line" style="font-size: 28px;"></i>
+          <button
+            class="control-btn"
+            style="width: 48px; height: 48px"
+            :style="{ color: playerStore.playMusic?.primaryColor }"
+            @click="handleNext"
+          >
+            <i class="ri-skip-forward-line" style="font-size: 28px"></i>
           </button>
         </div>
 
@@ -69,6 +95,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 
+import AnimatedPlayPause from '@/components/player/AnimatedPlayPause.vue';
 import { allTime, nowTime } from '@/hooks/MusicHook';
 import { usePlaybackControl } from '@/hooks/usePlaybackControl';
 import { usePlayMode } from '@/hooks/usePlayMode';
@@ -76,7 +103,6 @@ import { useVolumeControl } from '@/hooks/useVolumeControl';
 import { audioService } from '@/services/audioService';
 import { usePlayerStore } from '@/store/modules/player';
 import { secondToMinute } from '@/utils';
-import AnimatedPlayPause from '@/components/player/AnimatedPlayPause.vue';
 
 const props = withDefaults(
   defineProps<{
@@ -173,6 +199,7 @@ const formatTime = (seconds: number) => {
 };
 
 const openQueue = () => {
+  playerStore.setMusicFull(false);
   playerStore.setQueueVisible(true);
 };
 
@@ -266,10 +293,10 @@ onMounted(() => {
     --muted-color: rgba(0, 0, 0, 0.6);
     --track-color: rgba(0, 0, 0, 0.2);
     --track-color-hover: rgba(0, 0, 0, 0.4);
-    --fill-color: #1ed760;
-    --fill-color-alt: #1ed760;
-    --fill-color-transparent: rgba(30, 215, 96, 0.25);
-    --fill-color-light: rgba(30, 215, 96, 0.5);
+    --fill-color: rgba(255, 255, 255, 0.75);
+    --fill-color-alt: rgba(255, 255, 255, 0.75);
+    --fill-color-transparent: rgba(255, 255, 255, 0.15);
+    --fill-color-light: rgba(255, 255, 255, 0.5);
     --button-bg: rgba(0, 0, 0, 0.1);
     --button-hover: rgba(0, 0, 0, 0.2);
   }
@@ -279,10 +306,10 @@ onMounted(() => {
     --muted-color: rgba(255, 255, 255, 0.6);
     --track-color: rgba(255, 255, 255, 0.1);
     --track-color-hover: rgba(255, 255, 255, 0.2);
-    --fill-color: #73e49a;
-    --fill-color-alt: #73e49a;
-    --fill-color-transparent: rgba(115, 228, 154, 0.25);
-    --fill-color-light: rgba(115, 228, 154, 0.5);
+    --fill-color: rgba(255, 255, 255, 0.8);
+    --fill-color-alt: rgba(255, 255, 255, 0.8);
+    --fill-color-transparent: rgba(255, 255, 255, 0.2);
+    --fill-color-light: rgba(255, 255, 255, 0.5);
     --button-bg: rgba(255, 255, 255, 0.05);
     --button-hover: rgba(255, 255, 255, 0.1);
   }
@@ -351,13 +378,29 @@ onMounted(() => {
       box-shadow: 0 0 8px var(--fill-color-transparent);
     }
 
-    &:hover {
+    .progress-handle {
+      @apply absolute top-1/2 rounded-full transition-all duration-200;
+      right: 0;
+      transform: translate(50%, -50%) scale(0.5);
+      width: 16px;
+      height: 16px;
+      background-color: var(--fill-color, rgba(255, 255, 255, 0.85));
+      opacity: 0;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+
+    &:hover, &.is-dragging {
       .progress-track {
         background-color: var(--track-color-hover);
       }
 
       .progress-fill {
         box-shadow: 0 0 12px var(--fill-color-transparent);
+      }
+
+      .progress-handle {
+        opacity: 1;
+        transform: translate(50%, -50%) scale(1);
       }
     }
   }
@@ -463,13 +506,14 @@ onMounted(() => {
     @apply w-24;
 
     :deep(.n-slider) {
-      --n-rail-height: 3px;
+      --n-rail-height: 8px !important;
       --n-fill-color: var(--fill-color);
       --n-rail-color: var(--track-color);
-      --n-handle-size: 12px;
+      --n-handle-size: 16px !important;
+      --n-handle-color: var(--fill-color, rgba(255, 255, 255, 0.85));
 
       .n-slider-rail {
-        @apply rounded-full;
+        @apply transition-all duration-200 rounded-full;
       }
 
       .n-slider-rail__fill {
@@ -478,16 +522,17 @@ onMounted(() => {
       }
 
       .n-slider-handle {
-        @apply opacity-0 transition-opacity duration-200;
-        background: white;
-        box-shadow:
-          0 0 6px var(--fill-color-transparent),
-          0 0 0 1px var(--high-contrast-color);
-        border: 2px solid var(--fill-color);
+        @apply transition-all duration-200;
+        background-color: var(--fill-color, rgba(255, 255, 255, 0.85)) !important;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3) !important;
+        border: none !important;
+        opacity: 0;
+        transform: scale(0.5);
       }
 
       &:hover .n-slider-handle {
-        @apply opacity-100;
+        opacity: 1;
+        transform: scale(1);
       }
     }
   }

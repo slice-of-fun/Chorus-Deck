@@ -1,5 +1,5 @@
 <template>
-  <div class="search-page h-full w-full ">
+  <div class="search-page h-full w-full">
     <n-scrollbar class="h-full">
       <div class="search-content w-full pb-32 pt-6">
         <!-- ── Search bar ─────────────────────────────────────────── -->
@@ -597,10 +597,12 @@ const suggestions = ref<string[]>([]);
 const searchDone = ref(false);
 const searchLoading = ref(false);
 const activeTab = ref<'all' | 'songs' | 'videos' | 'albums' | 'artists' | 'playlists'>('all');
-const results = ref<SearchResults & {
-  topResult?: SongResult;
-  total?: number;
-}>({
+const results = ref<
+  SearchResults & {
+    topResult?: SongResult;
+    total?: number;
+  }
+>({
   topResult: undefined,
   songs: [],
   playlists: [],

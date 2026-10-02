@@ -3,13 +3,20 @@
     class="mini-play-bar"
     :class="{ 'pure-mode': pureModeEnabled, 'mini-mode': settingsStore.isMiniMode }"
   >
-
     <div class="mini-bar-container">
       <div class="section-left">
         <div class="album-cover-wrapper">
           <svg class="circular-progress" viewBox="0 0 100 100">
             <circle class="progress-bg" cx="50" cy="50" r="46" />
-            <circle class="progress-value" cx="50" cy="50" r="46" :stroke-dasharray="289.02" :stroke-dashoffset="289.02 - (289.02 * (nowTime / allTime))" :stroke="playMusic?.primaryColor || 'var(--primary-color)'" />
+            <circle
+              class="progress-value"
+              cx="50"
+              cy="50"
+              r="46"
+              :stroke-dasharray="289.02"
+              :stroke-dashoffset="289.02 - 289.02 * (nowTime / allTime)"
+              :stroke="playMusic?.primaryColor || 'var(--primary-color)'"
+            />
           </svg>
           <div class="album-cover">
             <n-image
@@ -38,26 +45,28 @@
 
       <div class="section-center">
         <div class="control-buttons">
-          <div class="control-button" :class="{ 'active': playerStore.queueVisible && activeTab === 'lyrics' }" @click="toggleLyrics">
-            <i class="ri-mic-line"></i>
-          </div>
-          <div class="control-button previous" :style="{ color: playMusic?.primaryColor }" @click="handlePrev">
+          <div
+            class="control-button previous"
+            :style="{ color: playMusic?.primaryColor }"
+            @click="handlePrev"
+          >
             <i class="ri-skip-back-fill"></i>
           </div>
-          
+
           <div class="control-button play-pause" @click="playMusicEvent">
-            <AnimatedPlayPause 
-              :is-playing="play" 
+            <animated-play-pause
+              :is-playing="play"
               :bg-color="playMusic?.primaryColor || 'var(--primary-color)'"
               :icon-color="playMusic?.primaryColor || 'var(--primary-color)'"
             />
           </div>
 
-          <div class="control-button next" :style="{ color: playMusic?.primaryColor }" @click="handleNext">
+          <div
+            class="control-button next"
+            :style="{ color: playMusic?.primaryColor }"
+            @click="handleNext"
+          >
             <i class="ri-skip-forward-fill"></i>
-          </div>
-          <div class="control-button" :class="{ 'active': playerStore.queueVisible && activeTab === 'queue' }" @click="togglePlaylist">
-            <i class="ri-play-list-line"></i>
           </div>
         </div>
       </div>
@@ -68,7 +77,6 @@
         </div>
       </div>
     </div>
-
   </div>
 </template>
 
@@ -93,12 +101,8 @@ const settingsStore = useSettingsStore();
 const router = useRouter();
 const { navigateToArtist } = useArtist();
 
-const { isPlaying: play, playMusicEvent, handleNext, handlePrev } = usePlaybackControl();
-const activeTab = ref('queue');
 
-window.addEventListener('queue-tab-changed', (e: any) => {
-  activeTab.value = e.detail;
-});
+const { isPlaying: play, playMusicEvent, handleNext, handlePrev } = usePlaybackControl();
 
 const {
   isMuted,
@@ -120,12 +124,22 @@ withDefaults(
   }
 );
 
+
+
+const updateWindowSize = () => {};
+
 const restoreMainWindow = () => {
   if (settingsStore.isMiniMode) {
+    document.body.style.height = '';
+    document.body.style.overflow = '';
+    document.body.style.minHeight = '';
     settingsStore.setMiniMode(false);
     try {
       router.push('/');
-    } catch(e) {}
+    } catch (e) {}
+    if (window.api && typeof window.api.setMiniConstraints === 'function') {
+      window.api.setMiniConstraints(false);
+    }
     if (window.api && typeof window.api.resizeWindow === 'function') {
       window.api.resizeWindow(1200, 800);
     }
@@ -135,31 +149,8 @@ const restoreMainWindow = () => {
   }
 };
 
-const togglePlaylist = () => {
-  if (playerStore.queueVisible && activeTab.value === 'queue') {
-    playerStore.setQueueVisible(false);
-  } else {
-    activeTab.value = 'queue';
-    playerStore.setQueueVisible(true);
-    window.dispatchEvent(new CustomEvent('open-queue-tab', { detail: 'queue' }));
-  }
-};
+const handleArtistClick = (id: string | undefined) => {};
 
-const toggleLyrics = () => {
-  if (playerStore.queueVisible && activeTab.value === 'lyrics') {
-    playerStore.setQueueVisible(false);
-  } else {
-    activeTab.value = 'lyrics';
-    playerStore.setQueueVisible(true);
-    window.dispatchEvent(new CustomEvent('open-queue-tab', { detail: 'lyrics' }));
-  }
-};
-
-const updateWindowSize = () => {
-};
-
-const handleArtistClick = (id: string | undefined) => {
-};
 
 const handleProgressClick = (e: MouseEvent) => {
   const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -203,10 +194,12 @@ const setMusicFull = () => {
     @apply shadow-lg;
     -webkit-app-region: drag;
 
-    .album-cover-wrapper, .song-info, .control-button {
+    .album-cover-wrapper,
+    .song-info,
+    .control-button {
       -webkit-app-region: no-drag;
     }
-    
+
     .mini-bar-container {
       @apply px-4;
     }
@@ -238,14 +231,17 @@ const setMusicFull = () => {
           background-color: rgba(255, 255, 255, 0.2);
         }
 
-        .iconfont, i {
+        .iconfont,
+        i {
           @apply text-xl;
         }
 
         &.play-pause {
           width: 52px;
           height: 52px;
-          i { font-size: 28px; }
+          i {
+            font-size: 28px;
+          }
         }
       }
     }
@@ -333,14 +329,14 @@ const setMusicFull = () => {
   &:hover {
     transform: scale(1.1);
   }
-  
+
   &.play-pause {
     width: 44px;
     height: 44px;
     background-color: transparent;
     padding: 0;
   }
-  
+
   &.circular-restore {
     background-color: rgba(255, 255, 255, 0.1);
     &:hover {
@@ -365,9 +361,9 @@ const setMusicFull = () => {
     --n-rail-height: 4px;
     --n-rail-color: theme('colors.gray.200');
     --n-rail-color-dark: theme('colors.gray.700');
-    --n-fill-color: theme('colors.green.500');
+    --n-fill-color: var(--n-fill-color-override, rgba(255,255,255,0.7));
     --n-handle-size: 12px;
-    --n-handle-color: theme('colors.green.500');
+    --n-handle-color: rgba(255, 255, 255, 0.85);
 
     &.n-slider--vertical {
       height: 100%;
@@ -405,8 +401,6 @@ const setMusicFull = () => {
     }
   }
 }
-
-
 
 .dark {
   .song-info {

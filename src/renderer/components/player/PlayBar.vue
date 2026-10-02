@@ -1,6 +1,6 @@
 <template>
   <div
-    class="music-play-bar"
+    class="music-play-bar rounded-t-3xl overflow-hidden"
     :class="[
       setAnimationClass('animate__bounceInUp'),
       musicFullVisible ? 'play-bar-opcity' : '',
@@ -9,125 +9,171 @@
         : ''
     ]"
     :style="{
-      color: musicFullVisible
-        ? textColors.theme === 'dark'
-          ? '#000000'
-          : '#ffffff'
-        : settingsStore.theme === 'dark'
-          ? '#ffffff'
-          : '#000000'
+      backgroundColor: musicFullVisible ? 'transparent' : 'var(--shell-surface)',
+      color: 'var(--text-color, inherit)',
+      boxShadow: '0 -4px 20px rgba(0,0,0,0.05)',
+      '--fill-color': playMusic?.primaryColor || 'var(--primary-color)',
+      '--fill-color-light': playMusic?.primaryColor ? playMusic.primaryColor + '99' : 'var(--primary-color)'
     }"
     @click="handleBarClick"
   >
-    <div class="music-time custom-slider">
-      <n-slider
-        v-model:value="timeSlider"
-        :step="1"
-        :max="allTime"
-        :min="0"
-        :format-tooltip="formatTooltip"
-        :show-tooltip="showSliderTooltip"
-        @mouseenter="showSliderTooltip = true"
-        @mouseleave="showSliderTooltip = false"
-        @dragstart="handleSliderDragStart"
-        @dragend="handleSliderDragEnd"
-      ></n-slider>
+    <div class="play-bar-left">
+      <div class="play-bar-img-wrapper" @click="openLyricWindow">
+        <n-image
+          :src="getImgUrl(playMusic?.picUrl, '100y100')"
+          class="play-bar-img"
+          lazy
+          preview-disabled
+        />
+        <div v-if="playMusic?.playLoading" class="loading-overlay">
+          <i class="ri-loader-4-line loading-icon"></i>
+        </div>
+        <div class="hover-arrow">
+          <div class="hover-content">
+            <i
+              class="text-3xl"
+              :class="musicFullVisible ? 'ri-arrow-down-s-line' : 'ri-arrow-up-s-line'"
+            ></i>
+            <span class="hover-text">{{
+              musicFullVisible ? 'Collapse' : 'Expand'
+            }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="music-content">
+        <div class="music-content-title flex items-center">
+          <n-ellipsis class="text-ellipsis" line-clamp="1">
+            <p v-html="playMusic?.name || ''"></p>
+          </n-ellipsis>
+          <span v-if="playbackRate !== 1.0" class="playback-rate-badge"> {{ playbackRate }}x </span>
+        </div>
+        <div class="music-content-name">
+          <n-ellipsis
+            class="text-ellipsis"
+            line-clamp="1"
+            :tooltip="{
+              contentStyle: { maxWidth: '600px' },
+              zIndex: 99999
+            }"
+          >
+            <span
+              v-for="(artists, artistsindex) in artistList"
+              :key="artistsindex"
+              class="cursor-pointer hover:text-primary"
+              @click.stop="handleArtistClick(artists.id)"
+            >
+              {{ artists.name }}{{ artistsindex < artistList.length - 1 ? ' / ' : '' }}
+            </span>
+          </n-ellipsis>
+        </div>
+      </div>
+      <div class="favorite-btn" @click.stop="toggleFavorite">
+        <i :class="isFavorite ? 'ri-heart-fill like-active' : 'ri-heart-line'"></i>
+      </div>
     </div>
 
-    <div class="play-bar-img-wrapper">
-      <n-image
-        :src="getImgUrl(playMusic?.picUrl, '100y100')"
-        class="play-bar-img"
-        lazy
-        preview-disabled
-      />
-      <div v-if="playMusic?.playLoading" class="loading-overlay">
-        <i class="ri-loader-4-line loading-icon"></i>
-      </div>
-      <div class="hover-arrow">
-        <div class="hover-content">
-          <i
-            class="text-3xl"
-            :class="musicFullVisible ? 'ri-arrow-down-s-line' : 'ri-arrow-up-s-line'"
-          ></i>
-          <span class="hover-text">{{
-            musicFullVisible ? 'Collapse Lyrics' : 'Expand Lyrics'
-          }}</span>
+    <div class="play-bar-center">
+      <div class="music-buttons">
+        <div class="icon-btn tooltip-btn" @click.stop="playerStore.toggleShuffle()">
+          <n-tooltip trigger="hover" :z-index="9999999">
+            <template #trigger>
+              <i :class="shuffleEnabled ? 'ri-shuffle-fill text-primary' : 'ri-shuffle-line'" class="text-lg"></i>
+            </template>
+            Shuffle
+          </n-tooltip>
         </div>
-      </div>
-    </div>
-    <div class="music-content">
-      <div class="music-content-title flex items-center">
-        <n-ellipsis class="text-ellipsis" line-clamp="1">
-          <p v-html="playMusic?.name || ''"></p>
-        </n-ellipsis>
-        <span v-if="playbackRate !== 1.0" class="playback-rate-badge"> {{ playbackRate }}x </span>
-      </div>
-      <div class="music-content-name">
-        <n-ellipsis
-          class="text-ellipsis"
-          line-clamp="1"
-          :tooltip="{
-            contentStyle: { maxWidth: '600px' },
-            zIndex: 99999
-          }"
+        <div
+          class="music-buttons-prev"
+          :style="{ color: playMusic?.primaryColor }"
+          @click.stop="handlePrev"
         >
-          <span
-            v-for="(artists, artistsindex) in artistList"
-            :key="artistsindex"
-            class="cursor-pointer hover:text-primary"
-            @click.stop="handleArtistClick(artists.id)"
-          >
-            {{ artists.name }}{{ artistsindex < artistList.length - 1 ? ' / ' : '' }}
-          </span>
-        </n-ellipsis>
-      </div>
-    </div>
-    <div class="music-buttons">
-      <div class="music-buttons-prev" :style="{ color: playMusic?.primaryColor }" @click="handlePrev">
-        <i class="ri-skip-back-line"></i>
-      </div>
-      <div class="music-buttons-play play-animated">
-        <AnimatedPlayPause :is-playing="play" @click="playMusicEvent" :bg-color="playMusic?.primaryColor" />
-      </div>
-      <div class="music-buttons-next" :style="{ color: playMusic?.primaryColor }" @click="handleNext">
-        <i class="ri-skip-forward-line"></i>
-      </div>
-    </div>
-    <div class="audio-button">
-      <div class="audio-volume custom-slider" @wheel.prevent="handleVolumeWheel">
-        <div class="volume-icon" @click="mute">
-          <i class="" :class="getVolumeIcon"></i>
+          <i class="ri-skip-back-line"></i>
         </div>
-        <div class="volume-slider">
-          <div class="volume-percentage" :class="{ 'volume-percentage-disabled': isMuted }">
-            {{ Math.round(volumeSlider) }}%
-          </div>
+        <div class="music-buttons-play play-animated" @click.stop>
+          <animated-play-pause
+            :is-playing="play"
+            @click="playMusicEvent"
+            :bg-color="playMusic?.primaryColor"
+          />
+        </div>
+        <div
+          class="music-buttons-next"
+          :style="{ color: playMusic?.primaryColor }"
+          @click.stop="handleNext"
+        >
+          <i class="ri-skip-forward-line"></i>
+        </div>
+        <div class="icon-btn tooltip-btn" @click.stop="playerStore.toggleRepeat()">
+          <n-tooltip trigger="hover" :z-index="9999999">
+            <template #trigger>
+              <i :class="[
+                repeatMode === 1 ? 'ri-repeat-2-line text-primary' : 
+                repeatMode === 2 ? 'ri-repeat-one-line text-primary' : 
+                'ri-repeat-2-line'
+              ]" class="text-lg"></i>
+            </template>
+            Repeat
+          </n-tooltip>
+        </div>
+      </div>
+      
+      <div class="playback-timeline custom-slider">
+        <span class="time-text">{{ secondToMinute(nowTime) }}</span>
+        <div class="timeline-slider" @click.stop>
           <n-slider
-            v-model:value="volumeSlider"
-            :step="0.01"
+            v-model:value="timeSlider"
+            :step="1"
+            :max="allTime"
+            :min="0"
             :tooltip="false"
-            :disabled="isMuted"
-            vertical
+            @dragstart="handleSliderDragStart"
+            @dragend="handleSliderDragEnd"
           ></n-slider>
         </div>
+        <span class="time-text">{{ secondToMinute(allTime) }}</span>
+      </div>
+    </div>
+
+    <!-- Right Side: Volume & Extra -->
+    <div class="play-bar-right audio-button">
+      <div class="icon-btn tooltip-btn" @click.stop="handleDownload">
+        <n-tooltip trigger="hover" :z-index="9999999">
+          <template #trigger>
+            <i :class="isDownloading ? 'ri-loader-4-line loading-icon' : 'ri-download-2-line'" class="text-xl transition-colors cursor-pointer"></i>
+          </template>
+          Download
+        </n-tooltip>
       </div>
 
-      <advanced-controls-popover />
+      <advanced-controls-popover @click.stop />
 
       <n-tooltip trigger="hover" :z-index="9999999">
         <template #trigger>
-          <div class="icon-btn" @click="openQueue">
-            <i class="ri-play-list-fill text-2xl transition-colors cursor-pointer"></i>
+          <div class="icon-btn" @click.stop="openQueue">
+            <i class="ri-play-list-fill text-xl transition-colors cursor-pointer"></i>
           </div>
         </template>
         Play List
       </n-tooltip>
 
+      <div class="audio-volume custom-slider" @click.stop @wheel.prevent="handleVolumeWheel">
+        <div class="volume-icon" @click.stop="mute">
+          <i class="text-xl" :class="getVolumeIcon"></i>
+        </div>
+        <div class="volume-slider-horizontal">
+          <n-slider
+            v-model:value="volumeSlider"
+            :step="0.01"
+            :tooltip="false"
+            :disabled="isMuted"
+          ></n-slider>
+        </div>
+      </div>
+
       <n-tooltip trigger="hover" :z-index="9999999">
         <template #trigger>
-          <div class="icon-btn close-btn" @click="handleCloseBar">
-            <i class="ri-close-line text-2xl transition-colors cursor-pointer"></i>
+          <div class="icon-btn close-btn" @click.stop="handleCloseBar">
+            <i class="ri-close-line text-xl transition-colors cursor-pointer"></i>
           </div>
         </template>
         Close
@@ -164,7 +210,7 @@ import { useVolumeControl } from '@/hooks/useVolumeControl';
 import { audioService } from '@/services/audioService';
 import { usePlayerStore } from '@/store/modules/player';
 import { useSettingsStore } from '@/store/modules/settings';
-import { getImgUrl, isDesktop, isCompact, secondToMinute, setAnimationClass } from '@/utils';
+import { getImgUrl, isCompact, isDesktop, secondToMinute, setAnimationClass } from '@/utils';
 
 const playerStore = usePlayerStore();
 const settingsStore = useSettingsStore();
@@ -198,7 +244,7 @@ const handleCloseBar = async () => {
 
 const { playMode, playModeIcon, playModeText, togglePlayMode } = usePlayMode();
 
-const { playbackRate } = storeToRefs(playerStore);
+const { playbackRate, shuffleEnabled, repeatMode } = storeToRefs(playerStore);
 
 const background = ref('#000');
 
@@ -300,38 +346,127 @@ const openQueue = () => {
 }
 
 .music-play-bar {
-  @apply h-20 w-full relative flex-shrink-0 flex items-center box-border px-6 py-2 pt-3;
-  @apply bg-light dark:bg-dark shadow-2xl shadow-gray-300;
-  border-radius: var(--shell-radius);
+  @apply h-24 relative flex-shrink-0 flex items-center justify-between box-border px-4 py-2;
+  margin-left: var(--shell-gap, 12px);
+  margin-right: var(--shell-gap, 12px);
+  margin-bottom: var(--shell-gap, 12px);
+  border-radius: var(--shell-radius, 16px);
+  width: calc(100% - calc(var(--shell-gap, 12px) * 2));
   z-index: var(--shell-z-player, 20);
   animation-duration: 0.5s !important;
-
   cursor: pointer;
 
-  .music-time {
-    cursor: default;
-  }
-
   &.play-bar-opcity {
-    @apply bg-transparent !important;
-    box-shadow: 0 0 20px 5px #0000001d;
+    background-color: transparent !important;
+    box-shadow: none !important;
   }
 
   &.animate__slideOutDown {
     animation-duration: 0.3s !important;
     pointer-events: none;
   }
+}
 
+.play-bar-left {
+  @apply flex items-center gap-3 w-1/3 min-w-[200px];
+  
   .music-content {
-    width: 200px;
-    @apply ml-4;
-
+    @apply flex flex-col justify-center overflow-hidden;
+    
     &-title {
-      @apply text-base;
+      @apply text-sm font-semibold;
+    }
+    &-name {
+      @apply text-xs opacity-70;
+    }
+  }
+  
+  .favorite-btn {
+    @apply flex items-center justify-center rounded-full transition-all w-8 h-8 ml-2 cursor-pointer;
+    i { @apply text-lg; }
+    &:hover { @apply bg-gray-100 dark:bg-dark-300; }
+  }
+}
+
+.play-bar-center {
+  @apply flex flex-col items-center justify-center w-1/3 min-w-[300px];
+  
+  .music-buttons {
+    @apply flex items-center justify-center gap-3 mb-1;
+    
+    .tooltip-btn {
+      @apply text-gray-500 hover:text-primary transition-colors cursor-pointer flex items-center justify-center w-8 h-8 rounded-full;
+      &:hover {
+        @apply bg-gray-100 dark:bg-dark-300;
+      }
+    }
+    
+    &-prev,
+    &-next {
+      @apply flex items-center justify-center rounded-full bg-gray-100 dark:bg-dark-300 transition-all cursor-pointer;
+      width: 40px;
+      height: 40px;
+
+      i {
+        font-size: 24px !important;
+      }
+
+      &:hover {
+        @apply bg-gray-200 dark:bg-dark-200;
+        transform: scale(1.05);
+      }
     }
 
-    &-name {
-      @apply text-xs mt-1 opacity-80;
+    &-play {
+      @apply flex justify-center items-center rounded-full transition-all cursor-pointer;
+      width: 48px;
+      height: 48px;
+
+      &.play-animated {
+        background: transparent !important;
+        &:hover {
+          background: transparent !important;
+          transform: scale(1.05);
+        }
+        :deep(.animated-play-pause) {
+          width: 100%;
+          height: 100%;
+          border-radius: 50%;
+        }
+      }
+    }
+  }
+  
+  .playback-timeline {
+    @apply flex items-center w-full gap-3;
+    
+    .time-text {
+      @apply text-xs opacity-60 w-10 text-center;
+      font-variant-numeric: tabular-nums;
+    }
+    
+    .timeline-slider {
+      @apply flex-1;
+      padding: 6px 0;
+    }
+  }
+}
+
+.play-bar-right {
+  @apply flex items-center justify-end w-1/3 min-w-[200px] gap-1;
+  
+  .audio-volume {
+    @apply flex items-center gap-2 ml-1 w-28;
+    
+    .volume-icon {
+      @apply cursor-pointer flex items-center;
+      i {
+        @apply text-lg hover:text-primary transition-colors;
+      }
+    }
+    
+    .volume-slider-horizontal {
+      @apply flex-1 flex items-center;
     }
   }
 }
@@ -340,60 +475,8 @@ const openQueue = () => {
   @apply w-14 h-14 rounded-2xl;
 }
 
-.music-buttons {
-  @apply mx-6 flex-1 flex justify-center items-center;
-
-  .iconfont {
-    @apply text-2xl transition;
-    @apply hover:text-primary;
-  }
-
-  .icon {
-    @apply text-3xl;
-    @apply hover:text-primary;
-  }
-
-  > div {
-    @apply cursor-pointer transition-colors duration-200;
-  }
-
-  &-prev, &-next {
-    @apply flex items-center justify-center rounded-full bg-gray-100 dark:bg-dark-300 mx-2 transition-all;
-    width: 48px;
-    height: 48px;
-    
-    .iconfont, i {
-      font-size: 28px !important;
-    }
-    
-    &:hover {
-      @apply bg-gray-200 dark:bg-dark-200;
-      transform: scale(1.05);
-    }
-  }
-
-  &-play {
-    @apply flex justify-center items-center rounded-full mx-4 transition-all;
-    width: 64px;
-    height: 64px;
-    
-    &.play-animated {
-      background: transparent !important;
-      &:hover {
-        background: transparent !important;
-        transform: scale(1.05);
-      }
-      :deep(.animated-play-pause) {
-        width: 100%;
-        height: 100%;
-        border-radius: 50%;
-      }
-    }
-  }
-}
-
 .icon-btn {
-  @apply flex items-center justify-center rounded-full transition-all w-10 h-10 mx-1;
+  @apply flex items-center justify-center rounded-full transition-all w-9 h-9 mx-0.5;
   &:hover {
     @apply bg-gray-100 dark:bg-dark-300 text-primary;
   }
@@ -402,143 +485,33 @@ const openQueue = () => {
   }
 }
 
-.audio-volume {
-  @apply flex items-center relative;
-  &:hover {
-    .volume-slider {
-      @apply opacity-100 visible;
-    }
-  }
-  .volume-icon {
-    @apply cursor-pointer;
-  }
-
-  .iconfont {
-    @apply text-2xl transition;
-    @apply hover:text-primary;
-  }
-
-  .volume-slider {
-    @apply absolute opacity-0 invisible transition-all duration-300 bottom-[30px] left-1/2 -translate-x-1/2 h-[180px] px-2 py-4 rounded-xl;
-    @apply bg-light dark:bg-dark-200;
-    @apply border border-gray-200 dark:border-gray-700;
-
-    .volume-percentage {
-      @apply absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-medium bg-light dark:bg-dark-200 px-2 py-1 rounded-md;
-      @apply border border-gray-200 dark:border-gray-700;
-      @apply text-gray-800 dark:text-white;
-      white-space: nowrap;
-
-      &.volume-percentage-disabled {
-        @apply text-gray-400 dark:text-gray-500;
-      }
-    }
-  }
-}
-
-.audio-button {
-  @apply flex items-center;
-
-  .iconfont {
-    @apply text-2xl transition cursor-pointer mx-3;
-    @apply hover:text-primary;
-  }
-}
-
-.music-play {
-  &-list {
-    height: 50vh;
-    width: 300px;
-    @apply relative rounded-3xl overflow-hidden py-2;
-    &-back {
-      backdrop-filter: blur(20px);
-      @apply absolute top-0 left-0 w-full h-full;
-      @apply bg-light dark:bg-black bg-opacity-75;
-    }
-    &-content {
-      @apply mx-2;
-    }
-  }
-}
-
-.compact {
-  .music-play-bar {
-    @apply px-4 bottom-[56px] transition-all duration-300;
-  }
-  .music-time {
-    display: none;
-  }
-  .ri-music-2-line {
-    display: none;
-  }
-  .audio-volume {
-    display: none;
-  }
-  .audio-button {
-    @apply mx-0;
-  }
-  .music-buttons {
-    @apply m-0;
-    &-prev,
-    &-next {
-      display: none;
-    }
-    &-play {
-      @apply m-0;
-    }
-  }
-  .music-content {
-    flex: 1;
-  }
-}
-
 .custom-slider {
   :deep(.n-slider) {
-    --n-rail-height: 4px;
-    --n-rail-color: theme('colors.gray.200');
-    --n-rail-color-dark: theme('colors.gray.700');
-    --n-fill-color: theme('colors.green.500');
-    --n-handle-size: 12px;
-    --n-handle-color: theme('colors.green.500');
-
-    &.n-slider--vertical {
-      height: 100%;
-
-      .n-slider-rail {
-        width: 4px;
-      }
-
-      &:hover {
-        .n-slider-rail {
-          width: 6px;
-        }
-
-        .n-slider-handle {
-          width: 14px;
-          height: 14px;
-        }
-      }
-    }
+    --n-rail-height: 5px !important;
+    --n-rail-color: rgba(128, 128, 128, 0.25);
+    --n-rail-color-dark: rgba(255, 255, 255, 0.12);
+    --n-fill-color: var(--fill-color, var(--primary-color));
+    --n-fill-color-hover: var(--fill-color, var(--primary-color));
+    --n-handle-size: 14px !important;
+    --n-handle-color: var(--fill-color, #fff);
 
     .n-slider-rail {
-      @apply overflow-hidden transition-all duration-200;
-      @apply bg-gray-500 dark:bg-dark-300 bg-opacity-10 !important;
+      @apply transition-all duration-200 rounded-full;
+      overflow: visible;
     }
 
     .n-slider-handle {
       @apply transition-all duration-200;
       opacity: 0;
+      transform: scale(0.5);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
     }
 
     &:hover {
       .n-slider-handle {
         opacity: 1;
+        transform: scale(1);
       }
-    }
-
-    .n-slider-tooltip {
-      @apply bg-dark-200 text-white text-xs py-1 px-2 rounded;
-      z-index: 999999;
     }
   }
 }
@@ -574,63 +547,14 @@ const openQueue = () => {
   @apply text-sm py-1 px-2;
 }
 
-.play-bar-img {
-  @apply w-14 h-14 rounded-2xl;
-}
-
 .like-active {
   @apply text-red-500 hover:text-red-600 !important;
-}
-
-.intelligence-active {
-  @apply text-primary hover:text-primary !important;
 }
 
 .disabled-icon {
   @apply opacity-50 cursor-not-allowed !important;
   &:hover {
     @apply text-inherit !important;
-  }
-}
-
-.ri-repeat-2-fill,
-.ri-repeat-one-fill {
-  font-size: 1.5rem;
-}
-
-.music-time .n-slider {
-  position: absolute;
-  top: 0;
-  left: 0;
-  padding: 0;
-  border-radius: 0;
-}
-
-.music-eq {
-  @apply p-4 rounded-3xl;
-  backdrop-filter: blur(20px);
-  @apply bg-light dark:bg-black bg-opacity-75;
-}
-
-.music-play-list-content {
-  @apply mx-2;
-
-  .delete-btn {
-    @apply p-2 rounded-full transition-colors duration-200 cursor-pointer;
-    @apply hover:bg-red-50 dark:hover:bg-red-900/20;
-
-    .iconfont {
-      @apply text-lg;
-    }
-  }
-}
-
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
   }
 }
 
@@ -646,29 +570,30 @@ const openQueue = () => {
   animation: spin 1s linear infinite;
 }
 
-.play-speed {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  padding: 0 8px;
-}
-
-.speed-button {
-  font-size: 14px;
-  color: var(--text-color);
-  padding: 4px 8px;
-  border-radius: 4px;
-  background: var(--hover-color);
-}
-
-.speed-button:hover {
-  background: var(--hover-color-dark);
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .playback-rate-badge {
   @apply ml-2 px-1.5 h-4 flex items-center text-xs rounded text-primary bg-opacity-15 text-primary dark:text-primary;
   font-weight: 500;
   vertical-align: 1px;
+}
+
+.compact {
+  .music-play-bar {
+    @apply px-4 bottom-[56px] transition-all duration-300;
+  }
+  .play-bar-center {
+    display: none;
+  }
+  .play-bar-right {
+    display: none;
+  }
 }
 </style>

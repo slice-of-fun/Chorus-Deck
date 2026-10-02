@@ -4,8 +4,8 @@ import { loadLrc, useSongDetail } from '@/hooks/usePlayerHooks';
 import { audioService } from '@/services/audioService';
 import { playbackRequestManager } from '@/services/playbackRequestManager';
 import type { SongResult } from '@/types/music';
-import { thumbTiny } from '@/utils/thumbnail';
 import { getImageLinearBackground } from '@/utils/linearColor';
+import { thumbTiny } from '@/utils/thumbnail';
 
 const { message } = createDiscreteApi(['message']);
 

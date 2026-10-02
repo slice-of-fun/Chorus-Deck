@@ -129,8 +129,8 @@ export const bridge = {
   dragStart: (data: unknown) => rawInvoke<void>('drag-start', { data }),
   resizeWindow: (width: number, height: number) =>
     rawInvoke<void>('resize-window', { width, height }),
-  resizeMiniWindow: (showPlaylist: boolean) =>
-    rawInvoke<void>('resize-mini-window', { showPlaylist }),
+  setMiniConstraints: (entering: boolean) =>
+    rawInvoke<void>('set-mini-constraints', { entering }),
   miniTray: () => rawInvoke<void>('mini-tray'),
   miniWindow: () => rawInvoke<void>('mini-window'),
 

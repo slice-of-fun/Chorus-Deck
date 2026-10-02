@@ -1,6 +1,7 @@
 <template>
   <div
     class="w-80 rounded-2xl bg-black/30 backdrop-blur-3xl border border-white/10 shadow-2xl overflow-hidden"
+    :style="{ '--accent': accentColor }"
   >
     <div class="px-6 py-4 border-b border-white/5">
       <h2 class="text-lg font-semibold tracking-tight text-white/90">Lyric Settings</h2>
@@ -15,10 +16,13 @@
           :class="[
             'flex-1 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200',
             activeTab === tab.key
-              ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30'
+              ? 'text-white shadow-lg'
               : 'hover:bg-white/5'
           ]"
-          :style="activeTab !== tab.key ? 'color: rgba(255, 255, 255, 0.7);' : ''"
+          :style="[
+            activeTab !== tab.key ? { color: 'rgba(255, 255, 255, 0.7)' } : {},
+            activeTab === tab.key ? { backgroundColor: accentColor, boxShadow: `0 4px 14px 0 color-mix(in srgb, ${accentColor} 40%, transparent)` } : {}
+          ]"
         >
           {{ tab.label }}
         </button>
@@ -83,7 +87,8 @@
             min="50"
             max="100"
             step="5"
-            class="slider-emerald"
+            class="slider-dynamic"
+            :style="{ '--accent': accentColor }"
           />
           <div class="slider-marks">
             <span>50%</span>
@@ -102,7 +107,8 @@
             min="12"
             max="32"
             step="1"
-            class="slider-emerald"
+            class="slider-dynamic"
+            :style="{ '--accent': accentColor }"
           />
           <div class="slider-marks">
             <span>Small</span>
@@ -119,7 +125,8 @@
             min="-2"
             max="10"
             step="0.2"
-            class="slider-emerald"
+            class="slider-dynamic"
+            :style="{ '--accent': accentColor }"
           />
           <div class="slider-marks">
             <span>Compact</span>
@@ -136,7 +143,8 @@
             min="100"
             max="900"
             step="100"
-            class="slider-emerald"
+            class="slider-dynamic"
+            :style="{ '--accent': accentColor }"
           />
           <div class="slider-marks">
             <span>Thin</span>
@@ -153,7 +161,8 @@
             min="1"
             max="3"
             step="0.1"
-            class="slider-emerald"
+            class="slider-dynamic"
+            :style="{ '--accent': accentColor }"
           />
           <div class="slider-marks">
             <span>Compact</span>
@@ -257,7 +266,8 @@
           <button
             v-if="config.gradientColors.colors.length < 5"
             @click="addGradientColor"
-            class="w-full py-2 px-4 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 transition-colors text-sm font-medium flex items-center justify-center gap-2 text-white/90"
+            :style="{ backgroundColor: `color-mix(in srgb, ${accentColor} 20%, transparent)` }"
+            class="w-full py-2 px-4 rounded-lg hover:brightness-110 transition-all text-sm font-medium flex items-center justify-center gap-2 text-white/90"
           >
             <i class="ri-add-line"></i>
             Add Color
@@ -286,9 +296,14 @@
 </template>
 
 <script setup lang="ts">
-import { inject, reactive, ref } from 'vue';
+import { computed, inject, reactive, ref } from 'vue';
 
+import { playMusic } from '@/hooks/MusicHook';
 import { DEFAULT_LYRIC_CONFIG, type LyricConfig } from '@/types/lyric';
+
+const accentColor = computed(
+  () => playMusic.value?.primaryColor || 'var(--primary-color, #6366f1)'
+);
 
 const config = inject<LyricConfig>(
   'lyricSetting',
@@ -381,7 +396,7 @@ defineExpose({ config });
 }
 
 .toggle-switch:checked {
-  background: #10b981;
+  background: var(--accent, #6366f1);
 }
 
 .toggle-switch:checked::before {
@@ -406,7 +421,7 @@ defineExpose({ config });
   margin-bottom: 8px;
 }
 
-.slider-emerald {
+.slider-dynamic {
   width: 100%;
   height: 4px;
   background: rgba(255, 255, 255, 0.1);
@@ -415,24 +430,24 @@ defineExpose({ config });
   appearance: none;
 }
 
-.slider-emerald::-webkit-slider-thumb {
+.slider-dynamic::-webkit-slider-thumb {
   appearance: none;
   width: 16px;
   height: 16px;
-  background: #10b981;
+  background: var(--accent, #6366f1);
   border-radius: 50%;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent, #6366f1) 40%, transparent);
 }
 
-.slider-emerald::-moz-range-thumb {
+.slider-dynamic::-moz-range-thumb {
   width: 16px;
   height: 16px;
-  background: #10b981;
+  background: var(--accent, #6366f1);
   border-radius: 50%;
   cursor: pointer;
   border: none;
-  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent, #6366f1) 40%, transparent);
 }
 
 .slider-marks {
@@ -510,7 +525,7 @@ defineExpose({ config });
 }
 
 .radio-input:checked {
-  border-color: #10b981;
+  border-color: var(--accent, #6366f1);
   opacity: 1;
 }
 
@@ -519,7 +534,7 @@ defineExpose({ config });
   position: absolute;
   width: 10px;
   height: 10px;
-  background: #10b981;
+  background: var(--accent, #6366f1);
   border-radius: 50%;
   left: 2px;
   top: 2px;
@@ -610,8 +625,8 @@ defineExpose({ config });
 }
 
 .select-input:focus {
-  border-color: #10b981;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+  border-color: var(--accent, #6366f1);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent, #6366f1) 10%, transparent);
 }
 
 .scrollbar-thin::-webkit-scrollbar {

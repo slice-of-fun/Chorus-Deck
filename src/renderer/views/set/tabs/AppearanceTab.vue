@@ -501,7 +501,7 @@
 import { computed, h, inject, onMounted, onUnmounted, ref, watch } from 'vue';
 
 import { useSettingsStore } from '@/store/modules/settings';
-import { isDesktop, isCompact } from '@/utils';
+import { isCompact, isDesktop } from '@/utils';
 import { t } from '@/utils/i18n';
 import { applyTheme } from '@/utils/theme';
 
