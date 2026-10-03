@@ -1,6 +1,7 @@
 pub mod audio;
 pub mod db;
 pub mod discord;
+pub mod discord_gateway;
 pub mod eq;
 pub mod integrations;
 pub mod lyrics;

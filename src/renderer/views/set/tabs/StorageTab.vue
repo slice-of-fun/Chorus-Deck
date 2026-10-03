@@ -129,9 +129,8 @@ type CacheSwitchAction = 'migrate' | 'destroy' | 'keep';
 
 type DiskCacheConfig = {
   enabled: boolean;
-  directory: string;
-  maxSizeMB: number;
-  cleanupPolicy: DiskCacheCleanupPolicy;
+  path: string;
+  maxSize: number;
 };
 
 type DiskCacheStats = DiskCacheConfig & {
@@ -157,9 +156,8 @@ const dialog = inject(SETTINGS_DIALOG_KEY)!;
 
 const diskCacheStats = ref<DiskCacheStats>({
   enabled: true,
-  directory: '',
-  maxSizeMB: 4096,
-  cleanupPolicy: 'lru',
+  path: '',
+  maxSize: 4096,
   totalSizeBytes: 0,
   musicSizeBytes: 0,
   lyricSizeBytes: 0,
@@ -193,15 +191,12 @@ const formatBytes = (bytes: number) => {
 };
 
 const readDiskCacheConfigFromUI = (): DiskCacheConfig => {
-  const cleanupPolicy: DiskCacheCleanupPolicy =
-    setData.value.diskCacheCleanupPolicy === 'fifo' ? 'fifo' : 'lru';
-  const maxSizeMB = Math.max(256, Math.floor(Number(setData.value.diskCacheMaxSizeMB || 4096)));
+  const maxSize = Math.max(256, Math.floor(Number(setData.value.diskCacheMaxSizeMB || 4096)));
 
   return {
     enabled: setData.value.enableDiskCache !== false,
-    directory: String(setData.value.diskCacheDir || ''),
-    maxSizeMB,
-    cleanupPolicy
+    path: String(setData.value.diskCacheDir || ''),
+    maxSize
   };
 };
 
@@ -226,9 +221,8 @@ const loadDiskCacheConfig = async () => {
       setData.value = {
         ...setData.value,
         enableDiskCache: config.enabled,
-        diskCacheDir: config.directory,
-        diskCacheMaxSizeMB: config.maxSizeMB,
-        diskCacheCleanupPolicy: config.cleanupPolicy
+        diskCacheDir: config.path,
+        diskCacheMaxSizeMB: config.maxSize
       };
     }
   } catch (error) {
@@ -240,15 +234,15 @@ const applyDiskCacheConfig = async () => {
   applyingDiskCacheConfig.value = true;
   try {
     const config = readDiskCacheConfigFromUI();
-    const updated = (await window.api.invoke('set-disk-cache-config', config)) as DiskCacheConfig;
+    await window.api.setDiskCacheConfig(config);
+    const updated = config;
 
     if (updated) {
       setData.value = {
         ...setData.value,
         enableDiskCache: updated.enabled,
-        diskCacheDir: updated.directory,
-        diskCacheMaxSizeMB: updated.maxSizeMB,
-        diskCacheCleanupPolicy: updated.cleanupPolicy
+        diskCacheDir: updated.path,
+        diskCacheMaxSizeMB: updated.maxSize
       };
     }
     await refreshDiskCacheStats();
@@ -323,7 +317,7 @@ const selectCacheDirectory = async () => {
   const selectedPath = await selectDirectory(message);
   if (!selectedPath) return;
 
-  const currentDirectory = setData.value.diskCacheDir || diskCacheStats.value.directory;
+  const currentDirectory = setData.value.diskCacheDir || diskCacheStats.value.path;
   if (currentDirectory && selectedPath === currentDirectory) {
     return;
   }
@@ -341,22 +335,12 @@ const selectCacheDirectory = async () => {
 
   switchingCacheDirectory.value = true;
   try {
-    const result = (await window.api.invoke('switch-disk-cache-directory', {
-      directory: selectedPath,
-      action
-    })) as SwitchCacheDirectoryResult;
-
-    if (!result?.success) {
-      message.error('Failed to switch cache directory');
-      return;
-    }
-
+    await window.api.invoke('switch-disk-cache-directory', { path: selectedPath });
+    message.success('Cache directory switched');
+    
     setData.value = {
       ...setData.value,
-      enableDiskCache: result.config.enabled,
-      diskCacheDir: result.config.directory,
-      diskCacheMaxSizeMB: result.config.maxSizeMB,
-      diskCacheCleanupPolicy: result.config.cleanupPolicy
+      diskCacheDir: selectedPath
     };
     await refreshDiskCacheStats();
 
@@ -382,7 +366,7 @@ const selectCacheDirectory = async () => {
 };
 
 const openCacheDirectory = () => {
-  const targetPath = setData.value.diskCacheDir || diskCacheStats.value.directory;
+  const targetPath = setData.value.diskCacheDir || diskCacheStats.value.path;
   openDirectory(targetPath, message);
 };
 

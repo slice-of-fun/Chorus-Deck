@@ -24,9 +24,9 @@
                 class="w-full h-full object-cover"
               />
               <n-icon v-else size="40" class="text-black/50 dark:text-white/50">
-                <svg viewBox="0 0 24 24" fill="currentColor">
+                <svg viewBox="0 0 50 50" fill="currentColor">
                   <path
-                    d="M19.27 5.33C17.94 4.71 16.5 4.26 15 4a.09.09 0 0 0-.07.03c-.18.33-.39.76-.53 1.09a16.09 16.09 0 0 0-4.8 0c-.14-.33-.35-.76-.53-1.09a.09.09 0 0 0-.07-.03c-1.5.26-2.93.71-4.27 1.33a.08.08 0 0 0-.05.05C2.79 11.5 1.41 17.28 1.88 23a.08.08 0 0 0 .04.06c1.81 1.32 3.53 2.12 5.24 2.65a.09.09 0 0 0 .1-.03c.41-.56.77-1.15 1.1-1.76a.08.08 0 0 0-.04-.11 11.81 11.81 0 0 1-1.66-.79.08.08 0 0 1-.01-.13c.12-.09.23-.18.35-.27a.08.08 0 0 1 .08-.01c3.53 1.61 7.36 1.61 10.86 0a.08.08 0 0 1 .08.01c.12.09.23.18.35.27a.08.08 0 0 1-.01.13 11.81 11.81 0 0 1-1.66.79.08.08 0 0 0-.04.11c.33.61.69 1.2 1.1 1.76a.09.09 0 0 0 .1.03c1.71-.53 3.43-1.33 5.24-2.65a.08.08 0 0 0 .04-.06c.55-6.53-1.28-12.24-2.81-17.62a.08.08 0 0 0-.05-.05zM8.02 15.33c-1.18 0-2.15-1.08-2.15-2.41s.95-2.41 2.15-2.41c1.21 0 2.16 1.09 2.15 2.41 0 1.33-.95 2.41-2.15 2.41zm7.97 0c-1.18 0-2.15-1.08-2.15-2.41s.95-2.41 2.15-2.41c1.21 0 2.16 1.09 2.15 2.41 0 1.33-.94 2.41-2.15 2.41z"
+                    d="M 41.625 10.769531 C 37.644531 7.566406 31.347656 7.023438 31.078125 7.003906 C 30.660156 6.96875 30.261719 7.203125 30.089844 7.589844 C 30.074219 7.613281 29.9375 7.929688 29.785156 8.421875 C 32.417969 8.867188 35.652344 9.761719 38.578125 11.578125 C 39.046875 11.867188 39.191406 12.484375 38.902344 12.953125 C 38.710938 13.261719 38.386719 13.429688 38.050781 13.429688 C 37.871094 13.429688 37.6875 13.378906 37.523438 13.277344 C 32.492188 10.15625 26.210938 10 25 10 C 23.789063 10 17.503906 10.15625 12.476563 13.277344 C 12.007813 13.570313 11.390625 13.425781 11.101563 12.957031 C 10.808594 12.484375 10.953125 11.871094 11.421875 11.578125 C 14.347656 9.765625 17.582031 8.867188 20.214844 8.425781 C 20.0625 7.929688 19.925781 7.617188 19.914063 7.589844 C 19.738281 7.203125 19.34375 6.960938 18.921875 7.003906 C 18.652344 7.023438 12.355469 7.566406 8.320313 10.8125 C 6.214844 12.761719 2 24.152344 2 34 C 2 34.175781 2.046875 34.34375 2.132813 34.496094 C 5.039063 39.605469 12.972656 40.941406 14.78125 41 C 14.789063 41 14.800781 41 14.8125 41 C 15.132813 41 15.433594 40.847656 15.621094 40.589844 L 17.449219 38.074219 C 12.515625 36.800781 9.996094 34.636719 9.851563 34.507813 C 9.4375 34.144531 9.398438 33.511719 9.765625 33.097656 C 10.128906 32.683594 10.761719 32.644531 11.175781 33.007813 C 11.234375 33.0625 15.875 37 25 37 C 34.140625 37 38.78125 33.046875 38.828125 33.007813 C 39.242188 32.648438 39.871094 32.683594 40.238281 33.101563 C 40.601563 33.515625 40.5625 34.144531 40.148438 34.507813 C 40.003906 34.636719 37.484375 36.800781 32.550781 38.074219 L 34.378906 40.589844 C 34.566406 40.847656 34.867188 41 35.1875 41 C 35.199219 41 35.210938 41 35.21875 41 C 37.027344 40.941406 44.960938 39.605469 47.867188 34.496094 C 47.953125 34.34375 48 34.175781 48 34 C 48 24.152344 43.785156 12.761719 41.625 10.769531 Z M 18.5 30 C 16.566406 30 15 28.210938 15 26 C 15 23.789063 16.566406 22 18.5 22 C 20.433594 22 22 23.789063 22 26 C 22 28.210938 20.433594 30 18.5 30 Z M 31.5 30 C 29.566406 30 28 28.210938 28 26 C 28 23.789063 29.566406 22 31.5 22 C 33.433594 22 35 23.789063 35 26 C 35 28.210938 33.433594 30 31.5 30 Z"
                   />
                 </svg>
               </n-icon>
@@ -65,16 +65,16 @@
             >
               <polyline points="20 6 9 17 4 12"></polyline>
             </svg>
-            <svg v-else viewBox="0 0 24 24" fill="currentColor">
+            <svg v-else viewBox="0 0 50 50" fill="currentColor">
               <path
-                d="M19.27 5.33C17.94 4.71 16.5 4.26 15 4a.09.09 0 0 0-.07.03c-.18.33-.39.76-.53 1.09a16.09 16.09 0 0 0-4.8 0c-.14-.33-.35-.76-.53-1.09a.09.09 0 0 0-.07-.03c-1.5.26-2.93.71-4.27 1.33a.08.08 0 0 0-.05.05C2.79 11.5 1.41 17.28 1.88 23a.08.08 0 0 0 .04.06c1.81 1.32 3.53 2.12 5.24 2.65a.09.09 0 0 0 .1-.03c.41-.56.77-1.15 1.1-1.76a.08.08 0 0 0-.04-.11 11.81 11.81 0 0 1-1.66-.79.08.08 0 0 1-.01-.13c.12-.09.23-.18.35-.27a.08.08 0 0 1 .08-.01c3.53 1.61 7.36 1.61 10.86 0a.08.08 0 0 1 .08.01c.12.09.23.18.35.27a.08.08 0 0 1-.01.13 11.81 11.81 0 0 1-1.66.79.08.08 0 0 0-.04.11c.33.61.69 1.2 1.1 1.76a.09.09 0 0 0 .1.03c1.71-.53 3.43-1.33 5.24-2.65a.08.08 0 0 0 .04-.06c.55-6.53-1.28-12.24-2.81-17.62a.08.08 0 0 0-.05-.05zM8.02 15.33c-1.18 0-2.15-1.08-2.15-2.41s.95-2.41 2.15-2.41c1.21 0 2.16 1.09 2.15 2.41 0 1.33-.95 2.41-2.15 2.41zm7.97 0c-1.18 0-2.15-1.08-2.15-2.41s.95-2.41 2.15-2.41c1.21 0 2.16 1.09 2.15 2.41 0 1.33-.94 2.41-2.15 2.41z"
+                d="M 41.625 10.769531 C 37.644531 7.566406 31.347656 7.023438 31.078125 7.003906 C 30.660156 6.96875 30.261719 7.203125 30.089844 7.589844 C 30.074219 7.613281 29.9375 7.929688 29.785156 8.421875 C 32.417969 8.867188 35.652344 9.761719 38.578125 11.578125 C 39.046875 11.867188 39.191406 12.484375 38.902344 12.953125 C 38.710938 13.261719 38.386719 13.429688 38.050781 13.429688 C 37.871094 13.429688 37.6875 13.378906 37.523438 13.277344 C 32.492188 10.15625 26.210938 10 25 10 C 23.789063 10 17.503906 10.15625 12.476563 13.277344 C 12.007813 13.570313 11.390625 13.425781 11.101563 12.957031 C 10.808594 12.484375 10.953125 11.871094 11.421875 11.578125 C 14.347656 9.765625 17.582031 8.867188 20.214844 8.425781 C 20.0625 7.929688 19.925781 7.617188 19.914063 7.589844 C 19.738281 7.203125 19.34375 6.960938 18.921875 7.003906 C 18.652344 7.023438 12.355469 7.566406 8.320313 10.8125 C 6.214844 12.761719 2 24.152344 2 34 C 2 34.175781 2.046875 34.34375 2.132813 34.496094 C 5.039063 39.605469 12.972656 40.941406 14.78125 41 C 14.789063 41 14.800781 41 14.8125 41 C 15.132813 41 15.433594 40.847656 15.621094 40.589844 L 17.449219 38.074219 C 12.515625 36.800781 9.996094 34.636719 9.851563 34.507813 C 9.4375 34.144531 9.398438 33.511719 9.765625 33.097656 C 10.128906 32.683594 10.761719 32.644531 11.175781 33.007813 C 11.234375 33.0625 15.875 37 25 37 C 34.140625 37 38.78125 33.046875 38.828125 33.007813 C 39.242188 32.648438 39.871094 32.683594 40.238281 33.101563 C 40.601563 33.515625 40.5625 34.144531 40.148438 34.507813 C 40.003906 34.636719 37.484375 36.800781 32.550781 38.074219 L 34.378906 40.589844 C 34.566406 40.847656 34.867188 41 35.1875 41 C 35.199219 41 35.210938 41 35.21875 41 C 37.027344 40.941406 44.960938 39.605469 47.867188 34.496094 C 47.953125 34.34375 48 34.175781 48 34 C 48 24.152344 43.785156 12.761719 41.625 10.769531 Z M 18.5 30 C 16.566406 30 15 28.210938 15 26 C 15 23.789063 16.566406 22 18.5 22 C 20.433594 22 22 23.789063 22 26 C 22 28.210938 20.433594 30 18.5 30 Z M 31.5 30 C 29.566406 30 28 28.210938 28 26 C 28 23.789063 29.566406 22 31.5 22 C 33.433594 22 35 23.789063 35 26 C 35 28.210938 33.433594 30 31.5 30 Z"
               />
             </svg>
           </n-icon>
           <span class="text-[15px] font-medium">{{
             setData.discordToken
               ? 'Discord account ready'
-              : "Log in to show what you're listening to on Discord"
+              : "Connect to Discord to show what you're listening to"
           }}</span>
         </div>
 
@@ -118,13 +118,13 @@
           >
             <template #icon>
               <n-icon size="24"
-                ><svg viewBox="0 0 24 24" fill="currentColor">
+                ><svg viewBox="0 0 50 50" fill="currentColor">
                   <path
-                    d="M19.27 5.33C17.94 4.71 16.5 4.26 15 4a.09.09 0 0 0-.07.03c-.18.33-.39.76-.53 1.09a16.09 16.09 0 0 0-4.8 0c-.14-.33-.35-.76-.53-1.09a.09.09 0 0 0-.07-.03c-1.5.26-2.93.71-4.27 1.33a.08.08 0 0 0-.05.05C2.79 11.5 1.41 17.28 1.88 23a.08.08 0 0 0 .04.06c1.81 1.32 3.53 2.12 5.24 2.65a.09.09 0 0 0 .1-.03c.41-.56.77-1.15 1.1-1.76a.08.08 0 0 0-.04-.11 11.81 11.81 0 0 1-1.66-.79.08.08 0 0 1-.01-.13c.12-.09.23-.18.35-.27a.08.08 0 0 1 .08-.01c3.53 1.61 7.36 1.61 10.86 0a.08.08 0 0 1 .08.01c.12.09.23.18.35.27a.08.08 0 0 1-.01.13 11.81 11.81 0 0 1-1.66.79.08.08 0 0 0-.04.11c.33.61.69 1.2 1.1 1.76a.09.09 0 0 0 .1.03c1.71-.53 3.43-1.33 5.24-2.65a.08.08 0 0 0 .04-.06c.55-6.53-1.28-12.24-2.81-17.62a.08.08 0 0 0-.05-.05zM8.02 15.33c-1.18 0-2.15-1.08-2.15-2.41s.95-2.41 2.15-2.41c1.21 0 2.16 1.09 2.15 2.41 0 1.33-.95 2.41-2.15 2.41zm7.97 0c-1.18 0-2.15-1.08-2.15-2.41s.95-2.41 2.15-2.41c1.21 0 2.16 1.09 2.15 2.41 0 1.33-.94 2.41-2.15 2.41z"
+                    d="M 41.625 10.769531 C 37.644531 7.566406 31.347656 7.023438 31.078125 7.003906 C 30.660156 6.96875 30.261719 7.203125 30.089844 7.589844 C 30.074219 7.613281 29.9375 7.929688 29.785156 8.421875 C 32.417969 8.867188 35.652344 9.761719 38.578125 11.578125 C 39.046875 11.867188 39.191406 12.484375 38.902344 12.953125 C 38.710938 13.261719 38.386719 13.429688 38.050781 13.429688 C 37.871094 13.429688 37.6875 13.378906 37.523438 13.277344 C 32.492188 10.15625 26.210938 10 25 10 C 23.789063 10 17.503906 10.15625 12.476563 13.277344 C 12.007813 13.570313 11.390625 13.425781 11.101563 12.957031 C 10.808594 12.484375 10.953125 11.871094 11.421875 11.578125 C 14.347656 9.765625 17.582031 8.867188 20.214844 8.425781 C 20.0625 7.929688 19.925781 7.617188 19.914063 7.589844 C 19.738281 7.203125 19.34375 6.960938 18.921875 7.003906 C 18.652344 7.023438 12.355469 7.566406 8.320313 10.8125 C 6.214844 12.761719 2 24.152344 2 34 C 2 34.175781 2.046875 34.34375 2.132813 34.496094 C 5.039063 39.605469 12.972656 40.941406 14.78125 41 C 14.789063 41 14.800781 41 14.8125 41 C 15.132813 41 15.433594 40.847656 15.621094 40.589844 L 17.449219 38.074219 C 12.515625 36.800781 9.996094 34.636719 9.851563 34.507813 C 9.4375 34.144531 9.398438 33.511719 9.765625 33.097656 C 10.128906 32.683594 10.761719 32.644531 11.175781 33.007813 C 11.234375 33.0625 15.875 37 25 37 C 34.140625 37 38.78125 33.046875 38.828125 33.007813 C 39.242188 32.648438 39.871094 32.683594 40.238281 33.101563 C 40.601563 33.515625 40.5625 34.144531 40.148438 34.507813 C 40.003906 34.636719 37.484375 36.800781 32.550781 38.074219 L 34.378906 40.589844 C 34.566406 40.847656 34.867188 41 35.1875 41 C 35.199219 41 35.210938 41 35.21875 41 C 37.027344 40.941406 44.960938 39.605469 47.867188 34.496094 C 47.953125 34.34375 48 34.175781 48 34 C 48 24.152344 43.785156 12.761719 41.625 10.769531 Z M 18.5 30 C 16.566406 30 15 28.210938 15 26 C 15 23.789063 16.566406 22 18.5 22 C 20.433594 22 22 23.789063 22 26 C 22 28.210938 20.433594 30 18.5 30 Z M 31.5 30 C 29.566406 30 28 28.210938 28 26 C 28 23.789063 29.566406 22 31.5 22 C 33.433594 22 35 23.789063 35 26 C 35 28.210938 33.433594 30 31.5 30 Z"
                   /></svg
               ></n-icon>
             </template>
-            Log in to Discord
+            Connect to Discord
           </n-button>
         </div>
 
@@ -137,7 +137,7 @@
           class="h-14 font-semibold text-[15px] rounded-full mt-2 border-2 border-primary/50 text-primary hover:bg-primary/10"
           @click="logoutDiscord"
         >
-          Logout
+          Disconnect
         </n-button>
       </div>
     </setting-section>
@@ -158,7 +158,7 @@
 
     <!-- Discord Connection Settings -->
     <setting-section
-      title="Discord Connection Settings"
+      title="Integration"
       :class="{ 'opacity-50 pointer-events-none': !setData.discordRPCEnabled }"
     >
       <list-dialog-preference
@@ -208,7 +208,7 @@
 
     <!-- Activity Content -->
     <setting-section
-      title="Discord Activity Content"
+      title="Activity"
       :class="{ 'opacity-50 pointer-events-none': !setData.discordRPCEnabled }"
     >
       <list-dialog-preference
@@ -254,7 +254,7 @@
       </list-dialog-preference>
 
       <list-dialog-preference
-        title="Activity State"
+        title="Status"
         description="What to show on the second line"
         v-model:value="setData.discordActivityState"
         :options="sourceOptions"
@@ -279,17 +279,10 @@
         description="Keep Rich Presence active when playback is paused"
       >
         <template #icon
-          ><svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <rect x="6" y="4" width="4" height="16"></rect>
-            <rect x="14" y="4" width="4" height="16"></rect></svg
+          ><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 960" fill="currentColor">
+            <path
+              d="M520,760v-560h240v560L520,760ZM200,760v-560h240v560L200,760ZM600,680h80v-400h-80v400ZM280,680h80v-400h-80v400ZM280,280v400,-400ZM600,280v400,-400Z"
+            /></svg
         ></template>
 
         <n-switch v-model:value="setData.discordShowWhenPaused" />
@@ -302,181 +295,230 @@
         :options="activityTypeOptions"
       >
         <template #icon
-          ><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+          ><svg viewBox="0 0 50 50" fill="currentColor">
             <path
-              d="M19.27 5.33C17.94 4.71 16.5 4.26 15 4a.09.09 0 0 0-.07.03c-.18.33-.39.76-.53 1.09a16.09 16.09 0 0 0-4.8 0c-.14-.33-.35-.76-.53-1.09a.09.09 0 0 0-.07-.03c-1.5.26-2.93.71-4.27 1.33a.08.08 0 0 0-.05.05C2.79 11.5 1.41 17.28 1.88 23a.08.08 0 0 0 .04.06c1.81 1.32 3.53 2.12 5.24 2.65a.09.09 0 0 0 .1-.03c.41-.56.77-1.15 1.1-1.76a.08.08 0 0 0-.04-.11 11.81 11.81 0 0 1-1.66-.79.08.08 0 0 1-.01-.13c.12-.09.23-.18.35-.27a.08.08 0 0 1 .08-.01c3.53 1.61 7.36 1.61 10.86 0a.08.08 0 0 1 .08.01c.12.09.23.18.35.27a.08.08 0 0 1-.01.13 11.81 11.81 0 0 1-1.66.79.08.08 0 0 0-.04.11c.33.61.69 1.2 1.1 1.76a.09.09 0 0 0 .1.03c1.71-.53 3.43-1.33 5.24-2.65a.08.08 0 0 0 .04-.06c.55-6.53-1.28-12.24-2.81-17.62a.08.08 0 0 0-.05-.05zM8.02 15.33c-1.18 0-2.15-1.08-2.15-2.41s.95-2.41 2.15-2.41c1.21 0 2.16 1.09 2.15 2.41 0 1.33-.95 2.41-2.15 2.41zm7.97 0c-1.18 0-2.15-1.08-2.15-2.41s.95-2.41 2.15-2.41c1.21 0 2.16 1.09 2.15 2.41 0 1.33-.94 2.41-2.15 2.41z"
+              d="M 41.625 10.769531 C 37.644531 7.566406 31.347656 7.023438 31.078125 7.003906 C 30.660156 6.96875 30.261719 7.203125 30.089844 7.589844 C 30.074219 7.613281 29.9375 7.929688 29.785156 8.421875 C 32.417969 8.867188 35.652344 9.761719 38.578125 11.578125 C 39.046875 11.867188 39.191406 12.484375 38.902344 12.953125 C 38.710938 13.261719 38.386719 13.429688 38.050781 13.429688 C 37.871094 13.429688 37.6875 13.378906 37.523438 13.277344 C 32.492188 10.15625 26.210938 10 25 10 C 23.789063 10 17.503906 10.15625 12.476563 13.277344 C 12.007813 13.570313 11.390625 13.425781 11.101563 12.957031 C 10.808594 12.484375 10.953125 11.871094 11.421875 11.578125 C 14.347656 9.765625 17.582031 8.867188 20.214844 8.425781 C 20.0625 7.929688 19.925781 7.617188 19.914063 7.589844 C 19.738281 7.203125 19.34375 6.960938 18.921875 7.003906 C 18.652344 7.023438 12.355469 7.566406 8.320313 10.8125 C 6.214844 12.761719 2 24.152344 2 34 C 2 34.175781 2.046875 34.34375 2.132813 34.496094 C 5.039063 39.605469 12.972656 40.941406 14.78125 41 C 14.789063 41 14.800781 41 14.8125 41 C 15.132813 41 15.433594 40.847656 15.621094 40.589844 L 17.449219 38.074219 C 12.515625 36.800781 9.996094 34.636719 9.851563 34.507813 C 9.4375 34.144531 9.398438 33.511719 9.765625 33.097656 C 10.128906 32.683594 10.761719 32.644531 11.175781 33.007813 C 11.234375 33.0625 15.875 37 25 37 C 34.140625 37 38.78125 33.046875 38.828125 33.007813 C 39.242188 32.648438 39.871094 32.683594 40.238281 33.101563 C 40.601563 33.515625 40.5625 34.144531 40.148438 34.507813 C 40.003906 34.636719 37.484375 36.800781 32.550781 38.074219 L 34.378906 40.589844 C 34.566406 40.847656 34.867188 41 35.1875 41 C 35.199219 41 35.210938 41 35.21875 41 C 37.027344 40.941406 44.960938 39.605469 47.867188 34.496094 C 47.953125 34.34375 48 34.175781 48 34 C 48 24.152344 43.785156 12.761719 41.625 10.769531 Z M 18.5 30 C 16.566406 30 15 28.210938 15 26 C 15 23.789063 16.566406 22 18.5 22 C 20.433594 22 22 23.789063 22 26 C 22 28.210938 20.433594 30 18.5 30 Z M 31.5 30 C 29.566406 30 28 28.210938 28 26 C 28 23.789063 29.566406 22 31.5 22 C 33.433594 22 35 23.789063 35 26 C 35 28.210938 33.433594 30 31.5 30 Z"
             /></svg
         ></template>
       </list-dialog-preference>
-    </setting-section>
-
-    <!-- Images -->
-    <setting-section
-      title="Discord Image Options"
-      :class="{ 'opacity-50 pointer-events-none': !setData.discordRPCEnabled }"
-    >
       <list-dialog-preference
         title="Large Image"
-        description="The main image displayed"
-        v-model:value="setData.discordLargeImageType"
-        :options="imageTypeOptions"
-      >
-        <template #icon
-          ><svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-            <circle cx="8.5" cy="8.5" r="1.5"></circle>
-            <polyline points="21 15 16 10 5 21"></polyline></svg
-        ></template>
-      </list-dialog-preference>
-      <setting-item
-        v-if="setData.discordLargeImageType === 'custom'"
-        title="Large Image Custom URL"
-        description="URL for the large image"
-      >
-        <template #icon
-          ><svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg
-        ></template>
+      description="The main image displayed"
+      v-model:value="setData.discordLargeImageType"
+      :options="imageTypeOptions"
+    >
+      <template #icon
+        ><svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+          <circle cx="8.5" cy="8.5" r="1.5"></circle>
+          <polyline points="21 15 16 10 5 21"></polyline></svg
+      ></template>
+    </list-dialog-preference>
+    <setting-item
+      v-if="setData.discordLargeImageType === 'custom'"
+      title="Large Image Custom URL"
+      description="URL for the large image"
+    >
+      <template #icon
+        ><svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg
+      ></template>
 
-        <template #action>
-          <s-input
-            v-model="setData.discordLargeImageCustomUrl"
-            type="text"
-            width="w-[200px]"
-            placeholder="https://..."
-          />
-        </template>
-      </setting-item>
+      <template #action>
+        <s-input
+          v-model="setData.discordLargeImageCustomUrl"
+          type="text"
+          width="w-[200px]"
+          placeholder="https://..."
+        />
+      </template>
+    </setting-item>
 
-      <list-dialog-preference
-        title="Small Image"
-        description="The secondary small image"
-        v-model:value="setData.discordSmallImageType"
-        :options="smallImageTypeOptions"
-      >
-        <template #icon
-          ><svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-            <circle cx="8.5" cy="8.5" r="1.5"></circle>
-            <polyline points="21 15 16 10 5 21"></polyline></svg
-        ></template>
-      </list-dialog-preference>
+    <list-dialog-preference
+      title="Small Image"
+      description="The secondary small image"
+      v-model:value="setData.discordSmallImageType"
+      :options="smallImageTypeOptions"
+    >
+      <template #icon
+        ><svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+          <circle cx="8.5" cy="8.5" r="1.5"></circle>
+          <polyline points="21 15 16 10 5 21"></polyline></svg
+      ></template>
+    </list-dialog-preference>
 
-      <setting-item
-        v-if="setData.discordSmallImageType === 'custom'"
-        title="Small Image Custom URL"
-        description="URL for the small image"
-      >
-        <template #icon
-          ><svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg
-        ></template>
+    <setting-item
+      v-if="setData.discordSmallImageType === 'custom'"
+      title="Small Image Custom URL"
+      description="URL for the small image"
+    >
+      <template #icon
+        ><svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg
+      ></template>
 
-        <template #action>
-          <s-input
-            v-model="setData.discordSmallImageCustomUrl"
-            type="text"
-            width="w-[200px]"
-            placeholder="https://..."
-          />
-        </template>
-      </setting-item>
+      <template #action>
+        <s-input
+          v-model="setData.discordSmallImageCustomUrl"
+          type="text"
+          width="w-[200px]"
+          placeholder="https://..."
+        />
+      </template>
+    </setting-item>
+
     </setting-section>
 
     <!-- Preview -->
-    <div
-      class="mt-8 mb-4 flex justify-center w-full"
+    <setting-section
+      title="Preview"
       :class="{ 'opacity-50 pointer-events-none': !setData.discordRPCEnabled }"
     >
-      <div
-        class="p-6 rounded-[24px] bg-[#2b2d31] text-[#dbdee1] font-sans flex flex-col w-[420px] mt-2 mb-8 shadow-lg scale-105 origin-top"
-      >
-        <div class="text-[12px] font-bold uppercase mb-3 text-[#b5bac1]">
-          {{ activityTypeHeader }}
-        </div>
-
-        <div class="flex items-start space-x-4">
-          <div class="relative w-[72px] h-[72px] flex-shrink-0">
-            <div
-              :class="[
-                'w-full h-full rounded-[8px] bg-[#1e1f22] overflow-hidden flex items-center justify-center',
-                !largeImagePreview ? 'border-2 border-[#dbdee1]' : ''
-              ]"
-            >
-              <img
-                v-if="largeImagePreview"
-                class="w-full h-full object-cover"
-                :src="largeImagePreview"
-                alt="Large Image"
-              />
-            </div>
-            <div
-              v-if="setData.discordSmallImageType !== 'dontshow' && smallImagePreview"
-              class="w-8 h-8 rounded-full border-[3px] border-[#2b2d31] absolute -bottom-1.5 -right-1.5 bg-[#1e1f22] overflow-hidden flex items-center justify-center"
-            >
-              <img class="w-full h-full object-cover" :src="smallImagePreview" alt="Small Image" />
-            </div>
-          </div>
-
-          <div class="flex flex-col flex-1 overflow-hidden min-w-0">
-            <span class="font-extrabold text-[#f2f3f5] truncate text-[14px] leading-tight mb-0.5"
-              >Chorus Deck</span
-            >
-            <span class="text-[14px] text-[#dbdee1] truncate leading-snug">{{
-              previewName || getPlaceholderText(setData.discordActivityName)
-            }}</span>
-            <span class="text-[14px] text-[#dbdee1] truncate leading-snug">{{
-              previewDetails || getPlaceholderText(setData.discordActivityDetails)
-            }}</span>
-            <span class="text-[14px] text-[#dbdee1] truncate leading-snug">{{
-              previewState || getPlaceholderText(setData.discordActivityState)
-            }}</span>
-          </div>
-        </div>
-
-        <div class="mt-4 flex flex-col space-y-2">
+      <div class="w-full flex justify-center mt-4 mb-6">
+        <div
+          class="w-[420px] max-w-full bg-[#f2f3f5] dark:bg-[#2b2d31] rounded-[16px] p-5 shadow-[0_8px_24px_rgba(0,0,0,0.15)] mx-auto"
+        >
           <div
-            class="w-full bg-[#4e5058] hover:bg-[#6d6f78] text-[#dbdee1] text-[14px] font-medium py-2 rounded-[4px] text-center cursor-pointer transition-colors"
+            class="w-full font-bold text-[12px] text-gray-600 dark:text-gray-400 text-left mb-4 uppercase tracking-wider"
           >
-            Listen on Chorus
+            {{ activityTypeHeader.toUpperCase() }}
+          </div>
+
+          <div class="flex items-start w-full">
+            <div class="relative w-[112px] h-[112px] flex-shrink-0">
+              <div
+                class="absolute top-0 left-0 w-[100px] h-[100px] rounded-[16px] overflow-hidden flex items-center justify-center bg-black/5 dark:bg-white/5 shadow-md"
+              >
+                <img
+                  v-if="largeImagePreview"
+                  class="w-full h-full object-cover"
+                  :src="largeImagePreview"
+                  alt="Large Image"
+                />
+                <img
+                  v-else
+                  class="w-full h-full object-contain p-2"
+                  src="https://raw.githubusercontent.com/slice-of-fun/Chorus-Deck/main/build/icon.png"
+                  alt="Blank Large Image"
+                />
+              </div>
+
+              <div
+                v-if="
+                  setData.discordSmallImageType !== 'dontshow' &&
+                  setData.discordSmallImageType !== 'none'
+                "
+                class="absolute top-[72px] left-[72px] rounded-full bg-[#f2f3f5] dark:bg-[#2b2d31] flex items-center justify-center z-10 p-1"
+              >
+                <div
+                  class="w-[36px] h-[36px] rounded-full overflow-hidden flex items-center justify-center bg-black/5 dark:bg-white/5 shadow-sm"
+                >
+                  <img
+                    v-if="smallImagePreview"
+                    class="w-full h-full object-cover"
+                    :src="smallImagePreview"
+                    alt="Small Image"
+                  />
+                  <img
+                    v-else
+                    class="w-full h-full object-contain p-1"
+                    src="https://raw.githubusercontent.com/slice-of-fun/Chorus-Deck/main/build/icon.png"
+                    alt="Blank Small Image"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div class="flex flex-col flex-1 overflow-hidden min-w-0 px-2">
+              <span class="font-bold text-black dark:text-white text-[15px] truncate leading-tight">
+                {{ previewName || getPlaceholderText(setData.discordActivityName) }}
+              </span>
+              <span
+                class="text-black dark:text-white text-[14px] truncate leading-tight mt-1"
+                v-if="previewDetails || getPlaceholderText(setData.discordActivityDetails)"
+              >
+                {{ previewDetails || getPlaceholderText(setData.discordActivityDetails) }}
+              </span>
+              <span
+                class="text-black dark:text-white text-[14px] truncate leading-tight"
+                v-if="previewState || getPlaceholderText(setData.discordActivityState)"
+              >
+                {{ previewState || getPlaceholderText(setData.discordActivityState) }}
+              </span>
+
+              <div class="flex flex-col mt-3" v-if="playerCore.currentSong">
+                <div
+                  class="h-[6px] w-full bg-black/10 dark:bg-white/10 rounded-full overflow-hidden"
+                >
+                  <div class="h-full bg-primary w-1/3"></div>
+                </div>
+                <div
+                  class="flex items-center justify-between text-[11px] font-medium text-black/50 dark:text-white/50 mt-1"
+                >
+                  <span>0:00</span>
+                  <span>3:45</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Buttons -->
+          <div class="w-full mt-4 flex flex-col space-y-2">
+            <n-button
+              v-if="setData.discordActivityButton1Enabled !== false"
+              block
+              secondary
+              class="h-[40px] font-medium rounded-[4px] border-none bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+            >
+              {{ setData.discordActivityButton1Label || 'Listen on Chorus Deck' }}
+            </n-button>
+            <n-button
+              v-if="setData.discordActivityButton2Enabled"
+              block
+              secondary
+              class="h-[40px] font-medium rounded-[4px] border-none bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+            >
+              {{ setData.discordActivityButton2Label || 'Go to Chorus Deck' }}
+            </n-button>
           </div>
         </div>
       </div>
-    </div>
+    </setting-section>
   </div>
 </template>
 
@@ -529,7 +571,7 @@ const loginDiscordWebView = async () => {
       message.success('Connected to Discord!');
     }
   } catch (error: any) {
-    if (error?.message !== 'Window closed before login') {
+    if (error !== 'Window closed before login' && error?.message !== 'Window closed before login') {
       console.error('Failed to login to Discord:', error);
       message.error('Discord login failed. Please try again.');
     }
@@ -554,12 +596,97 @@ const logoutDiscord = () => {
     discordAvatarUrl: ''
   };
 
-  window.api.send('discord-logout');
+  window.api.discordLogout();
   message.success('Logged out of Discord.');
 };
 
-const refreshDiscord = () => {
-  console.log('Refresh Discord presence');
+const refreshDiscord = async () => {
+  // Re-trigger the Discord presence update with the current playing song
+  // This mirrors Chorus-Music's DiscordPresenceManager.restart()
+  const currentSong = playerCore.currentSong;
+  if (!currentSong || !currentSong.name) {
+    message.warning('No song is currently playing.');
+    return;
+  }
+
+  try {
+    const time = await window.api.audioGetTime();
+    const { audioService } = await import('@/services/audioService');
+    const currentTime = time * 1000;
+    const currentDur = audioService.getDuration();
+    const duration = currentDur > 0 ? currentDur * 1000 : currentSong.dt || 0;
+    const isPlaying = playerCore.isPlaying;
+
+    const s = setData.value;
+    const songId = currentSong.id?.toString() || '';
+    const artistId = currentSong.ar?.[0]?.id?.toString() || '';
+    const albumId = currentSong.al?.id?.toString() || '';
+
+    const songUrl = songId ? `https://music.youtube.com/watch?v=${songId}` : '';
+    const artistUrl = artistId ? `https://music.youtube.com/channel/${artistId}` : '';
+    const albumUrl = albumId ? `https://music.youtube.com/playlist?list=${albumId}` : '';
+
+    const resolveButtonUrl = (source: string, custom: string): string => {
+      switch ((source || 'songurl').toLowerCase()) {
+        case 'songurl':
+          return songUrl || 'https://github.com/slice-of-fun/Chorus-Deck';
+        case 'artisturl':
+          return artistUrl || songUrl || '';
+        case 'albumurl':
+          return albumUrl || songUrl || '';
+        case 'custom':
+          return custom || '';
+        default:
+          return '';
+      }
+    };
+
+    const song = currentSong as any;
+    await window.api.updateDiscordPresence({
+      title: song.name,
+      artist:
+        song.ar?.map((a: any) => a.name).join(' / ') ||
+        song.artists?.map((a: any) => a.name).join(' / ') ||
+        'Unknown Artist',
+      album:
+        song.al?.name ||
+        (typeof song.album === 'string' ? song.album : null) ||
+        (typeof song.album === 'object' ? song.album?.name : null) ||
+        'Unknown Album',
+      albumArt: song.al?.picUrl || song.picUrl || '',
+      songId,
+      artistId,
+      albumId,
+      duration,
+      isPlaying,
+      startTimestamp: isPlaying ? Math.floor(Date.now() - currentTime) : undefined,
+      activityName: s.discordActivityName || 'SONG',
+      activityDetails: s.discordActivityDetails || 'ARTIST',
+      activityState: s.discordActivityState || 'ALBUM',
+      activityType: s.discordActivityType || 'LISTENING',
+      largeImageType: s.discordLargeImageType || 'thumbnail',
+      largeImageCustomUrl: s.discordLargeImageCustomUrl || '',
+      smallImageType: s.discordSmallImageType || 'artist',
+      smallImageCustomUrl: s.discordSmallImageCustomUrl || '',
+      showWhenPaused: s.discordShowWhenPaused ?? false,
+      button1Enabled: s.discordActivityButton1Enabled ?? true,
+      button1Label: s.discordActivityButton1Label || 'Listen on Chorus Deck',
+      button1Url: resolveButtonUrl(
+        s.discordActivityButton1UrlSource || 'songurl',
+        s.discordActivityButton1CustomUrl || ''
+      ),
+      button2Enabled: s.discordActivityButton2Enabled ?? false,
+      button2Label: s.discordActivityButton2Label || 'Go to Chorus Deck',
+      button2Url: resolveButtonUrl(
+        s.discordActivityButton2UrlSource || 'custom',
+        s.discordActivityButton2CustomUrl || 'https://github.com/slice-of-fun/Chorus-Deck'
+      )
+    });
+    message.success('Discord presence refreshed!');
+  } catch (e: any) {
+    console.error('Failed to refresh Discord presence:', e);
+    message.error('Failed to refresh Discord presence. Is Discord running?');
+  }
 };
 
 import { usePlayerCoreStore } from '@/store/modules/playerCore';
@@ -582,16 +709,25 @@ const activityTypeHeader = computed(() => {
 
 const previewSourceValue = (source: string) => {
   const currentSong = playerCore.currentSong;
-  const artist = currentSong?.ar?.map((a: any) => a.name).join(' / ');
-  const album = currentSong?.al?.name;
+  const isSongLoaded = !!(currentSong && currentSong.name);
+  const artist =
+    currentSong?.ar?.map((a: any) => a.name).join(' / ') ||
+    (currentSong as any)?.artists?.map((a: any) => a.name).join(' / ') ||
+    (isSongLoaded ? 'Unknown Artist' : '');
+  // album can be: al.name (object), or album (string field)
+  const album =
+    currentSong?.al?.name ||
+    (typeof (currentSong as any)?.album === 'string' ? (currentSong as any).album : null) ||
+    (typeof (currentSong as any)?.album === 'object' ? (currentSong as any).album?.name : null) ||
+    (isSongLoaded ? 'Unknown Album' : '');
 
   if (!source) return null;
 
   switch (source) {
     case 'ARTIST':
-      return artist || '';
+      return artist;
     case 'ALBUM':
-      return album || '';
+      return album;
     case 'SONG':
       return currentSong?.name || '';
     case 'APP':
@@ -617,34 +753,58 @@ const getPlaceholderText = (source: string) => {
 };
 
 const previewName = computed(() => previewSourceValue(setData.value.discordActivityName));
-const previewDetails = computed(() => previewSourceValue(setData.value.discordActivityDetails));
-const previewState = computed(() => previewSourceValue(setData.value.discordActivityState));
+const previewDetails = computed(() => {
+  const val = previewSourceValue(setData.value.discordActivityDetails);
+  return val === previewName.value ? null : val;
+});
+const previewState = computed(() => {
+  const val = previewSourceValue(setData.value.discordActivityState);
+  return val === previewName.value || val === previewDetails.value ? null : val;
+});
+const previewLargeText = computed(() => {
+  const val = previewSourceValue('ALBUM');
+  return val === previewName.value || val === previewDetails.value || val === previewState.value
+    ? null
+    : val;
+});
 
 const largeImagePreview = computed(() => {
   const type = setData.value.discordLargeImageType;
-  const albumArt = playerCore.currentSong?.al?.picUrl;
+  const song = playerCore.currentSong as any;
+  // Cover art: prefer al.picUrl (YTM album object), fall back to top-level picUrl
+  const albumArt = song?.al?.picUrl || song?.picUrl || '';
+  // Artist pic: some sources put it on ar[0].picUrl, otherwise fall back to albumArt
+  const artistPic = song?.ar?.[0]?.picUrl || song?.artists?.[0]?.picUrl || albumArt;
 
   if (type === 'thumbnail' && albumArt) return albumArt;
+  if (type === 'artist' && artistPic) return artistPic;
+  if (type === 'appicon')
+    return 'https://raw.githubusercontent.com/slice-of-fun/Chorus-Deck/main/build/icon.png';
   if (type === 'custom')
     return (
       setData.value.discordLargeImageCustomUrl ||
-      'https://raw.githubusercontent.com/slice-of-fun/Chorus-Music/main/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png'
+      'https://raw.githubusercontent.com/slice-of-fun/Chorus-Deck/main/build/icon.png'
     );
-  return 'https://raw.githubusercontent.com/slice-of-fun/Chorus-Music/main/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png';
+  return albumArt || 'https://raw.githubusercontent.com/slice-of-fun/Chorus-Deck/main/build/icon.png';
 });
 
 const smallImagePreview = computed(() => {
   const type = setData.value.discordSmallImageType;
-  const albumArt = playerCore.currentSong?.al?.picUrl;
+  const song = playerCore.currentSong as any;
+  const albumArt = song?.al?.picUrl || song?.picUrl || '';
+  const artistPic = song?.ar?.[0]?.picUrl || song?.artists?.[0]?.picUrl || albumArt;
 
   if (type === 'dontshow') return null;
   if (type === 'thumbnail' && albumArt) return albumArt;
+  if (type === 'artist' && artistPic) return artistPic;
+  if (type === 'appicon')
+    return 'https://raw.githubusercontent.com/slice-of-fun/Chorus-Deck/main/build/icon.png';
   if (type === 'custom')
     return (
       setData.value.discordSmallImageCustomUrl ||
-      'https://raw.githubusercontent.com/slice-of-fun/Chorus-Music/main/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png'
+      'https://raw.githubusercontent.com/slice-of-fun/Chorus-Deck/main/build/icon.png'
     );
-  return 'https://raw.githubusercontent.com/slice-of-fun/Chorus-Music/main/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png';
+  return albumArt || 'https://raw.githubusercontent.com/slice-of-fun/Chorus-Deck/main/build/icon.png';
 });
 
 const statusOptions = [
@@ -671,7 +831,7 @@ const sourceOptions = [
   { label: 'Artist Name', value: 'ARTIST' },
   { label: 'Album Name', value: 'ALBUM' },
   { label: 'Song Title', value: 'SONG' },
-  { label: 'App Name', value: 'APP' }
+  { label: 'Chorus Deck', value: 'APP' }
 ];
 
 const imageTypeOptions = [

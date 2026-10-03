@@ -30,7 +30,7 @@ export const useSettingsStore = defineStore('settings', () => {
 
   let systemThemeCleanup: (() => void) | null = null;
 
-  const setData = ref<any>({});
+  const setData = ref<any>(setDataDefault);
 
   const setSetData = async (data: any) => {
     const mergedData = {
@@ -42,7 +42,7 @@ export const useSettingsStore = defineStore('settings', () => {
 
     // Use Tauri invoke via the api bridge
     try {
-      await window.api.invoke('set-store-value', 'set', mergedData);
+      await window.api.setStoreValue('set', mergedData);
     } catch (error) {
       console.error('[settings] Failed to write config via Tauri:', error);
     }

@@ -518,7 +518,7 @@ const memberLinks = [
 ];
 
 const setData = inject(SETTINGS_DATA_KEY)!;
-const platform = (await window.api.invoke('get-platform')) || 'web';
+const platform = ref('web');
 
 const pureModeEnabled = ref(readLyricConfig().pureModeEnabled);
 
@@ -526,7 +526,8 @@ const handleLyricConfigChange = () => {
   pureModeEnabled.value = readLyricConfig().pureModeEnabled;
 };
 
-onMounted(() => {
+onMounted(async () => {
+  platform.value = (await window.api.invoke('get-platform')) || 'web';
   window.addEventListener(LYRIC_CONFIG_CHANGE_EVENT, handleLyricConfigChange);
 });
 

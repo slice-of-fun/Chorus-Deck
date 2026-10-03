@@ -303,10 +303,23 @@
           filename: itemToDelete?.displayName || itemToDelete?.filename
         })
       "
-      positive-text="Delete"
-      negative-text="Cancel"
-      @positive-click="confirmDelete"
-    />
+      style="border-radius: 1rem"
+    >
+      <template #action>
+        <button
+          class="px-4 py-2 rounded-full text-sm font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+          @click="showDeleteConfirm = false"
+        >
+          Cancel
+        </button>
+        <button
+          class="px-4 py-2 rounded-full text-sm font-medium bg-red-500 text-white hover:bg-red-600 transition-colors"
+          @click="confirmDelete"
+        >
+          Delete
+        </button>
+      </template>
+    </n-modal>
 
     <n-modal
       v-model:show="showClearConfirm"
@@ -314,10 +327,23 @@
       type="error"
       title="Clear Download Records"
       content="Are you sure you want to clear all download records? This will not delete the actual music files, but will clear all records."
-      positive-text="Clear"
-      negative-text="Cancel"
-      @positive-click="clearDownloadRecords"
-    />
+      style="border-radius: 1rem"
+    >
+      <template #action>
+        <button
+          class="px-4 py-2 rounded-full text-sm font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+          @click="showClearConfirm = false"
+        >
+          Cancel
+        </button>
+        <button
+          class="px-4 py-2 rounded-full text-sm font-medium bg-red-500 text-white hover:bg-red-600 transition-colors"
+          @click="clearDownloadRecords"
+        >
+          Clear
+        </button>
+      </template>
+    </n-modal>
 
     <n-modal
       v-model:show="showNotSaveConfirm"
@@ -326,15 +352,27 @@
       :z-index="3200"
       title="Save Settings"
       content="Current download settings are not saved. Do you want to save the changes?"
-      positive-text="Save"
-      negative-text="Discard"
-      @positive-click="saveDownloadSettings"
-      @negative-click="discardDownloadSettings"
+      style="border-radius: 1rem"
     >
       <template #action>
-        <n-button @click="showNotSaveConfirm = false">Cancel</n-button>
-        <n-button type="error" @click="discardDownloadSettings">Discard</n-button>
-        <n-button type="primary" @click="saveDownloadSettings">Save</n-button>
+        <button
+          class="px-4 py-2 rounded-full text-sm font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+          @click="showNotSaveConfirm = false"
+        >
+          Cancel
+        </button>
+        <button
+          class="px-4 py-2 rounded-full text-sm font-medium bg-red-500 text-white hover:bg-red-600 transition-colors"
+          @click="discardDownloadSettings"
+        >
+          Discard
+        </button>
+        <button
+          class="px-4 py-2 rounded-full text-sm font-medium bg-primary text-white hover:bg-primary/90 transition-colors"
+          @click="saveDownloadSettings"
+        >
+          Save
+        </button>
       </template>
     </n-modal>
 

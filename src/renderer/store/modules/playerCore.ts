@@ -7,6 +7,8 @@ import type { SongResult } from '@/types/music';
 import { debouncedLocalStorage } from '@/utils/debouncedStorage';
 import { minifySong } from '@/utils/persistedSong';
 
+import { useSettingsStore } from './settings';
+
 export const usePlayerCoreStore = defineStore(
   'playerCore',
   () => {
@@ -131,42 +133,101 @@ export const usePlayerCoreStore = defineStore(
       ([newSong, newIsPlay]) => {
         if (window.api) {
           if (newSong && newSong.name) {
-            const artist = newSong.ar?.map((a: any) => a.name).join(' / ') || 'Unknown Artist';
-            const album = newSong.al?.name || 'Unknown Album';
-            const albumArt = newSong.al?.picUrl || 'chorus_logo';
-            const songId = newSong.id || '';
-            const artistId = newSong.ar?.[0]?.id || '';
-            const albumId = newSong.al?.id || '';
+            const settingsStore = useSettingsStore();
+            const s = settingsStore.setData;
+
+            // Only update if RPC is enabled (mirrors Chorus-Music's enableDiscordRPC check)
+            if (!s.discordRPCEnabled || !s.discordToken) {
+              window.api.clearDiscordPresence().catch(() => {});
+              return;
+            }
+
+            const artist = newSong.ar?.map((a: any) => a.name).join(' / ') || (newSong as any).artists?.map((a: any) => a.name).join(' / ') || 'Unknown Artist';
+            const album = newSong.al?.name || (typeof (newSong as any).album === 'string' ? (newSong as any).album : null) || (typeof (newSong as any).album === 'object' ? (newSong as any).album?.name : null) || 'Unknown Album';
+            const albumArt = newSong.al?.picUrl || (newSong as any).picUrl || '';
+            const artistArt = newSong.ar?.[0]?.picUrl || newSong.ar?.[0]?.img1v1Url || (newSong as any).artists?.[0]?.picUrl || (newSong as any).artists?.[0]?.img1v1Url || '';
+            const songId = newSong.id?.toString() || '';
+            const artistId = newSong.ar?.[0]?.id?.toString() || (newSong as any).artists?.[0]?.id?.toString() || '';
+            const albumId = newSong.al?.id?.toString() || '';
+
+            // Build button URLs — mirrors Chorus-Music resolveUrl()
+            const songUrl = songId
+              ? `https://music.youtube.com/watch?v=${songId}`
+              : '';
+            const artistUrl = artistId
+              ? `https://music.youtube.com/channel/${artistId}`
+              : '';
+            const albumUrl = albumId
+              ? `https://music.youtube.com/playlist?list=${albumId}`
+              : '';
+
+            const resolveButtonUrl = (source: string, custom: string): string => {
+              switch ((source || 'songurl').toLowerCase()) {
+                case 'songurl': return songUrl || 'https://github.com/slice-of-fun/Chorus-Deck';
+                case 'artisturl': return artistUrl || songUrl || '';
+                case 'albumurl': return albumUrl || songUrl || '';
+                case 'custom': return custom || '';
+                default: return '';
+              }
+            };
+
+            const btn1Url = resolveButtonUrl(
+              s.discordActivityButton1UrlSource || 'songurl',
+              s.discordActivityButton1CustomUrl || ''
+            );
+            const btn2Url = resolveButtonUrl(
+              s.discordActivityButton2UrlSource || 'custom',
+              s.discordActivityButton2CustomUrl || 'https://github.com/slice-of-fun/Chorus-Deck'
+            );
+
             window.api
               .audioGetTime()
               .then((time) => {
                 const currentTime = time * 1000;
                 const currentDur = audioService.getDuration();
-                const duration = currentDur > 0 ? currentDur * 1000 : newSong.dt || 0;
+                const duration = Math.floor(currentDur > 0 ? currentDur * 1000 : newSong.dt || 0);
 
-                let startTimestamp = undefined;
+                let startTimestamp: number | undefined = undefined;
                 if (newIsPlay) {
-                  startTimestamp = Date.now() - currentTime;
+                  startTimestamp = Math.floor(Date.now() - currentTime);
                 }
 
                 return window.api.updateDiscordPresence({
                   title: newSong.name,
-                  artist: artist,
-                  album: album,
-                  albumArt: albumArt,
+                  artist,
+                  album,
+                  albumArt,
+                  artistArt,
                   songId,
                   artistId,
                   albumId,
-                  duration: duration,
+                  duration,
                   isPlaying: newIsPlay,
-                  startTimestamp
+                  startTimestamp,
+                  activityName: s.discordActivityName || 'SONG',
+                  activityDetails: s.discordActivityDetails || 'ARTIST',
+                  activityState: s.discordActivityState || 'ALBUM',
+                  activityType: s.discordActivityType || 'LISTENING',
+                  largeImageType: s.discordLargeImageType || 'thumbnail',
+                  largeImageCustomUrl: s.discordLargeImageCustomUrl || '',
+                  smallImageType: s.discordSmallImageType || 'artist',
+                  smallImageCustomUrl: s.discordSmallImageCustomUrl || '',
+                  showWhenPaused: s.discordShowWhenPaused ?? false,
+
+                  button1Enabled: s.discordActivityButton1Enabled ?? true,
+                  button1Label: s.discordActivityButton1Label || 'Listen on Chorus Deck',
+                  button1Url: btn1Url,
+                  button2Enabled: s.discordActivityButton2Enabled ?? false,
+                  button2Label: s.discordActivityButton2Label || 'Go to Chorus Deck',
+                  button2Url: btn2Url,
+                  token: s.discordToken,
                 });
               })
               .catch((e) => {
                 console.debug('Discord presence unavailable:', e?.message || e);
               });
           } else {
-            window.api.clearDiscordPresence();
+            window.api.clearDiscordPresence().catch(() => {});
           }
         }
       },

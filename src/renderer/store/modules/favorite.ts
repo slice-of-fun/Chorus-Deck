@@ -8,11 +8,6 @@ export type FavoriteId = string;
 
 const FAVORITES_KEY = 'favorite-list-store';
 const DISLIKES_KEY = 'dislike-list-store';
-
-/**
- * Favorites keep the full track rather than an id, because there is no
- * catalog service to re-resolve a bare id against.
- */
 const readFavorites = (): SongResult[] => {
   const stored = getLocalStorageItem<SongResult[]>(FAVORITES_KEY, []);
   return Array.isArray(stored) ? stored.filter((song) => song && typeof song.id === 'string') : [];

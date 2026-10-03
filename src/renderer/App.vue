@@ -71,6 +71,15 @@ const lightThemeOverrides = reactive<GlobalThemeOverrides>({
     primaryColorHover: '#333333',
     primaryColorPressed: '#000000',
     primaryColorSuppl: '#333333'
+  },
+  Dialog: {
+    borderRadius: '28px'
+  },
+  Button: {
+    borderRadiusMedium: '9999px',
+    borderRadiusLarge: '9999px',
+    borderRadiusSmall: '9999px',
+    borderRadiusTiny: '9999px'
   }
 });
 
@@ -80,6 +89,15 @@ const darkThemeOverrides = reactive<GlobalThemeOverrides>({
     primaryColorHover: '#cccccc',
     primaryColorPressed: '#ffffff',
     primaryColorSuppl: '#cccccc'
+  },
+  Dialog: {
+    borderRadius: '28px'
+  },
+  Button: {
+    borderRadiusMedium: '9999px',
+    borderRadiusLarge: '9999px',
+    borderRadiusSmall: '9999px',
+    borderRadiusTiny: '9999px'
   }
 });
 

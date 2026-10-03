@@ -419,7 +419,7 @@
     <!-- Import Modal -->
     <n-modal v-model:show="showImportDialog">
       <n-card
-        style="width: 500px"
+        style="width: 500px; border-radius: 1rem"
         title="Import Playlists"
         :bordered="false"
         size="huge"
@@ -458,16 +458,15 @@
                 />
               </div>
             </div>
-            <n-button
+            <button
               v-else
-              type="primary"
-              color="#1DB954"
+              class="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-full text-sm font-medium bg-[#1DB954] text-white hover:bg-[#1ed760] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               @click="handleSpotifyLogin"
-              :loading="isSpotifyLoading"
+              :disabled="isSpotifyLoading"
             >
-              <template #icon><i class="ri-spotify-fill" /></template>
-              Login with Spotify
-            </n-button>
+              <i class="ri-spotify-fill" />
+              <span>Login with Spotify</span>
+            </button>
           </div>
 
           <div
@@ -479,9 +478,13 @@
             </p>
             <div class="flex gap-4">
               <n-input v-model:value="importUrl" placeholder="https://..." clearable />
-              <n-button type="primary" :loading="isImportingUrl" @click="handleUrlImport">
+              <button
+                class="px-4 py-2 rounded-full text-sm font-medium bg-primary text-white hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                :disabled="isImportingUrl"
+                @click="handleUrlImport"
+              >
                 Import
-              </n-button>
+              </button>
             </div>
           </div>
         </div>
@@ -490,7 +493,7 @@
 
     <n-modal v-model:show="showCreatePlaylistDialog">
       <n-card
-        style="width: 400px"
+        style="width: 400px; border-radius: 1rem"
         title="Create Playlist"
         :bordered="false"
         size="huge"
@@ -520,10 +523,19 @@
             />
           </div>
           <div class="flex justify-end gap-2 mt-6">
-            <n-button @click="showCreatePlaylistDialog = false">Cancel</n-button>
-            <n-button type="primary" :loading="isCreatingPlaylist" @click="confirmCreatePlaylist"
-              >Create</n-button
+            <button
+              class="px-4 py-2 rounded-full text-sm font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+              @click="showCreatePlaylistDialog = false"
             >
+              Cancel
+            </button>
+            <button
+              class="px-4 py-2 rounded-full text-sm font-medium bg-primary text-white hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              :disabled="isCreatingPlaylist"
+              @click="confirmCreatePlaylist"
+            >
+              Create
+            </button>
           </div>
         </div>
       </n-card>

@@ -114,6 +114,7 @@ import config from '../../../../package.json';
 import { createDefaultAppUpdateState } from '../../../shared/appUpdate';
 import { SETTINGS_DATA_KEY, SETTINGS_DIALOG_KEY, SETTINGS_MESSAGE_KEY } from './keys';
 import AboutTab from './tabs/AboutTab.vue';
+import AccountTab from './tabs/AccountTab.vue';
 import AiTab from './tabs/AiTab.vue';
 import AppearanceTab from './tabs/AppearanceTab.vue';
 import BackupRestoreTab from './tabs/BackupRestoreTab.vue';
