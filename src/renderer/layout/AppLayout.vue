@@ -186,14 +186,14 @@ onMounted(() => {
   @apply overflow-hidden;
 }
 
-/* Apply internal content padding to the page content inside MainSurface. */
 .main-page > * {
-  padding: var(--content-padding-y) var(--content-padding-x);
   box-sizing: border-box;
   height: 100%;
   min-height: 100%;
   overflow: auto;
 }
+
+
 
 .main-page.no-scroll > * {
   overflow: hidden;
@@ -203,7 +203,6 @@ onMounted(() => {
   @apply h-full bg-light dark:bg-black;
 }
 
-/* Legacy desktop-compact branch: preserved geometry. */
 .compact {
   .main-content {
     height: calc(100vh - 130px);

@@ -174,8 +174,8 @@ export const usePlayerCoreStore = defineStore(
           };
 
           const btn1Url = resolveButtonUrl(
-            s.discordActivityButton1UrlSource || 'songurl',
-            s.discordActivityButton1CustomUrl || ''
+            s.discordActivityButton1UrlSource || 'custom',
+            s.discordActivityButton1CustomUrl || 'https://github.com/slice-of-fun/Chorus-Deck'
           );
           const btn2Url = resolveButtonUrl(
             s.discordActivityButton2UrlSource || 'custom',

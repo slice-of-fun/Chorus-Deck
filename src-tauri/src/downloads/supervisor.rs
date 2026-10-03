@@ -18,9 +18,10 @@ fn now_ms() -> i64 {
         .unwrap_or(0)
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum TaskState {
+    #[default]
     Queued,
     Downloading,
     Paused,
@@ -74,9 +75,8 @@ impl SongInfo {
     }
 }
 
-/// Mirrors `DownloadTask` in `src/shared/download.ts`.
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[serde(rename_all = "camelCase", default)]
 pub struct DownloadTask {
     pub task_id: String,
     pub url: String,

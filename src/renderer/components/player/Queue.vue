@@ -70,11 +70,16 @@
           </div>
           <div class="now-playing-info">
             <div class="now-playing-label">Now Playing</div>
-            <div class="now-playing-title" v-html="playMusic.name"></div>
+            <div class="now-playing-title" v-html="playMusic.name || 'Unknown Track'"></div>
             <div class="now-playing-artist">
-              <span v-for="(artist, i) in artistList" :key="i">
-                {{ artist.name }}{{ i < artistList.length - 1 ? ' · ' : '' }}
-              </span>
+              <template v-if="artistList && artistList.length > 0">
+                <span v-for="(artist, i) in artistList" :key="i">
+                  {{ artist.name || 'Unknown Artist' }}{{ i < artistList.length - 1 ? ' · ' : '' }}
+                </span>
+              </template>
+              <template v-else>
+                Unknown Artist
+              </template>
             </div>
           </div>
         </div>
@@ -97,7 +102,7 @@
             @click="toggleRepeat"
           >
             <i :class="repeatMode === 2 ? 'ri-repeat-one-line' : 'ri-repeat-2-line'"></i>
-            <span>{{ repeatMode === 2 ? 'Repeat One' : 'Repeat' }}</span>
+            <span>{{ repeatMode === 2 ? 'Repeat One' : repeatMode === 1 ? 'Repeat All' : 'Repeat Off' }}</span>
           </button>
         </div>
 
@@ -160,12 +165,17 @@
                   class="item-title"
                   :style="item.id === playerStore.playMusic?.id ? { color: accentColor } : {}"
                 >
-                  {{ item.name }}
+                  {{ item.name || 'Unknown Track' }}
                 </div>
                 <div class="item-artist">
-                  <span v-for="(ar, i) in item.ar || item.artists || []" :key="i">
-                    {{ ar.name }}{{ i < (item.ar || item.artists || []).length - 1 ? ' · ' : '' }}
-                  </span>
+                  <template v-if="(item.ar || item.artists || []).length > 0">
+                    <span v-for="(ar, i) in item.ar || item.artists || []" :key="i">
+                      {{ ar.name || 'Unknown Artist' }}{{ i < (item.ar || item.artists || []).length - 1 ? ' · ' : '' }}
+                    </span>
+                  </template>
+                  <template v-else>
+                    Unknown Artist
+                  </template>
                 </div>
               </div>
 
@@ -237,7 +247,7 @@ const isMiniMode = computed(() => settingsStore.isMiniMode);
 const isShellLayout = computed(() => !isCompact.value && !isMiniMode.value);
 const repeatMode = computed(() => playerStore.repeatMode);
 const shuffleEnabled = computed(() => playerStore.shuffleEnabled);
-const accentColor = computed(() => themeVars.value.primaryColor || 'var(--primary-color, #6366f1)');
+const accentColor = computed(() => playMusic.value?.primaryColor || themeVars.value.primaryColor || 'var(--primary-color, #6366f1)');
 
 const panelStyle = computed(() => ({
   '--accent': accentColor.value
@@ -268,8 +278,7 @@ const ctrlActiveStyle = computed(() => ({
 }));
 
 const playingItemStyle = computed(() => ({
-  background: `color-mix(in srgb, ${accentColor.value} 10%, transparent)`,
-  borderLeftColor: accentColor.value
+  background: `color-mix(in srgb, ${accentColor.value} 15%, transparent)`
 }));
 
 const switchTab = (tab: 'queue' | 'lyrics') => {
@@ -413,7 +422,9 @@ const handleClearQueue = () => {
     content: 'This will clear all songs in the queue and stop the current playback. Continue?',
     positiveText: 'Confirm',
     negativeText: 'Cancel',
-    style: { zIndex: 999999999 },
+    positiveButtonProps: { round: true },
+    negativeButtonProps: { round: true },
+    style: { zIndex: 999999999, borderRadius: '16px' },
     onPositiveClick: () => {
       playerStore.clearPlayAll();
       message.success('Queue cleared');
@@ -452,11 +463,12 @@ const handleClearQueue = () => {
 
   animation-duration: 0.3s !important;
   backdrop-filter: blur(20px);
-
-  @apply bg-white/95 dark:bg-neutral-900/95;
+  background-color: var(--shell-surface, rgba(255, 255, 255, 0.95));
+  .dark & {
+    background-color: var(--shell-surface, rgba(23, 23, 23, 0.95));
+  }
 }
 
-// ── Header ────────────────────────────────────────────────────────────────────
 .panel-header {
   @apply flex items-center justify-between px-4 py-3 flex-shrink-0;
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
@@ -599,19 +611,17 @@ const handleClearQueue = () => {
   }
 }
 
-// ── Song list ─────────────────────────────────────────────────────────────────
 .queue-list {
   @apply flex-1 overflow-auto;
 }
 
 .queue-item {
-  @apply flex items-center gap-3 px-3 py-2 cursor-pointer transition-all duration-150;
-  @apply hover:bg-gray-50 dark:hover:bg-gray-800/50;
-  border-left: 3px solid transparent;
+  @apply flex items-center gap-3 px-3 py-2 mx-2 mb-1 cursor-pointer transition-all duration-150 rounded-xl;
+  @apply hover:bg-gray-100 dark:hover:bg-gray-800/60;
   min-height: 68px;
+  border: 1px solid transparent;
 
   &.is-playing {
-    border-left-width: 3px;
   }
 
   .item-art {

@@ -20,7 +20,7 @@
     @click="handleBarClick"
   >
     <div class="play-bar-left">
-      <div class="play-bar-img-wrapper" @click="openLyricWindow">
+      <div class="play-bar-img-wrapper" @click.stop="setMusicFull">
         <n-image
           :src="getImgUrl(playMusic?.picUrl, '100y100')"
           class="play-bar-img"
@@ -333,10 +333,6 @@ const handleBarClick = (event: MouseEvent) => {
   const target = event.target as HTMLElement | null;
   if (!target || target.closest(IGNORE_FULL_TRIGGER_SELECTOR)) return;
   setMusicFull();
-};
-
-const openLyricWindow = () => {
-  openLyric();
 };
 
 const { navigateToArtist } = useArtist();

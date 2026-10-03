@@ -255,7 +255,7 @@
                 >
                   <template v-for="(word, wordIndex) in item.words" :key="wordIndex">
                     <span class="lyric-word" :style="getWordStyle(index, wordIndex, word)">
-                      {{ word.text.replace('{bg}', '') }} </span
+                      {{ word.text ? word.text.replace('{bg}', '') : '' }} </span
                     ><span class="lyric-word" v-if="word.space">&nbsp;</span></template
                   >
                 </div>
@@ -263,8 +263,8 @@
                 <span
                   v-else
                   :style="getLrcStyle(index)"
-                  :class="{ 'bg-vocal': item.text.startsWith('{bg}') }"
-                  >{{ item.text.replace('{bg}', '') }}</span
+                  :class="{ 'bg-vocal': item.text ? item.text.startsWith('{bg}') : false }"
+                  >{{ item.text ? item.text.replace('{bg}', '') : '' }}</span
                 >
                 <div v-show="config.showRoma && item.romaText" class="music-lrc-text-roma">
                   {{ item.romaText }}

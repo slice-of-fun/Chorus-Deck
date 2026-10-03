@@ -519,11 +519,9 @@ onMounted(() => {
 .search-inner--focus {
   border-color: rgb(var(--color-primary));
   background: #fff;
-  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
 }
 .dark .search-inner--focus {
   background: #0a0a0a;
-  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.12);
 }
 
 .search-icon-glyph {
