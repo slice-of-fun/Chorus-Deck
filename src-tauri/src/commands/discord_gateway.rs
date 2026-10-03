@@ -1,21 +1,79 @@
 use std::sync::Mutex;
+use std::time::SystemTime;
+use serde::Serialize;
 use serde_json::json;
 use reqwest::Client;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedSender};
+use tokio::sync::oneshot;
 use futures_util::{SinkExt, StreamExt};
 use tokio_tungstenite::connect_async;
 use tokio_tungstenite::tungstenite::Message;
 use lazy_static::lazy_static;
+use tokio::runtime::Runtime;
 
-use crate::commands::discord::{DiscordPresence, resolve_source_text, to_discord_text, resolve_image_url};
+use crate::commands::discord::{
+    resolve_image_url, resolve_source_text, to_discord_text, DiscordPresence, APP_ICON_URL,
+};
 
-const APP_ICON_URL: &str = "https://raw.githubusercontent.com/slice-of-fun/Chorus-Music/main/assets/Chorus-new.png";
-const PAUSE_IMAGE_URL: &str = "https://raw.githubusercontent.com/slice-of-fun/Chorus-Music/main/assets/paused.png";
+const PAUSE_IMAGE_URL: &str = "https://raw.githubusercontent.com/slice-of-fun/Chorus-Deck/main/resources/paused.png";
+
+type WsStream = tokio_tungstenite::WebSocketStream<
+    tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>,
+>;
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GatewayStatus {
+    pub connected: bool,
+    pub last_error: Option<String>,
+    pub last_change_at: Option<i64>,
+}
+
+fn now_ms() -> i64 {
+    SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as i64)
+        .unwrap_or(0)
+}
+
+lazy_static! {
+    static ref GATEWAY_STATUS: Mutex<GatewayStatus> = Mutex::new(GatewayStatus {
+        connected: false,
+        last_error: None,
+        last_change_at: None,
+    });
+    /// url -> registered mp: path, so artwork is uploaded to Discord only once.
+    static ref ASSET_CACHE: Mutex<std::collections::HashMap<String, String>> =
+        Mutex::new(std::collections::HashMap::new());
+}
+
+fn set_status(connected: bool, error: Option<&str>) {
+    if let Ok(mut status) = GATEWAY_STATUS.lock() {
+        let changed = status.connected != connected || status.last_error.as_deref() != error;
+        status.connected = connected;
+        status.last_error = error.map(|e| e.to_string());
+        if changed {
+            status.last_change_at = Some(now_ms());
+        }
+    }
+}
+
+/// Lets the settings UI show whether the Discord gateway session is alive and
+/// surface connection problems instead of failing silently.
+#[tauri::command(rename = "discord-gateway-status")]
+pub fn discord_gateway_status() -> GatewayStatus {
+    GATEWAY_STATUS.lock().map(|s| s.clone()).unwrap_or(GatewayStatus {
+        connected: false,
+        last_error: None,
+        last_change_at: None,
+    })
+}
 
 pub enum GatewayCmd {
     UpdatePresence {
         presence: DiscordPresence,
         token: String,
+        reply: Option<oneshot::Sender<Result<(), String>>>,
     },
     ClearPresence,
     Close,
@@ -23,10 +81,31 @@ pub enum GatewayCmd {
 
 lazy_static! {
     static ref GATEWAY_TX: Mutex<Option<UnboundedSender<GatewayCmd>>> = Mutex::new(None);
+    static ref RT: Runtime = Runtime::new().unwrap();
 }
 
+/// Fire-and-forget presence update (playback-driven updates).
 pub fn update_presence(presence: DiscordPresence, token: String) {
-    send_cmd(GatewayCmd::UpdatePresence { presence, token });
+    send_cmd(GatewayCmd::UpdatePresence { presence, token, reply: None });
+}
+
+/// Acknowledged presence update: resolves with the real connect/send result so
+/// the Refresh button can report success or failure like Chorus-Music.
+pub async fn update_presence_acked(
+    presence: DiscordPresence,
+    token: String,
+) -> Result<(), String> {
+    let (tx, rx) = oneshot::channel();
+    send_cmd(GatewayCmd::UpdatePresence {
+        presence,
+        token,
+        reply: Some(tx),
+    });
+    match tokio::time::timeout(std::time::Duration::from_secs(20), rx).await {
+        Ok(Ok(result)) => result,
+        Ok(Err(_)) => Err("Discord gateway worker dropped the update".to_string()),
+        Err(_) => Err("Timed out waiting for the Discord gateway update".to_string()),
+    }
 }
 
 pub fn clear_presence() {
@@ -41,11 +120,30 @@ fn send_cmd(cmd: GatewayCmd) {
     let mut tx_lock = GATEWAY_TX.lock().unwrap();
     if tx_lock.is_none() {
         let (tx, rx) = unbounded_channel();
-        tauri::async_runtime::spawn(gateway_actor(rx));
+        RT.spawn(gateway_actor(rx));
         *tx_lock = Some(tx);
     }
     if let Some(tx) = tx_lock.as_ref() {
         let _ = tx.send(cmd);
+    }
+}
+
+/// Immediately re-queues the last known presence after an unexpected socket
+/// drop, so the actor reconnects and re-applies it without waiting for the
+/// next playback event or the 60s resync tick. Bounded by `streak`: at most
+/// 3 recoveries in a row without a successful send, then the 60s tick remains
+/// the backstop.
+fn recover_last_presence(last: &mut Option<(DiscordPresence, String)>, streak: &mut u32) {
+    if *streak >= 3 {
+        return;
+    }
+    *streak += 1;
+    if let Some((presence, token)) = last.take() {
+        send_cmd(GatewayCmd::UpdatePresence {
+            presence,
+            token,
+            reply: None,
+        });
     }
 }
 
@@ -57,92 +155,244 @@ async fn register_external_asset(client: &Client, token: &str, url: &str) -> Opt
         return Some(url.to_string());
     }
 
+    // Cache registered assets: the same album/artist art is re-sent on every
+    // presence update (play/pause/seek and the 60s resync). Skipping the HTTP
+    // round-trip keeps updates instant and never blocks the heartbeat loop.
+    if let Ok(cache) = ASSET_CACHE.lock() {
+        if let Some(cached) = cache.get(url) {
+            return Some(cached.clone());
+        }
+    }
+
     let auth = if token.contains('.') { token.to_string() } else { format!("Bearer {}", token) };
     let body = json!({ "urls": [url] });
-    
+
+    // 5s cap: a slow Discord API must never stall the actor past a heartbeat.
     let res = client.post("https://discord.com/api/v10/applications/1554131750899163186/external-assets")
         .header("Authorization", auth)
+        .timeout(std::time::Duration::from_secs(5))
         .json(&body)
         .send()
         .await
         .ok()?;
-        
+
     let txt = res.text().await.ok()?;
     let arr: serde_json::Value = serde_json::from_str(&txt).ok()?;
-    
+
     if let Some(arr) = arr.as_array() {
         if let Some(first) = arr.get(0) {
             if let Some(path) = first.get("external_asset_path").and_then(|v| v.as_str()) {
-                return Some(format!("mp:{}", path));
+                let asset = format!("mp:{}", path);
+                if let Ok(mut cache) = ASSET_CACHE.lock() {
+                    cache.insert(url.to_string(), asset.clone());
+                }
+                return Some(asset);
             }
         }
     }
     None
 }
 
+/// Opens the gateway socket, waits for HELLO (op 10), arms the heartbeat
+/// interval and sends IDENTIFY. Mirrors GatewayClient.connect()/sendIdentify()
+/// exactly — same gateway version, capability/intent bitfields and honest
+/// client properties (impersonating the official Discord client gets the
+/// session closed before READY).
+async fn connect_and_identify(
+    token: &str,
+    heartbeat_interval: &mut tokio::time::Interval,
+) -> Result<WsStream, String> {
+    let (mut ws, _) = connect_async("wss://gateway.discord.gg/?v=9&encoding=json")
+        .await
+        .map_err(|e| format!("Failed to connect to Discord gateway: {}", e))?;
+
+    let hello = tokio::time::timeout(std::time::Duration::from_secs(10), ws.next())
+        .await
+        .map_err(|_| "Timed out waiting for the gateway HELLO".to_string())?;
+
+    let msg = match hello {
+        Some(Ok(Message::Text(txt))) => txt,
+        _ => return Err("Did not receive the gateway HELLO".to_string()),
+    };
+
+    let json: serde_json::Value =
+        serde_json::from_str(&msg).map_err(|_| "Invalid gateway HELLO payload".to_string())?;
+    if json["op"].as_i64() != Some(10) {
+        return Err("Unexpected first gateway payload (expected HELLO)".to_string());
+    }
+
+    let hb_interval = json["d"]["heartbeat_interval"].as_u64().unwrap_or(41250);
+    *heartbeat_interval = tokio::time::interval(tokio::time::Duration::from_millis(hb_interval));
+    // Consume the immediate first tick so the first heartbeat waits a full interval.
+    heartbeat_interval.tick().await;
+
+    let auth_token = if token.contains('.') { token.to_string() } else { format!("Bearer {}", token) };
+    let identify = json!({
+        "op": 2,
+        "d": {
+            "token": auth_token,
+            "capabilities": (1 << 4) | (1 << 5) | (1 << 12) | (1 << 16),
+            "intents": (1 << 12) | (1 << 18) | (1 << 19) | (1 << 22) | (1 << 23)
+                | (1 << 27) | (1 << 28) | (1 << 29),
+            "properties": {
+                "os": "Windows",
+                "browser": "Chorus Deck",
+                "device": "PC",
+                "browser_user_agent": "Chorus Deck",
+                "browser_version": "1.0",
+                "client_version": "1.0",
+                "client_build_number": 1,
+                "native_build_number": 1,
+                "release_channel": "unknown"
+            }
+        }
+    });
+    ws.send(Message::Text(identify.to_string().into()))
+        .await
+        .map_err(|e| format!("Failed to send gateway IDENTIFY: {}", e))?;
+
+    Ok(ws)
+}
+
+async fn wait_ready(ws: &mut WsStream, seq: &mut Option<i64>) -> Result<(), String> {
+    let deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(12);
+
+    loop {
+        let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
+        if remaining.is_zero() {
+            return Err("Timed out waiting for the Discord gateway READY event".to_string());
+        }
+
+        let frame = tokio::time::timeout(remaining, ws.next()).await;
+        match frame {
+            Ok(Some(Ok(Message::Text(txt)))) => {
+                if let Ok(json) = serde_json::from_str::<serde_json::Value>(&txt) {
+                    if let Some(s) = json["s"].as_i64() {
+                        *seq = Some(s);
+                    }
+                    let op = json["op"].as_i64();
+                    let event = json["t"].as_str().unwrap_or("");
+                    if event == "READY" || event == "RESUMED" {
+                        return Ok(());
+                    }
+                    if op == Some(9) {
+                        return Err(
+                            "Discord rejected the gateway session (invalid or expired token)"
+                                .to_string(),
+                        );
+                    }
+                }
+                continue;
+            }
+            Ok(Some(Ok(Message::Close(frame)))) => {
+                return Err(format!(
+                    "Discord closed the session before READY: {}",
+                    frame
+                        .map(|f| format!("{:?}", f))
+                        .unwrap_or_else(|| "no close frame".to_string())
+                ));
+            }
+            Ok(Some(Ok(_))) => continue,
+            Ok(Some(Err(e))) => return Err(format!("Gateway error before READY: {}", e)),
+            Ok(None) => {
+                return Err(
+                    "Discord closed the connection before READY (no close frame)".to_string(),
+                )
+            }
+            Err(_) => {
+                return Err("Timed out waiting for the Discord gateway READY event".to_string())
+            }
+        }
+    }
+}
+
 async fn gateway_actor(mut rx: tokio::sync::mpsc::UnboundedReceiver<GatewayCmd>) {
-    let mut ws_stream: Option<tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>> = None;
+    let mut ws_stream: Option<WsStream> = None;
     let mut active_token: Option<String> = None;
     let client = reqwest::Client::new();
-    
+
     let mut heartbeat_interval = tokio::time::interval(tokio::time::Duration::from_secs(41));
     heartbeat_interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
     let mut heartbeat_active = false;
     let mut seq: Option<i64> = None;
+    let mut awaiting_ack = false;
+    let mut last_presence: Option<(DiscordPresence, String)> = None;
+    let mut recovery_streak: u32 = 0;
+    let mut last_identify_at: Option<std::time::Instant> = None;
 
     loop {
         tokio::select! {
             cmd = rx.recv() => {
                 match cmd {
-                    Some(GatewayCmd::UpdatePresence { presence, token }) => {
-                        if active_token.as_deref() != Some(&token) || ws_stream.is_none() {
-                            if let Some(mut ws) = ws_stream.take() {
-                                let _ = ws.close(None).await;
-                            }
-                            
-                            if let Ok((mut ws, _)) = connect_async("wss://gateway.discord.gg/?v=10&encoding=json").await {
-                                active_token = Some(token.clone());
-                                
-                                if let Some(Ok(Message::Text(msg))) = ws.next().await {
-                                    if let Ok(json) = serde_json::from_str::<serde_json::Value>(&msg) {
-                                        if json["op"].as_i64() == Some(10) {
-                                            let hb_interval = json["d"]["heartbeat_interval"].as_u64().unwrap_or(41250);
-                                            heartbeat_interval = tokio::time::interval(tokio::time::Duration::from_millis(hb_interval));
-                                            heartbeat_interval.tick().await; 
-                                            heartbeat_active = true;
-                                            
-                                            let identify = json!({
-                                                "op": 2,
-                                                "d": {
-                                                    "token": token,
-                                                    "capabilities": 16381,
-                                                    "intents": 0,
-                                                    "properties": {
-                                                        "os": "Android",
-                                                        "browser": "Chorus Music",
-                                                        "device": "Android",
-                                                        "browser_user_agent": "Chorus Music",
-                                                        "browser_version": "1.0",
-                                                        "client_version": "1.0",
-                                                        "client_build_number": 1,
-                                                        "native_build_number": 1,
-                                                        "release_channel": "unknown"
-                                                    }
-                                                }
-                                            });
-                                            let _ = ws.send(Message::Text(identify.to_string().into())).await;
-                                        }
-                                    }
+                    Some(GatewayCmd::UpdatePresence { presence, token, reply }) => {
+
+                        last_presence = Some((presence.clone(), token.clone()));
+
+                        let mut outcome: Result<(), String> = Ok(());
+                        let mut fresh_session = false;
+
+                        if active_token.as_deref() != Some(token.as_str()) {
+                            active_token = Some(token.clone());
+                        }
+
+                        if ws_stream.is_none() {
+                            heartbeat_active = false;
+                            awaiting_ack = false;
+                            if let Some(prev) = last_identify_at {
+                                let gap = std::time::Duration::from_secs(2);
+                                let elapsed = prev.elapsed();
+                                if elapsed < gap {
+                                    tokio::time::sleep(gap - elapsed).await;
                                 }
-                                ws_stream = Some(ws);
-                            } else {
-                                continue;
+                            }
+                            last_identify_at = Some(std::time::Instant::now());
+                            match connect_and_identify(&token, &mut heartbeat_interval).await {
+                                Ok(ws) => {
+                                    ws_stream = Some(ws);
+                                    active_token = Some(token.clone());
+                                    heartbeat_active = true;
+                                    fresh_session = true;
+                                }
+                                Err(e) => {
+                                    active_token = None;
+                                    set_status(false, Some(&e));
+                                    outcome = Err(e);
+                                }
                             }
                         }
-                        
+
+                        if outcome.is_ok() && fresh_session {
+                            let ready_result = match ws_stream.as_mut() {
+                                Some(ws) => wait_ready(ws, &mut seq).await,
+                                None => Err("Not connected to the Discord gateway".to_string()),
+                            };
+                            if let Err(e) = ready_result {
+                                ws_stream = None;
+                                heartbeat_active = false;
+                                awaiting_ack = false;
+                                active_token = None;
+                                set_status(false, Some(&e));
+                                outcome = Err(e);
+                            }
+                        }
+
+                        if let Err(e) = outcome {
+                            if let Some(tx) = reply {
+                                let _ = tx.send(Err(e));
+                            }
+                            continue;
+                        }
+
+                        let mut send_err: Option<String> = None;
+
                         if let Some(ws) = ws_stream.as_mut() {
+                            let is_playing = presence.is_playing.unwrap_or(false);
                             let large_image_type = presence.large_image_type.as_deref().unwrap_or("thumbnail");
-                            let large_url = resolve_image_url(large_image_type, presence.large_image_custom_url.as_deref(), &presence);
+                            let large_url = if !is_playing {
+                                None
+                            } else {
+                                resolve_image_url(large_image_type, presence.large_image_custom_url.as_deref(), &presence)
+                            };
                             let large_image = if let Some(url) = large_url {
                                 register_external_asset(&client, &token, &url).await
                             } else {
@@ -163,11 +413,22 @@ async fn gateway_actor(mut rx: tokio::sync::mpsc::UnboundedReceiver<GatewayCmd>)
                                 None
                             };
                             
+                            let type_int = match presence.activity_type.as_deref().unwrap_or("LISTENING").to_uppercase().as_str() {
+                                "PLAYING" => 0,
+                                "STREAMING" => 1,
+                                "LISTENING" => 2,
+                                "WATCHING" => 3,
+                                "COMPETING" => 5,
+                                _ => 2,
+                            };
+                            
+                            let activity_name_pref = presence.activity_name.as_deref().unwrap_or("APP");
+                            let resolved_name = resolve_source_text(activity_name_pref, &presence).unwrap_or_else(|| "Chorus Deck".to_string());
                             let mut activity_json = json!({
-                                "name": presence.activity_name.as_deref().unwrap_or("Chorus Music"),
-                                "type": 2,
+                                "name": resolved_name,
+                                "type": type_int,
                                 "application_id": "1554131750899163186",
-                                "platform": "android"
+                                "platform": "desktop"
                             });
                             
                             let details_pref = presence.activity_details.as_deref().unwrap_or("ARTIST");
@@ -247,10 +508,35 @@ async fn gateway_actor(mut rx: tokio::sync::mpsc::UnboundedReceiver<GatewayCmd>)
                                 }
                             });
                             
-                            let _ = ws.send(Message::Text(update_payload.to_string().into())).await;
+                            if ws.send(Message::Text(update_payload.to_string().into())).await.is_err() {
+                                send_err = Some("Failed to send the presence update".to_string());
+                            }
+                        } else {
+                            send_err = Some("Not connected to the Discord gateway".to_string());
+                        }
+
+                        if let Some(e) = send_err {
+                            ws_stream = None;
+                            heartbeat_active = false;
+                            awaiting_ack = false;
+                            active_token = None;
+                            set_status(false, Some(&e));
+                            recover_last_presence(&mut last_presence, &mut recovery_streak);
+                            if let Some(tx) = reply {
+                                let _ = tx.send(Err(e));
+                            }
+                        } else {
+                            recovery_streak = 0;
+                            set_status(true, None);
+                            if let Some(tx) = reply {
+                                let _ = tx.send(Ok(()));
+                            }
                         }
                     },
                     Some(GatewayCmd::ClearPresence) | Some(GatewayCmd::Close) => {
+                        // The user explicitly cleared/disabled presence or logged
+                        // out — never auto-recover this state after a drop.
+                        last_presence = None;
                         if matches!(cmd, Some(GatewayCmd::ClearPresence)) {
                             if let Some(mut ws) = ws_stream.take() {
                                 let clear = json!({
@@ -270,7 +556,9 @@ async fn gateway_actor(mut rx: tokio::sync::mpsc::UnboundedReceiver<GatewayCmd>)
                                 let _ = ws.close(None).await;
                             }
                             heartbeat_active = false;
+                            awaiting_ack = false;
                             active_token = None;
+                            set_status(false, Some("Gateway session closed"));
                         }
                     },
                     None => break,
@@ -278,6 +566,18 @@ async fn gateway_actor(mut rx: tokio::sync::mpsc::UnboundedReceiver<GatewayCmd>)
             },
             
             _ = heartbeat_interval.tick(), if heartbeat_active && ws_stream.is_some() => {
+                // Missed op-11 ACK since the previous heartbeat: the session is a
+                // zombie (socket open, Discord not reading). Drop and reconnect.
+                if awaiting_ack {
+                    ws_stream = None;
+                    heartbeat_active = false;
+                    awaiting_ack = false;
+                    active_token = None;
+                    set_status(false, Some("Discord did not acknowledge the heartbeat"));
+                    recover_last_presence(&mut last_presence, &mut recovery_streak);
+                    continue;
+                }
+
                 if let Some(ws) = ws_stream.as_mut() {
                     let d = if let Some(s) = seq { json!(s) } else { serde_json::Value::Null };
                     let heartbeat = json!({
@@ -287,6 +587,11 @@ async fn gateway_actor(mut rx: tokio::sync::mpsc::UnboundedReceiver<GatewayCmd>)
                     if ws.send(Message::Text(heartbeat.to_string().into())).await.is_err() {
                         ws_stream = None;
                         heartbeat_active = false;
+                        active_token = None;
+                        set_status(false, Some("Failed to send a gateway heartbeat"));
+                        recover_last_presence(&mut last_presence, &mut recovery_streak);
+                    } else {
+                        awaiting_ack = true;
                     }
                 }
             },
@@ -300,15 +605,43 @@ async fn gateway_actor(mut rx: tokio::sync::mpsc::UnboundedReceiver<GatewayCmd>)
                             if let Some(s) = json["s"].as_i64() {
                                 seq = Some(s);
                             }
-                            if json["op"].as_i64() == Some(7) || json["op"].as_i64() == Some(9) {
-                                ws_stream = None;
-                                heartbeat_active = false;
+                            match json["op"].as_i64() {
+                                // Heartbeat ACK received — session is alive.
+                                Some(11) => awaiting_ack = false,
+                                Some(7) | Some(9) => {
+                                    // Reconnect requested / invalid session.
+                                    ws_stream = None;
+                                    heartbeat_active = false;
+                                    awaiting_ack = false;
+                                    active_token = None;
+                                    set_status(false, Some("Discord requested a session reconnect"));
+                                    recover_last_presence(&mut last_presence, &mut recovery_streak);
+                                }
+                                _ => {}
                             }
                         }
                     },
-                    Ok(Message::Close(_)) | Err(_) => {
+                    Ok(Message::Close(frame)) => {
                         ws_stream = None;
                         heartbeat_active = false;
+                        awaiting_ack = false;
+                        active_token = None;
+                        let detail = frame
+                            .map(|f| format!("{:?}", f))
+                            .unwrap_or_else(|| "no close frame".to_string());
+                        set_status(
+                            false,
+                            Some(&format!("Discord gateway closed the session: {}", detail)),
+                        );
+                        recover_last_presence(&mut last_presence, &mut recovery_streak);
+                    }
+                    Err(_) => {
+                        ws_stream = None;
+                        heartbeat_active = false;
+                        awaiting_ack = false;
+                        active_token = None;
+                        set_status(false, Some("Discord gateway connection error"));
+                        recover_last_presence(&mut last_presence, &mut recovery_streak);
                     }
                     _ => {}
                 }

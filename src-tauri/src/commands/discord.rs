@@ -1,7 +1,8 @@
-use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
-use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
+
+pub const APP_ICON_URL: &str =
+    "https://raw.githubusercontent.com/slice-of-fun/Chorus-Deck/main/resources/logo.png";
 
 #[derive(Debug, Deserialize, Serialize, Clone, Default)]
 #[serde(rename_all = "camelCase")]
@@ -35,27 +36,10 @@ pub struct DiscordPresence {
     pub token: Option<String>,
 }
 
-lazy_static! {
-    static ref DISCORD_CLIENT: Mutex<Option<DiscordIpcClient>> = Mutex::new(None);
+lazy_static::lazy_static! {
     pub static ref CURRENT_PRESENCE: Mutex<Option<DiscordPresence>> = Mutex::new(None);
 }
 
-const APP_ICON_URL: &str = "https://raw.githubusercontent.com/slice-of-fun/Chorus-Music/main/assets/Chorus-new.png";
-const PAUSE_IMAGE_URL: &str = "https://raw.githubusercontent.com/slice-of-fun/Chorus-Music/main/assets/paused.png";
-
-fn ensure_connection() -> bool {
-    let mut client_lock = DISCORD_CLIENT.lock().unwrap();
-    if client_lock.is_none() {
-        let app_id = "1554131750899163186";
-        let mut client = DiscordIpcClient::new(app_id);
-        if client.connect().is_ok() {
-            *client_lock = Some(client);
-            return true;
-        }
-        return false;
-    }
-    true
-}
 pub fn resolve_source_text(source: &str, presence: &DiscordPresence) -> Option<String> {
     match source.to_uppercase().as_str() {
         "SONG" => presence.title.clone(),
@@ -106,7 +90,7 @@ pub fn to_discord_text(value: Option<String>, max_len: usize, fallback: Option<&
 }
 
 #[tauri::command(rename = "update-discord-presence")]
-pub fn update_discord_presence(presence: DiscordPresence) -> Result<(), String> {
+pub async fn update_discord_presence(presence: DiscordPresence) -> Result<(), String> {
     let is_playing = presence.is_playing.unwrap_or(false);
     let show_when_paused = presence.show_when_paused.unwrap_or(false);
     if !is_playing && !show_when_paused {
@@ -117,16 +101,13 @@ pub fn update_discord_presence(presence: DiscordPresence) -> Result<(), String> 
         *current = Some(presence.clone());
     }
 
-    if let Some(token) = presence.token.clone() {
-        crate::commands::discord_gateway::update_presence(presence.clone(), token);
-        return Ok(());
-    }
+    // Gateway-only, like Chorus-Music: without a token there is no presence.
+    let token = match presence.token.clone().filter(|t| !t.trim().is_empty()) {
+        Some(token) => token,
+        None => return clear_discord_presence(),
+    };
 
-    if !ensure_connection() {
-        return Ok(());
-    }
-
-    update_discord_presence_internal(&presence)
+    crate::commands::discord_gateway::update_presence_acked(presence, token).await
 }
 
 pub fn set_discord_playing_state(is_playing: bool) {
@@ -141,152 +122,12 @@ pub fn set_discord_playing_state(is_playing: bool) {
     };
 
     if let Some(presence) = presence_opt {
-        if let Some(token) = presence.token.clone() {
+        if let Some(token) = presence.token.clone().filter(|t| !t.trim().is_empty()) {
             crate::commands::discord_gateway::update_presence(presence, token);
         } else {
-            let _ = update_discord_presence_internal(&presence);
+            let _ = clear_discord_presence();
         }
     }
-}
-
-pub fn update_discord_presence_internal(presence: &DiscordPresence) -> Result<(), String> {
-    if let Ok(mut client_lock) = DISCORD_CLIENT.lock() {
-        if let Some(client) = client_lock.as_mut() {
-            let is_playing = presence.is_playing.unwrap_or(false);
-
-            let details_pref = presence.activity_details.as_deref().unwrap_or("ARTIST");
-            let state_pref = presence.activity_state.as_deref().unwrap_or("ALBUM");
-
-            let activity_details = to_discord_text(
-                resolve_source_text(details_pref, presence),
-                128,
-                presence.title.as_deref(),
-            );
-            let activity_state = to_discord_text(
-                resolve_source_text(state_pref, presence),
-                128,
-                None,
-            );
-            let large_image_type = presence.large_image_type.as_deref().unwrap_or("thumbnail");
-            let small_image_type = presence.small_image_type.as_deref().unwrap_or("artist");
-
-            let large_image_url = resolve_image_url(
-                large_image_type,
-                presence.large_image_custom_url.as_deref(),
-                presence,
-            );
-            let small_image_url = if !is_playing {
-                Some(PAUSE_IMAGE_URL.to_string())
-            } else {
-                resolve_image_url(
-                    small_image_type,
-                    presence.small_image_custom_url.as_deref(),
-                    presence,
-                )
-            };
-            
-            let mut large_text_str = presence.album.clone();
-            if large_text_str.is_none() || large_text_str.as_ref().unwrap().is_empty() {
-                large_text_str = presence.title.clone();
-            }
-            let large_text = to_discord_text(large_text_str, 128, None);
-
-            let small_text = if is_playing {
-                let base_text = resolve_source_text(small_image_type, presence)
-                    .or_else(|| presence.title.clone())
-                    .unwrap_or_else(|| "Music".to_string());
-                Some(format!("Playing {} on Chorus Deck", base_text).chars().take(128).collect())
-            } else {
-                Some("Paused".to_string())
-            };
-
-            let mut assets = activity::Assets::new();
-
-            if let Some(ref url) = large_image_url {
-                assets = assets.large_image(url);
-            } else {
-                assets = assets.large_image(APP_ICON_URL);
-            }
-            if let Some(ref text) = large_text {
-                let text_str: &str = text.as_str();
-                assets = assets.large_text(text_str);
-            }
-
-            if let Some(ref url) = small_image_url {
-                assets = assets.small_image(url);
-                if let Some(ref text) = small_text {
-                    let text_str: &str = text.as_str();
-                    assets = assets.small_text(text_str);
-                }
-            }
-
-            let mut act = activity::Activity::new().assets(assets);
-
-            if let Some(ref details) = activity_details {
-                act = act.details(details.as_str());
-            }
-            if let Some(ref state) = activity_state {
-                act = act.state(state.as_str());
-            }
-
-            if is_playing {
-                if let Some(start) = presence.start_timestamp {
-                    let start_secs = start / 1000;
-                    let mut ts = activity::Timestamps::new().start(start_secs);
-                    if let Some(duration_ms) = presence.duration {
-                        if duration_ms > 0.0 {
-                            let end_secs = start_secs + (duration_ms / 1000.0) as i64;
-                            ts = ts.end(end_secs);
-                        }
-                    }
-                    act = act.timestamps(ts);
-                }
-            }
-
-            let mut buttons: Vec<activity::Button> = Vec::new();
-            let b1_l: String;
-            let b1_u: String;
-            let b2_l: String;
-            let b2_u: String;
-
-            let btn1_enabled = presence.button1_enabled.unwrap_or(true);
-            if btn1_enabled {
-                if let (Some(ref label), Some(ref url)) =
-                    (&presence.button1_label, &presence.button1_url)
-                {
-                    if !label.is_empty() && !url.is_empty() && url.starts_with("http") {
-                        b1_l = label.chars().take(32).collect();
-                        b1_u = url.clone();
-                        if !b1_l.is_empty() {
-                            buttons.push(activity::Button::new(b1_l.as_str(), b1_u.as_str()));
-                        }
-                    }
-                }
-            }
-
-            let btn2_enabled = presence.button2_enabled.unwrap_or(false);
-            if btn2_enabled && buttons.len() < 2 {
-                if let (Some(ref label), Some(ref url)) =
-                    (&presence.button2_label, &presence.button2_url)
-                {
-                    if !label.is_empty() && !url.is_empty() && url.starts_with("http") {
-                        b2_l = label.chars().take(32).collect();
-                        b2_u = url.clone();
-                        if !b2_l.is_empty() {
-                            buttons.push(activity::Button::new(b2_l.as_str(), b2_u.as_str()));
-                        }
-                    }
-                }
-            }
-
-            if !buttons.is_empty() {
-                act = act.buttons(buttons);
-            }
-
-            let _ = client.set_activity(act);
-        }
-    }
-    Ok(())
 }
 
 #[tauri::command(rename = "clear-discord-presence")]
@@ -295,11 +136,6 @@ pub fn clear_discord_presence() -> Result<(), String> {
         *current = None;
     }
     crate::commands::discord_gateway::clear_presence();
-    if let Ok(mut client_lock) = DISCORD_CLIENT.lock() {
-        if let Some(client) = client_lock.as_mut() {
-            let _ = client.clear_activity();
-        }
-    }
     Ok(())
 }
 
@@ -309,11 +145,6 @@ pub fn discord_logout() -> Result<(), String> {
         *current = None;
     }
     crate::commands::discord_gateway::disconnect();
-    if let Ok(mut client_lock) = DISCORD_CLIENT.lock() {
-        if let Some(mut client) = client_lock.take() {
-            let _ = client.close();
-        }
-    }
     Ok(())
 }
 
@@ -360,6 +191,20 @@ pub struct DiscordUserInfo {
     pub name: Option<String>,
     #[serde(rename = "avatarUrl")]
     pub avatar_url: Option<String>,
+    #[serde(rename = "refreshToken")]
+    pub refresh_token: Option<String>,
+    #[serde(rename = "expiresIn")]
+    pub expires_in: Option<i64>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DiscordTokenRefresh {
+    pub token: String,
+    #[serde(rename = "refreshToken")]
+    pub refresh_token: Option<String>,
+    #[serde(rename = "expiresIn")]
+    pub expires_in: Option<i64>,
 }
 
 fn build_avatar_url(user_id: &str, avatar_hash: Option<&str>, discriminator: Option<&str>) -> Option<String> {
@@ -541,10 +386,76 @@ pub async fn discord_webview_login(app: tauri::AppHandle) -> Result<Option<Disco
 
     let avatar_url = build_avatar_url(&user_id, avatar_hash, discriminator);
 
+    let refresh_token = token_json
+        .get("refresh_token")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+    let expires_in = token_json
+        .get("expires_in")
+        .and_then(|v| v.as_i64());
+
     Ok(Some(DiscordUserInfo {
         token: access_token,
         username: if username.is_empty() { None } else { Some(username) },
         name: if display_name.is_empty() { None } else { Some(display_name) },
         avatar_url,
+        refresh_token,
+        expires_in,
     }))
+}
+
+/// Mirrors DiscordOAuthRepository.getValidAccessToken()/refreshAccessToken() from Chorus-Music:
+/// exchanges a refresh token for a fresh access token before gateway connect.
+#[tauri::command(rename = "discord-refresh-token")]
+pub async fn discord_refresh_token(refresh_token: String) -> Result<DiscordTokenRefresh, String> {
+    let refresh_token = refresh_token.trim().to_string();
+    if refresh_token.is_empty() {
+        return Err("Discord refresh token is missing".to_string());
+    }
+
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(12))
+        .build()
+        .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
+
+    let params = [
+        ("client_id", DISCORD_APP_ID),
+        ("grant_type", "refresh_token"),
+        ("refresh_token", refresh_token.as_str()),
+    ];
+
+    let res = client
+        .post(DISCORD_TOKEN_ENDPOINT)
+        .header("Content-Type", "application/x-www-form-urlencoded")
+        .header("Accept", "application/json")
+        .form(&params)
+        .send()
+        .await
+        .map_err(|e| format!("Token refresh request failed: {}", e))?;
+
+    if !res.status().is_success() {
+        let status = res.status();
+        let body = res.text().await.unwrap_or_default();
+        return Err(format!("Discord token refresh failed ({}): {}", status, body));
+    }
+
+    let json: serde_json::Value = res
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse token refresh response: {}", e))?;
+
+    let access_token = json
+        .get("access_token")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| "Discord token refresh returned no access_token".to_string())?
+        .to_string();
+
+    Ok(DiscordTokenRefresh {
+        token: access_token,
+        refresh_token: json
+            .get("refresh_token")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()),
+        expires_in: json.get("expires_in").and_then(|v| v.as_i64()),
+    })
 }

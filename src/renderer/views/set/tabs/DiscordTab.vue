@@ -78,6 +78,54 @@
           }}</span>
         </div>
 
+        <!-- Gateway Session Status -->
+        <div
+          v-if="setData.discordToken && setData.discordRPCEnabled"
+          class="rounded-2xl p-3.5 px-4 flex items-center space-x-3 transition-colors min-w-0"
+          :class="
+            gatewayStatus?.connected
+              ? 'bg-green-500/15 text-green-600 dark:text-green-400'
+              : 'bg-black/5 dark:bg-white/10'
+          "
+        >
+          <n-icon
+            size="20"
+            :class="
+              gatewayStatus?.connected
+                ? 'text-green-600 dark:text-green-400'
+                : 'text-black/60 dark:text-white/60'
+            "
+          >
+            <svg
+              v-if="gatewayStatus?.connected"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <svg
+              v-else
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+              <line x1="12" y1="12" x2="12" y2="16"></line>
+            </svg>
+          </n-icon>
+          <span class="text-[15px] font-medium truncate" :title="gatewayStatusLabel">{{
+            gatewayStatusLabel
+          }}</span>
+        </div>
+
         <!-- Enable RPC Toggle inside Account Card -->
         <div
           :class="[
@@ -113,7 +161,7 @@
           <n-button
             size="large"
             block
-            class="h-[60px] text-[16px] font-bold rounded-full bg-[#5865F2] hover:bg-[#4752C4] text-white border-none shadow-[0_8px_16px_rgba(88,101,242,0.24)] transition-all hover:shadow-[0_12px_20px_rgba(88,101,242,0.32)] hover:-translate-y-0.5"
+            class="h-[60px] text-[16px] font-bold rounded-[8px] bg-[#5865F2] hover:bg-[#4752C4] text-white border-none shadow-[0_8px_16px_rgba(88,101,242,0.24)] transition-all hover:shadow-[0_12px_20px_rgba(88,101,242,0.32)] hover:-translate-y-0.5"
             @click="loginDiscordWebView"
           >
             <template #icon>
@@ -148,7 +196,8 @@
         <template #action>
           <n-button
             :disabled="!setData.discordRPCEnabled || !setData.discordToken"
-            @click="refreshDiscord"
+            :loading="isRefreshing"
+            @click="refreshDiscordClick"
           >
             Refresh
           </n-button>
@@ -429,11 +478,12 @@
                   class="w-full h-full object-cover"
                   :src="largeImagePreview"
                   alt="Large Image"
+                  @error="onLargeImageError"
                 />
                 <img
                   v-else
-                  class="w-full h-full object-contain p-2"
-                  src="https://raw.githubusercontent.com/slice-of-fun/Chorus-Deck/main/build/icon.png"
+                  class="w-full h-full object-cover"
+                  src="@/assets/logo.png"
                   alt="Blank Large Image"
                 />
               </div>
@@ -453,11 +503,12 @@
                     class="w-full h-full object-cover"
                     :src="smallImagePreview"
                     alt="Small Image"
+                    @error="onSmallImageError"
                   />
                   <img
                     v-else
-                    class="w-full h-full object-contain p-1"
-                    src="https://raw.githubusercontent.com/slice-of-fun/Chorus-Deck/main/build/icon.png"
+                    class="w-full h-full object-cover"
+                    src="@/assets/logo.png"
                     alt="Blank Small Image"
                   />
                 </div>
@@ -481,17 +532,17 @@
                 {{ previewState || getPlaceholderText(setData.discordActivityState) }}
               </span>
 
-              <div class="flex flex-col mt-3" v-if="playerCore.currentSong">
+              <div class="flex flex-col mt-3">
                 <div
                   class="h-[6px] w-full bg-black/10 dark:bg-white/10 rounded-full overflow-hidden"
                 >
-                  <div class="h-full bg-primary w-1/3"></div>
+                  <div class="h-full bg-primary transition-all duration-1000 ease-linear" :style="{ width: `${previewProgress}%` }"></div>
                 </div>
                 <div
                   class="flex items-center justify-between text-[11px] font-medium text-black/50 dark:text-white/50 mt-1"
                 >
-                  <span>0:00</span>
-                  <span>3:45</span>
+                  <span>{{ formatTime(previewCurrentTime) }}</span>
+                  <span>{{ formatTime(previewDuration) }}</span>
                 </div>
               </div>
             </div>
@@ -503,7 +554,7 @@
               v-if="setData.discordActivityButton1Enabled !== false"
               block
               secondary
-              class="h-[40px] font-medium rounded-[4px] border-none bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+              class="h-[40px] font-medium rounded-[4px] border-none bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors cursor-pointer"
             >
               {{ setData.discordActivityButton1Label || 'Listen on Chorus Deck' }}
             </n-button>
@@ -511,7 +562,7 @@
               v-if="setData.discordActivityButton2Enabled"
               block
               secondary
-              class="h-[40px] font-medium rounded-[4px] border-none bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+              class="h-[40px] font-medium rounded-[4px] border-none bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors cursor-pointer"
             >
               {{ setData.discordActivityButton2Label || 'Go to Chorus Deck' }}
             </n-button>
@@ -527,6 +578,7 @@ import { NAvatar, NButton, NSelect, NSwitch } from 'naive-ui';
 import { computed, inject } from 'vue';
 
 import { SETTINGS_DATA_KEY, SETTINGS_MESSAGE_KEY } from '../keys';
+import type { DiscordGatewayStatus } from '@/api/bridge';
 import ListDialogPreference from '../ListDialogPreference.vue';
 import SettingItem from '../SettingItem.vue';
 import SettingSection from '../SettingSection.vue';
@@ -535,12 +587,131 @@ import SInput from '../SInput.vue';
 const setData = inject(SETTINGS_DATA_KEY)!;
 const message = inject(SETTINGS_MESSAGE_KEY)!;
 
-import { ref } from 'vue';
+import { ref, onMounted, onUnmounted, watch } from 'vue';
 
 import { useSettingsStore } from '@/store/modules/settings';
+import { ensureDiscordToken } from '@/utils/discordToken';
 
 const settingsStore = useSettingsStore();
 const tempDiscordToken = ref('');
+
+const isRefreshing = ref(false);
+const gatewayStatus = ref<DiscordGatewayStatus | null>(null);
+
+const gatewayStatusLabel = computed(() => {
+  if (gatewayStatus.value?.connected) return 'Presence gateway connected';
+  const err = gatewayStatus.value?.lastError;
+  if (err && err !== 'connecting') return `Gateway issue: ${err}`;
+  return 'Presence gateway idle';
+});
+
+let gatewayStatusInterval: any = null;
+
+const pollGatewayStatus = async () => {
+  try {
+    gatewayStatus.value = await window.api.discordGatewayStatus();
+  } catch {
+    // ignore polling failures
+  }
+};
+
+const refreshDiscordClick = async () => {
+  if (isRefreshing.value) return;
+  isRefreshing.value = true;
+  try {
+    await refreshDiscord(false);
+  } finally {
+    isRefreshing.value = false;
+    void pollGatewayStatus();
+  }
+};
+
+const previewCurrentTime = ref(0);
+const previewDuration = ref(0);
+
+const formatTime = (time: number) => {
+  if (!time || isNaN(time)) return '0:00';
+  const mins = Math.floor(time / 60);
+  const secs = Math.floor(time % 60);
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+};
+
+const previewProgress = computed(() => {
+  if (!previewDuration.value) return 0;
+  return Math.min(100, Math.max(0, (previewCurrentTime.value / previewDuration.value) * 100));
+});
+
+const largeImageError = ref(false);
+const smallImageError = ref(false);
+
+const onLargeImageError = (e: any) => {
+  largeImageError.value = true;
+};
+const onSmallImageError = (e: any) => {
+  smallImageError.value = true;
+};
+
+let previewInterval: any = null;
+
+onMounted(() => {
+  void pollGatewayStatus();
+  gatewayStatusInterval = setInterval(pollGatewayStatus, 5000);
+
+  previewInterval = setInterval(async () => {
+    try {
+      const time = await window.api.audioGetTime();
+      const { audioService } = await import('@/services/audioService');
+      const currentDur = audioService.getDuration();
+      const songDur = playerCore.currentSong?.dt ? playerCore.currentSong.dt / 1000 : 0;
+      
+      previewCurrentTime.value = time;
+      previewDuration.value = currentDur > 0 ? currentDur : (songDur > 0 ? songDur : 120);
+    } catch (e) {
+      // ignore
+    }
+  }, 1000);
+});
+
+let autoRefreshTimeout: any = null;
+
+watch(
+  () => [
+    setData.value.discordRPCEnabled,
+    setData.value.discordActivityName,
+    setData.value.discordActivityDetails,
+    setData.value.discordActivityState,
+    setData.value.discordActivityType,
+    setData.value.discordLargeImageType,
+    setData.value.discordLargeImageCustomUrl,
+    setData.value.discordSmallImageType,
+    setData.value.discordSmallImageCustomUrl,
+    setData.value.discordShowWhenPaused,
+    setData.value.discordActivityButton1Enabled,
+    setData.value.discordActivityButton1Label,
+    setData.value.discordActivityButton1UrlSource,
+    setData.value.discordActivityButton1CustomUrl,
+    setData.value.discordActivityButton2Enabled,
+    setData.value.discordActivityButton2Label,
+    setData.value.discordActivityButton2UrlSource,
+    setData.value.discordActivityButton2CustomUrl,
+  ],
+  () => {
+    if (setData.value.discordRPCEnabled && setData.value.discordToken) {
+      if (autoRefreshTimeout) clearTimeout(autoRefreshTimeout);
+      autoRefreshTimeout = setTimeout(() => {
+        refreshDiscord(true);
+      }, 500);
+    } else if (!setData.value.discordRPCEnabled && setData.value.discordToken) {
+       window.api.clearDiscordPresence();
+    }
+  },
+  { deep: true }
+);
+
+onUnmounted(() => {
+  if (previewInterval) clearInterval(previewInterval);
+  if (gatewayStatusInterval) clearInterval(gatewayStatusInterval);
+});
 
 const loginDiscordWebView = async () => {
   try {
@@ -549,14 +720,22 @@ const loginDiscordWebView = async () => {
       username?: string;
       name?: string;
       avatarUrl?: string;
+      refreshToken?: string;
+      expiresIn?: number;
     } | null>('discord-webview-login');
     if (userInfo && userInfo.token) {
+      const expiresAt = userInfo.expiresIn
+        ? Date.now() + userInfo.expiresIn * 1000
+        : 0;
       // Persist immediately via the settings store (no debounce race)
       settingsStore.setSetData({
         discordToken: userInfo.token,
         discordUsername: userInfo.username || '',
         discordName: userInfo.name || userInfo.username || '',
-        discordAvatarUrl: userInfo.avatarUrl || ''
+        discordAvatarUrl: userInfo.avatarUrl || '',
+        discordRefreshToken: userInfo.refreshToken || '',
+        discordTokenExpiresAt: expiresAt,
+        discordRPCEnabled: true
       });
 
       // Update local reactive setData so the UI reflects the change instantly
@@ -565,15 +744,22 @@ const loginDiscordWebView = async () => {
         discordToken: userInfo.token,
         discordUsername: userInfo.username || '',
         discordName: userInfo.name || userInfo.username || '',
-        discordAvatarUrl: userInfo.avatarUrl || ''
+        discordAvatarUrl: userInfo.avatarUrl || '',
+        discordRefreshToken: userInfo.refreshToken || '',
+        discordTokenExpiresAt: expiresAt,
+        discordRPCEnabled: true
       };
 
       message.success('Connected to Discord!');
+    } else {
+      message.warning('Could not retrieve Discord token. Connection cancelled.');
     }
   } catch (error: any) {
     if (error !== 'Window closed before login' && error?.message !== 'Window closed before login') {
       console.error('Failed to login to Discord:', error);
       message.error('Discord login failed. Please try again.');
+    } else {
+      message.warning('Discord connection cancelled.');
     }
   }
 };
@@ -593,19 +779,18 @@ const logoutDiscord = () => {
     discordToken: '',
     discordUsername: '',
     discordName: '',
-    discordAvatarUrl: ''
+    discordAvatarUrl: '',
+    discordRPCEnabled: false
   };
 
   window.api.discordLogout();
   message.success('Logged out of Discord.');
 };
 
-const refreshDiscord = async () => {
-  // Re-trigger the Discord presence update with the current playing song
-  // This mirrors Chorus-Music's DiscordPresenceManager.restart()
+const refreshDiscord = async (silent = false) => {
   const currentSong = playerCore.currentSong;
   if (!currentSong || !currentSong.name) {
-    message.warning('No song is currently playing.');
+    if (!silent) message.warning('No song is currently playing.');
     return;
   }
 
@@ -680,12 +865,16 @@ const refreshDiscord = async () => {
       button2Url: resolveButtonUrl(
         s.discordActivityButton2UrlSource || 'custom',
         s.discordActivityButton2CustomUrl || 'https://github.com/slice-of-fun/Chorus-Deck'
-      )
+      ),
+      token: (await ensureDiscordToken(s)) || undefined
     });
-    message.success('Discord presence refreshed!');
+    if (silent !== true) {
+      message.success('Discord presence refreshed!');
+    }
   } catch (e: any) {
     console.error('Failed to refresh Discord presence:', e);
-    message.error('Failed to refresh Discord presence. Is Discord running?');
+    const detail = typeof e === 'string' ? e : e?.message || 'Unknown error';
+    message.error(`Failed to refresh Discord presence: ${detail}`);
   }
 };
 
@@ -769,42 +958,53 @@ const previewLargeText = computed(() => {
 });
 
 const largeImagePreview = computed(() => {
+  if (largeImageError.value) return 'https://raw.githubusercontent.com/slice-of-fun/Chorus-Deck/main/resources/logo.png';
+  
   const type = setData.value.discordLargeImageType;
   const song = playerCore.currentSong as any;
-  // Cover art: prefer al.picUrl (YTM album object), fall back to top-level picUrl
+  if (!song || !song.name) return 'https://raw.githubusercontent.com/slice-of-fun/Chorus-Deck/main/resources/logo.png';
+
   const albumArt = song?.al?.picUrl || song?.picUrl || '';
-  // Artist pic: some sources put it on ar[0].picUrl, otherwise fall back to albumArt
   const artistPic = song?.ar?.[0]?.picUrl || song?.artists?.[0]?.picUrl || albumArt;
 
   if (type === 'thumbnail' && albumArt) return albumArt;
   if (type === 'artist' && artistPic) return artistPic;
   if (type === 'appicon')
-    return 'https://raw.githubusercontent.com/slice-of-fun/Chorus-Deck/main/build/icon.png';
+    return '';
   if (type === 'custom')
     return (
-      setData.value.discordLargeImageCustomUrl ||
-      'https://raw.githubusercontent.com/slice-of-fun/Chorus-Deck/main/build/icon.png'
+      setData.value.discordLargeImageCustomUrl || ''
     );
-  return albumArt || 'https://raw.githubusercontent.com/slice-of-fun/Chorus-Deck/main/build/icon.png';
+  return albumArt || '';
 });
 
 const smallImagePreview = computed(() => {
   const type = setData.value.discordSmallImageType;
+  if (type === 'dontshow') return null;
+  if (smallImageError.value) return 'https://raw.githubusercontent.com/slice-of-fun/Chorus-Deck/main/resources/logo.png';
+
   const song = playerCore.currentSong as any;
+  if (!song || !song.name) return 'https://raw.githubusercontent.com/slice-of-fun/Chorus-Deck/main/resources/logo.png';
+
   const albumArt = song?.al?.picUrl || song?.picUrl || '';
   const artistPic = song?.ar?.[0]?.picUrl || song?.artists?.[0]?.picUrl || albumArt;
 
-  if (type === 'dontshow') return null;
   if (type === 'thumbnail' && albumArt) return albumArt;
   if (type === 'artist' && artistPic) return artistPic;
   if (type === 'appicon')
-    return 'https://raw.githubusercontent.com/slice-of-fun/Chorus-Deck/main/build/icon.png';
+    return '';
   if (type === 'custom')
     return (
-      setData.value.discordSmallImageCustomUrl ||
-      'https://raw.githubusercontent.com/slice-of-fun/Chorus-Deck/main/build/icon.png'
+      setData.value.discordSmallImageCustomUrl || ''
     );
-  return albumArt || 'https://raw.githubusercontent.com/slice-of-fun/Chorus-Deck/main/build/icon.png';
+  return albumArt || '';
+});
+
+watch(largeImagePreview, () => {
+  largeImageError.value = false;
+});
+watch(smallImagePreview, () => {
+  smallImageError.value = false;
 });
 
 const statusOptions = [
@@ -831,7 +1031,7 @@ const sourceOptions = [
   { label: 'Artist Name', value: 'ARTIST' },
   { label: 'Album Name', value: 'ALBUM' },
   { label: 'Song Title', value: 'SONG' },
-  { label: 'Chorus Deck', value: 'APP' }
+  { label: 'Chorus-Deck', value: 'APP' }
 ];
 
 const imageTypeOptions = [

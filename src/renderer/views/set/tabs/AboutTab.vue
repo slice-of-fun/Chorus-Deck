@@ -68,7 +68,7 @@
     <setting-item
       icon="ri-github-line"
       title="App"
-      description="slice-of-fun/Chorus-Music"
+      description="Chorus-Deck/Chorus-Deck"
       clickable
       @click="openAppRepo"
     >
@@ -192,7 +192,7 @@ const openDeveloper = () => {
 };
 
 const openAppRepo = () => {
-  window.open('https://github.com/slice-of-fun/Chorus-Music');
+  window.open('https://github.com/Chorus-Deck/Chorus-Deck');
 };
 
 defineExpose({ checkForUpdates });

@@ -253,7 +253,6 @@ const setupMusicWatchers = () => {
         lastIndex = -1;
       }
       await ensureLyricsLoaded(true);
-      sendDiscordPresence();
     },
     { immediate: true }
   );
@@ -828,49 +827,10 @@ export const closeLyric = () => {
   stopLyricSync();
 };
 
-const sendDiscordPresence = () => {
-  const store = getPlayerStore();
-  const music = store.playMusic;
-  if (!music || !music.id) return;
-
-  const isPlaying = store.play;
-  const artistName = music.ar?.map((a) => a.name).join(', ') || (music as any).artists?.map((a: any) => a.name).join(', ') || 'Unknown Artist';
-  const title = music.name || 'Unknown Title';
-  const albumName = music.al?.name || (typeof (music as any).album === 'string' ? (music as any).album : null) || (typeof (music as any).album === 'object' ? (music as any).album?.name : null) || 'Unknown Album';
-  const albumArt = music.al?.picUrl || (music as any).picUrl || '';
-  const artistArt = music.ar?.[0]?.picUrl || music.ar?.[0]?.img1v1Url || (music as any).artists?.[0]?.picUrl || (music as any).artists?.[0]?.img1v1Url || '';
-  const songId = music.id || '';
-  const artistId = music.ar?.[0]?.id || (music as any).artists?.[0]?.id || '';
-  const albumId = music.al?.id || '';
-
-  try {
-    const currentPlaybackTimeMillis = nowTime.value * 1000;
-    const duration = Math.floor((audioService.getDuration() || 0) * 1000);
-    window.api.updateDiscordPresence({
-      title: title,
-      artist: artistName,
-      album: albumName,
-      albumArt: albumArt,
-      artistArt: artistArt,
-      songId: songId,
-      artistId: artistId,
-      albumId: albumId,
-      duration: duration,
-      isPlaying: isPlaying,
-      startTimestamp: isPlaying ? Math.floor(Date.now() - currentPlaybackTimeMillis) : undefined
-    });
-  } catch (err) {
-    // Discord not running is an expected state, not an error worth surfacing
-    // on every playback tick.
-    console.debug('Discord presence unavailable:', (err as Error)?.message || err);
-  }
-};
-
 const setupPlayStateWatcher = () => {
   watch(
     () => getPlayerStore().play,
     (isPlaying) => {
-      sendDiscordPresence();
       if (isLyricWindowOpen.value) {
         if (isPlaying) {
           startLyricSync();

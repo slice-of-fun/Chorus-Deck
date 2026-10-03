@@ -33,6 +33,8 @@ const GENERIC_INVOKE_CHANNELS = [
   'clear-discord-presence',
   'discord-logout',
   'discord-webview-login',
+  'discord-refresh-token',
+  'discord-gateway-status',
   'open-directory',
   'restart',
   'set-content-zoom',
@@ -77,6 +79,12 @@ const EVENT_CHANNELS = [
 ] as const;
 
 export type Unlisten = () => void;
+
+export type DiscordGatewayStatus = {
+  connected: boolean;
+  lastError?: string | null;
+  lastChangeAt?: number | null;
+};
 
 const listenerRegistry = new Map<string, Set<UnlistenFn>>();
 
@@ -306,6 +314,13 @@ export const bridge = {
   updateDiscordPresence: (presence: unknown) =>
     rawInvoke<void>('update-discord-presence', { presence }),
   clearDiscordPresence: () => rawInvoke<void>('clear-discord-presence'),
+  refreshDiscordToken: (refreshToken: string) =>
+    rawInvoke<{ token: string; refreshToken?: string; expiresIn?: number }>(
+      'discord-refresh-token',
+      { refreshToken }
+    ),
+  discordGatewayStatus: () =>
+    rawInvoke<DiscordGatewayStatus>('discord-gateway-status'),
   trayLyricUpdate: (data: unknown) => rawInvoke<void>('tray-lyric-update', { data }),
 
   onPlaybackProgress: (cb: (timeSecs: number) => void) => {

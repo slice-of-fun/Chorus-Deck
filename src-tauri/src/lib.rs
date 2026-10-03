@@ -227,6 +227,8 @@ pub fn run() {
             commands::discord::clear_discord_presence,
             commands::discord::discord_logout,
             commands::discord::discord_webview_login,
+            commands::discord::discord_refresh_token,
+            commands::discord_gateway::discord_gateway_status,
             commands::audio::audio_play,
             commands::audio::audio_pause,
             commands::audio::audio_resume,
