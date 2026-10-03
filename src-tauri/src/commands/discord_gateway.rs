@@ -58,8 +58,6 @@ fn set_status(connected: bool, error: Option<&str>) {
     }
 }
 
-/// Lets the settings UI show whether the Discord gateway session is alive and
-/// surface connection problems instead of failing silently.
 #[tauri::command(rename = "discord-gateway-status")]
 pub fn discord_gateway_status() -> GatewayStatus {
     GATEWAY_STATUS.lock().map(|s| s.clone()).unwrap_or(GatewayStatus {
@@ -84,13 +82,9 @@ lazy_static! {
     static ref RT: Runtime = Runtime::new().unwrap();
 }
 
-/// Fire-and-forget presence update (playback-driven updates).
 pub fn update_presence(presence: DiscordPresence, token: String) {
     send_cmd(GatewayCmd::UpdatePresence { presence, token, reply: None });
 }
-
-/// Acknowledged presence update: resolves with the real connect/send result so
-/// the Refresh button can report success or failure like Chorus-Music.
 pub async fn update_presence_acked(
     presence: DiscordPresence,
     token: String,
@@ -128,11 +122,6 @@ fn send_cmd(cmd: GatewayCmd) {
     }
 }
 
-/// Immediately re-queues the last known presence after an unexpected socket
-/// drop, so the actor reconnects and re-applies it without waiting for the
-/// next playback event or the 60s resync tick. Bounded by `streak`: at most
-/// 3 recoveries in a row without a successful send, then the 60s tick remains
-/// the backstop.
 fn recover_last_presence(last: &mut Option<(DiscordPresence, String)>, streak: &mut u32) {
     if *streak >= 3 {
         return;
@@ -155,9 +144,6 @@ async fn register_external_asset(client: &Client, token: &str, url: &str) -> Opt
         return Some(url.to_string());
     }
 
-    // Cache registered assets: the same album/artist art is re-sent on every
-    // presence update (play/pause/seek and the 60s resync). Skipping the HTTP
-    // round-trip keeps updates instant and never blocks the heartbeat loop.
     if let Ok(cache) = ASSET_CACHE.lock() {
         if let Some(cached) = cache.get(url) {
             return Some(cached.clone());
@@ -167,7 +153,6 @@ async fn register_external_asset(client: &Client, token: &str, url: &str) -> Opt
     let auth = if token.contains('.') { token.to_string() } else { format!("Bearer {}", token) };
     let body = json!({ "urls": [url] });
 
-    // 5s cap: a slow Discord API must never stall the actor past a heartbeat.
     let res = client.post("https://discord.com/api/v10/applications/1554131750899163186/external-assets")
         .header("Authorization", auth)
         .timeout(std::time::Duration::from_secs(5))
@@ -193,11 +178,6 @@ async fn register_external_asset(client: &Client, token: &str, url: &str) -> Opt
     None
 }
 
-/// Opens the gateway socket, waits for HELLO (op 10), arms the heartbeat
-/// interval and sends IDENTIFY. Mirrors GatewayClient.connect()/sendIdentify()
-/// exactly — same gateway version, capability/intent bitfields and honest
-/// client properties (impersonating the official Discord client gets the
-/// session closed before READY).
 async fn connect_and_identify(
     token: &str,
     heartbeat_interval: &mut tokio::time::Interval,
@@ -223,14 +203,12 @@ async fn connect_and_identify(
 
     let hb_interval = json["d"]["heartbeat_interval"].as_u64().unwrap_or(41250);
     *heartbeat_interval = tokio::time::interval(tokio::time::Duration::from_millis(hb_interval));
-    // Consume the immediate first tick so the first heartbeat waits a full interval.
     heartbeat_interval.tick().await;
 
-    let auth_token = if token.contains('.') { token.to_string() } else { format!("Bearer {}", token) };
     let identify = json!({
         "op": 2,
         "d": {
-            "token": auth_token,
+            "token": token,
             "capabilities": (1 << 4) | (1 << 5) | (1 << 12) | (1 << 16),
             "intents": (1 << 12) | (1 << 18) | (1 << 19) | (1 << 22) | (1 << 23)
                 | (1 << 27) | (1 << 28) | (1 << 29),
@@ -284,6 +262,7 @@ async fn wait_ready(ws: &mut WsStream, seq: &mut Option<i64>) -> Result<(), Stri
                 }
                 continue;
             }
+
             Ok(Some(Ok(Message::Close(frame)))) => {
                 return Err(format!(
                     "Discord closed the session before READY: {}",
@@ -330,9 +309,14 @@ async fn gateway_actor(mut rx: tokio::sync::mpsc::UnboundedReceiver<GatewayCmd>)
 
                         let mut outcome: Result<(), String> = Ok(());
                         let mut fresh_session = false;
-
                         if active_token.as_deref() != Some(token.as_str()) {
-                            active_token = Some(token.clone());
+                            if let Some(mut old) = ws_stream.take() {
+                                let _ = old.close(None).await;
+                            }
+                            heartbeat_active = false;
+                            awaiting_ack = false;
+                            seq = None;
+                            active_token = None;
                         }
 
                         if ws_stream.is_none() {
@@ -386,13 +370,8 @@ async fn gateway_actor(mut rx: tokio::sync::mpsc::UnboundedReceiver<GatewayCmd>)
                         let mut send_err: Option<String> = None;
 
                         if let Some(ws) = ws_stream.as_mut() {
-                            let is_playing = presence.is_playing.unwrap_or(false);
                             let large_image_type = presence.large_image_type.as_deref().unwrap_or("thumbnail");
-                            let large_url = if !is_playing {
-                                None
-                            } else {
-                                resolve_image_url(large_image_type, presence.large_image_custom_url.as_deref(), &presence)
-                            };
+                            let large_url = resolve_image_url(large_image_type, presence.large_image_custom_url.as_deref(), &presence);
                             let large_image = if let Some(url) = large_url {
                                 register_external_asset(&client, &token, &url).await
                             } else {
@@ -534,8 +513,6 @@ async fn gateway_actor(mut rx: tokio::sync::mpsc::UnboundedReceiver<GatewayCmd>)
                         }
                     },
                     Some(GatewayCmd::ClearPresence) | Some(GatewayCmd::Close) => {
-                        // The user explicitly cleared/disabled presence or logged
-                        // out — never auto-recover this state after a drop.
                         last_presence = None;
                         if matches!(cmd, Some(GatewayCmd::ClearPresence)) {
                             if let Some(mut ws) = ws_stream.take() {
@@ -558,7 +535,7 @@ async fn gateway_actor(mut rx: tokio::sync::mpsc::UnboundedReceiver<GatewayCmd>)
                             heartbeat_active = false;
                             awaiting_ack = false;
                             active_token = None;
-                            set_status(false, Some("Gateway session closed"));
+                            set_status(false, None);
                         }
                     },
                     None => break,
@@ -566,8 +543,6 @@ async fn gateway_actor(mut rx: tokio::sync::mpsc::UnboundedReceiver<GatewayCmd>)
             },
             
             _ = heartbeat_interval.tick(), if heartbeat_active && ws_stream.is_some() => {
-                // Missed op-11 ACK since the previous heartbeat: the session is a
-                // zombie (socket open, Discord not reading). Drop and reconnect.
                 if awaiting_ack {
                     ws_stream = None;
                     heartbeat_active = false;
@@ -597,7 +572,7 @@ async fn gateway_actor(mut rx: tokio::sync::mpsc::UnboundedReceiver<GatewayCmd>)
             },
             
             Some(msg) = async { 
-                if let Some(ws) = ws_stream.as_mut() { ws.next().await } else { futures_util::future::pending().await } 
+                if let Some(ws) = ws_stream.as_mut() { ws.next().await.or(Some(Ok(Message::Close(None)))) } else { futures_util::future::pending().await }
             } => {
                 match msg {
                     Ok(Message::Text(txt)) => {
@@ -606,10 +581,8 @@ async fn gateway_actor(mut rx: tokio::sync::mpsc::UnboundedReceiver<GatewayCmd>)
                                 seq = Some(s);
                             }
                             match json["op"].as_i64() {
-                                // Heartbeat ACK received — session is alive.
                                 Some(11) => awaiting_ack = false,
                                 Some(7) | Some(9) => {
-                                    // Reconnect requested / invalid session.
                                     ws_stream = None;
                                     heartbeat_active = false;
                                     awaiting_ack = false;

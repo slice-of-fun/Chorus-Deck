@@ -161,6 +161,7 @@
           <n-button
             size="large"
             block
+            :loading="loggingIn"
             class="h-[60px] text-[16px] font-bold rounded-[8px] bg-[#5865F2] hover:bg-[#4752C4] text-white border-none shadow-[0_8px_16px_rgba(88,101,242,0.24)] transition-all hover:shadow-[0_12px_20px_rgba(88,101,242,0.32)] hover:-translate-y-0.5"
             @click="loginDiscordWebView"
           >
@@ -596,6 +597,7 @@ const settingsStore = useSettingsStore();
 const tempDiscordToken = ref('');
 
 const isRefreshing = ref(false);
+const loggingIn = ref(false);
 const gatewayStatus = ref<DiscordGatewayStatus | null>(null);
 
 const gatewayStatusLabel = computed(() => {
@@ -714,6 +716,8 @@ onUnmounted(() => {
 });
 
 const loginDiscordWebView = async () => {
+  if (loggingIn.value) return;
+  loggingIn.value = true;
   try {
     const userInfo = await window.api.invoke<{
       token: string;
@@ -755,12 +759,17 @@ const loginDiscordWebView = async () => {
       message.warning('Could not retrieve Discord token. Connection cancelled.');
     }
   } catch (error: any) {
-    if (error !== 'Window closed before login' && error?.message !== 'Window closed before login') {
+    const msg = typeof error === 'string' ? error : error?.message;
+    if (msg === 'Window closed before login') {
+      message.warning('Discord connection cancelled.');
+    } else if (msg?.includes('already open')) {
+      message.warning('A Discord login window is already open.');
+    } else {
       console.error('Failed to login to Discord:', error);
       message.error('Discord login failed. Please try again.');
-    } else {
-      message.warning('Discord connection cancelled.');
     }
+  } finally {
+    loggingIn.value = false;
   }
 };
 
