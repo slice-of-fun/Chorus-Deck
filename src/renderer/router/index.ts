@@ -1,7 +1,6 @@
 import { createRouter, createWebHashHistory } from 'vue-router';
 
 import AppLayout from '@/layout/AppLayout.vue';
-import MiniLayout from '@/layout/MiniLayout.vue';
 import homeRouter from '@/router/home';
 import otherRouter from '@/router/other';
 import { useSettingsStore } from '@/store/modules/settings';
@@ -25,8 +24,8 @@ const routes = [
     component: () => import('@/views/lyric/index.vue')
   },
   {
-    path: '/mini',
-    component: MiniLayout
+    path: '/dynamic-island',
+    component: () => import('@/views/dynamic-island/index.vue')
   }
 ];
 
@@ -36,19 +35,12 @@ const router = createRouter({
 });
 
 router.beforeEach((to, _, next) => {
-  const settingsStore = getSettingsStore();
-
-  if (settingsStore.isMiniMode) {
-    if (to.path === '/mini') {
-      next();
-    } else {
-      next(false);
-    }
-  } else if (to.path === '/mini') {
-    next('');
-  } else {
+  if (to.path === '/dynamic-island') {
     next();
+    return;
   }
+
+  next();
 });
 
 export default router;

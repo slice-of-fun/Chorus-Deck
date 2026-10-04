@@ -69,6 +69,17 @@ pub fn run() {
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window;
             }
+            if let Some(island) = app.get_webview_window("dynamic-island") {
+                if let Ok(Some(monitor)) = island.current_monitor() {
+                    let scale_factor = monitor.scale_factor();
+                    let size = monitor.size();
+                    let island_width = (500.0 * scale_factor) as i32;
+                    let x = (size.width as i32 - island_width) / 2;
+                    let y = 0;
+                    let _ = island.set_position(tauri::PhysicalPosition::new(x, y));
+                    let _ = island.show();
+                }
+            }
 
             use tauri::menu::{Menu, MenuItem};
             use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
@@ -137,9 +148,6 @@ pub fn run() {
             commands::window::restart,
             commands::window::restore_window,
             commands::window::resize_window,
-            commands::window::set_mini_constraints,
-            commands::window::mini_window,
-            commands::window::mini_tray,
             commands::window::get_platform,
             commands::system::drag_start,
             commands::window::open_lyric,

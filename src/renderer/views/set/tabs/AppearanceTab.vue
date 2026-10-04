@@ -179,19 +179,6 @@
         </template>
       </setting-item>
       <setting-item
-        icon="ri-image-2-line"
-        title="Mini Player Background Style"
-        description="Select the background style for the mini player"
-      >
-        <template #action>
-          <n-select
-            v-model:value="setData.miniPlayerBackgroundStyle"
-            :options="miniPlayerBackgroundOptions"
-            class="w-48 max-md:w-full"
-          />
-        </template>
-      </setting-item>
-      <setting-item
         icon="ri-play-circle-line"
         title="Player Buttons Style"
         description="Select the style for the player control buttons"
@@ -494,6 +481,34 @@
         <n-switch v-model:value="setData.hideStatusBarOnFullscreen" />
       </setting-item>
     </setting-section>
+
+    <setting-section title="Dynamic Island">
+      <setting-item
+        icon="ri-layout-top-line"
+        title="Enable Dynamic Island"
+        description="Show dynamic content notch at the top of the screen"
+      >
+        <n-switch v-model:value="setData.dynamicIslandEnabled" />
+      </setting-item>
+
+      <setting-item
+        icon="ri-eye-line"
+        title="Dynamic Island Visibility"
+        description="Select when to show the Dynamic Island"
+      >
+        <template #action>
+          <n-switch
+            v-model:value="setData.dynamicIslandVisibility"
+            checked-value="permanent"
+            unchecked-value="auto-hide"
+            :disabled="!setData.dynamicIslandEnabled"
+          >
+            <template #checked>Permanent</template>
+            <template #unchecked>Auto-hide</template>
+          </n-switch>
+        </template>
+      </setting-item>
+    </setting-section>
   </div>
 </template>
 
@@ -530,17 +545,15 @@ const playerBackgroundOptions = [
   { label: 'Live Mesh', value: 'LIVE_MESH' }
 ];
 
-const miniPlayerBackgroundOptions = [
-  { label: 'Follow Theme', value: 'DEFAULT' },
-  { label: 'Blur', value: 'BLUR' },
-  { label: 'Glow Animated', value: 'GLOW_ANIMATED' },
-  { label: 'Live Mesh', value: 'LIVE_MESH' }
-];
-
 const playerButtonsOptions = [
   { label: 'Default', value: 'DEFAULT' },
   { label: 'Primary Color', value: 'PRIMARY' },
   { label: 'Tertiary Color', value: 'TERTIARY' }
+];
+
+const dynamicIslandVisibilityOptions = [
+  { label: 'Auto-hide', value: 'auto-hide' },
+  { label: 'Permanent', value: 'permanent' }
 ];
 
 const sliderStyleOptions = [{ label: 'Default', value: 'DEFAULT' }];

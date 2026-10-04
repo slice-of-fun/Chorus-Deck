@@ -72,7 +72,6 @@
   "hidePlayerThumbnail": false,
   "cropAlbumArt": true,
   "playerBackgroundStyle": "GRADIENT",
-  "miniPlayerBackgroundStyle": "DEFAULT",
   "defaultOpenTab": "HOME",
   "playerButtonsStyle": "DEFAULT",
   "lyricsTextPosition": "LEFT",
@@ -174,9 +173,7 @@
   "maxImageCacheSize": 512,
   "maxSongCacheSize": 1024,
   "pureBlack": false,
-  "pureBlackMiniPlayer": false,
   "slimNavBar": false,
-  "useNewMiniPlayerDesign": false,
   "hidePlayerSlider": false,
   "thumbnailCornerRadius": 12,
   "developerMode": false,
@@ -249,5 +246,7 @@
   "virtualizer": 0,
   "listenBrainzEnabled": false,
   "listenBrainzToken": "",
-  "useLoginForBrowse": true
+  "useLoginForBrowse": true,
+  "dynamicIslandEnabled": true,
+  "dynamicIslandVisibility": "auto-hide"
 }

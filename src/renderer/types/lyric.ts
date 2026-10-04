@@ -12,7 +12,6 @@ export interface LyricConfig {
   translationEngine?: 'none' | 'opencc';
   pureModeEnabled: boolean;
   featherEdge: boolean;
-  hideMiniPlayBar: boolean;
   hideLyrics: boolean;
   focusCurrentLyric: boolean;
   contentWidth: number;
@@ -45,7 +44,6 @@ export const DEFAULT_LYRIC_CONFIG: LyricConfig = {
   showRoma: true,
   theme: 'default',
   hidePlayBar: true,
-  hideMiniPlayBar: false,
   pureModeEnabled: false,
   featherEdge: true,
   hideLyrics: false,

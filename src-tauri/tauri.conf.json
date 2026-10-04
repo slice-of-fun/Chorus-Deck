@@ -25,6 +25,23 @@
         "visible": true,
         "decorations": false,
         "transparent": true
+      },
+      {
+        "label": "dynamic-island",
+        "title": "Dynamic Island",
+        "url": "index.html#/dynamic-island",
+        "width": 500,
+        "height": 200,
+        "resizable": false,
+        "fullscreen": false,
+        "center": false,
+        "focus": false,
+        "visible": false,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "shadow": false
       }
     ],
     "security": {

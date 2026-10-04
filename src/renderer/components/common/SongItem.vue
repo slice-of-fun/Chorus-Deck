@@ -22,13 +22,11 @@ import type { SongResult } from '@/types/music';
 import CompactSongItem from './songItemCom/CompactSongItem.vue';
 import HomeSongItem from './songItemCom/HomeSongItem.vue';
 import ListSongItem from './songItemCom/ListSongItem.vue';
-import MiniSongItem from './songItemCom/MiniSongItem.vue';
 import StandardSongItem from './songItemCom/StandardSongItem.vue';
 
 const props = withDefaults(
   defineProps<{
     item: SongResult;
-    mini?: boolean;
     list?: boolean;
     compact?: boolean;
     home?: boolean;
@@ -40,7 +38,6 @@ const props = withDefaults(
     index?: number;
   }>(),
   {
-    mini: false,
     list: false,
     compact: false,
     home: false,
@@ -56,7 +53,6 @@ const props = withDefaults(
 defineEmits(['play', 'select', 'remove-song']);
 
 const renderComponent = computed(() => {
-  if (props.mini) return MiniSongItem;
   if (props.list) return ListSongItem;
   if (props.compact) return CompactSongItem;
   if (props.home) return HomeSongItem;

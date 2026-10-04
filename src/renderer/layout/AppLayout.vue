@@ -51,7 +51,7 @@
           <queue />
         </div>
       </div>
-      <play-bar v-if="!settingsStore.isMiniMode" v-show="isPlay" />
+      <play-bar v-show="isPlay" />
     </div>
     <update-modal v-if="isDesktop()" />
     <sleep-timer-top />

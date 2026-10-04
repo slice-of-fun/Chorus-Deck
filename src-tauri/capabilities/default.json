@@ -2,7 +2,7 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Capabilities for the Chorus Deck main window",
-  "windows": ["main", "lyric", "mini"],
+  "windows": ["main", "lyric", "dynamic-island"],
   "permissions": [
     "core:default",
     "core:event:default",

@@ -18,19 +18,6 @@
         Download desktop version
       </n-button>
       <template v-if="isDesktop()">
-        <div class="window-control-btn" @click="miniWindow" title="Mini Window">
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-          >
-            <rect x="2" y="3" width="12" height="10" rx="1.5" />
-            <rect x="7" y="7" width="6" height="5" rx="1" fill="currentColor" stroke="none" />
-          </svg>
-        </div>
         <div class="window-control-btn" @click="minimize" title="Minimize">
           <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
             <path d="M3 8h10v1.5H3z" />
@@ -125,16 +112,10 @@
               Cancel
             </button>
             <button
-              class="rounded-full px-4 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800 transition-colors focus:outline-none"
+              class="rounded-full text-primary px-6 py-2 text-sm font-medium text-white hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:text-primary focus-visible:ring-offset-2 transition-colors shadow-lg text-primary/20"
               @click="handleAction('close')"
             >
               Exit App
-            </button>
-            <button
-              class="rounded-full text-primary px-6 py-2 text-sm font-medium text-white hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:text-primary focus-visible:ring-offset-2 transition-colors shadow-lg text-primary/20"
-              @click="handleAction('minimize')"
-            >
-              Minimize to Tray
             </button>
           </div>
         </div>
@@ -175,14 +156,7 @@ const maximize = () => {
   window.api.maximize();
 };
 
-const miniWindow = () => {
-  if (!isDesktop()) return;
-  settingsStore.setMiniMode(true);
-  router.push('/mini');
-  window.api.setMiniConstraints(true);
-};
-
-const handleAction = (action: 'minimize' | 'close') => {
+const handleAction = (action: 'close') => {
   if (rememberChoice.value) {
     settingsStore.setSetData({
       ...settingsStore.setData,
@@ -190,23 +164,14 @@ const handleAction = (action: 'minimize' | 'close') => {
     });
   }
 
-  if (action === 'minimize') {
-    showCloseModal.value = false;
-    setTimeout(() => {
-      window.api.miniTray();
-    }, 200);
-  } else {
-    window.api.quitApp();
-    showCloseModal.value = false;
-  }
+  window.api.quitApp();
+  showCloseModal.value = false;
 };
 
 const handleClose = () => {
   const { closeAction } = settingsStore.setData;
 
-  if (closeAction === 'minimize') {
-    window.api.miniTray();
-  } else if (closeAction === 'close') {
+  if (closeAction === 'minimize' || closeAction === 'close') {
     window.api.close();
   } else {
     showCloseModal.value = true;

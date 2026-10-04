@@ -77,11 +77,6 @@
       </div>
 
       <div v-show="activeTab === 'interface'" class="space-y-4 pt-3">
-        <div class="setting-item">
-          <span>Show Mini Play Bar</span>
-          <input type="checkbox" v-model="showMiniPlayBar" class="toggle-switch" />
-        </div>
-
         <div class="slider-group">
           <label class="slider-label">Content Width</label>
           <input
@@ -320,8 +315,6 @@ const tabs = [
   { key: 'typography', label: 'Typography' },
   { key: 'background', label: 'Background' }
 ];
-
-const showMiniPlayBar = ref(false);
 
 const gradientDirectionOptions = [
   { label: 'To Right', value: 'to right' },

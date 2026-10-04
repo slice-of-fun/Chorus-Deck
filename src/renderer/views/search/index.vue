@@ -126,7 +126,7 @@
                   <img
                     :src="results.topResult.picUrl"
                     :alt="results.topResult.name"
-                    @error="$event.target.style.opacity=0"
+                    @error="onImgError($event, 'placeholder')"
                     class="relative z-10 w-full h-full object-cover"
                     loading="lazy"
                   />
@@ -181,7 +181,7 @@
                     <img
                       :src="song.picUrl"
                       :alt="song.name"
-                      @error="\$event.target.style.opacity=0"
+                      @error="onImgError($event, 'placeholder')"
                       class="relative z-10 w-full h-full object-cover"
                       loading="lazy"
                     />
@@ -233,7 +233,7 @@
                     <img
                       :src="ar.picUrl"
                       :alt="ar.name"
-                      @error="\$event.target.style.opacity=0"
+                      @error="onImgError($event, 'placeholder')"
                       class="relative z-10 w-full h-full object-cover"
                       loading="lazy"
                     />
@@ -270,7 +270,7 @@
                     <img
                       :src="al.picUrl"
                       :alt="al.name"
-                      @error="\$event.target.style.opacity=0"
+                      @error="onImgError($event, 'placeholder')"
                       class="relative z-10 w-full h-full object-cover"
                       loading="lazy"
                     />
@@ -309,7 +309,7 @@
                     <img
                       :src="pl.picUrl"
                       :alt="pl.name"
-                      @error="\$event.target.style.opacity=0"
+                      @error="onImgError($event, 'placeholder')"
                       class="relative z-10 w-full h-full object-cover"
                       loading="lazy"
                     />
@@ -352,7 +352,7 @@
                   <img
                     :src="song.picUrl"
                     :alt="song.name"
-                    @error="\$event.target.style.opacity=0"
+                    @error="onImgError($event, 'placeholder')"
                     class="relative z-10 w-full h-full object-cover"
                     loading="lazy"
                   />
@@ -409,7 +409,7 @@
                   <img
                     :src="pl.picUrl"
                     :alt="pl.name"
-                    @error="\$event.target.style.opacity=0"
+                    @error="onImgError($event, 'placeholder')"
                     class="relative z-10 w-full h-full object-cover"
                     loading="lazy"
                   />
@@ -457,7 +457,7 @@
                   <img
                     :src="al.picUrl"
                     :alt="al.name"
-                    @error="\$event.target.style.opacity=0"
+                    @error="onImgError($event, 'placeholder')"
                     class="relative z-10 w-full h-full object-cover"
                     loading="lazy"
                   />
@@ -505,7 +505,7 @@
                   <img
                     :src="ar.picUrl"
                     :alt="ar.name"
-                    @error="\$event.target.style.opacity=0"
+                    @error="onImgError($event, 'placeholder')"
                     class="relative z-10 w-full h-full object-cover"
                     loading="lazy"
                   />
@@ -547,7 +547,7 @@
                   <img
                     :src="video.picUrl"
                     :alt="video.name"
-                    @error="\$event.target.style.opacity=0"
+                    @error="onImgError($event, 'placeholder')"
                     class="relative z-10 w-full h-full object-cover"
                     loading="lazy"
                   />

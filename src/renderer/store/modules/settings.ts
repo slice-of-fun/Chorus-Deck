@@ -18,7 +18,6 @@ import { type AppUpdateState, createDefaultAppUpdateState } from '../../../share
 export const useSettingsStore = defineStore('settings', () => {
   const theme = ref<ThemeType>(getCurrentTheme());
   const isCompact = ref(false);
-  const isMiniMode = ref(false);
   const showUpdateModal = ref(false);
   const appUpdateState = ref<AppUpdateState>(createDefaultAppUpdateState());
   const showArtistDrawer = ref(false);
@@ -126,9 +125,7 @@ export const useSettingsStore = defineStore('settings', () => {
     }
   };
 
-  const setMiniMode = (value: boolean) => {
-    isMiniMode.value = value;
-  };
+
 
   const setShowUpdateModal = (value: boolean) => {
     showUpdateModal.value = value;
@@ -289,7 +286,6 @@ export const useSettingsStore = defineStore('settings', () => {
     setData,
     theme,
     isCompact,
-    isMiniMode,
     showUpdateModal,
     appUpdateState,
     showArtistDrawer,
@@ -299,7 +295,6 @@ export const useSettingsStore = defineStore('settings', () => {
     setSetData,
     toggleTheme,
     setAutoTheme,
-    setMiniMode,
     setShowUpdateModal,
     setAppUpdateState,
     setShowArtistDrawer,

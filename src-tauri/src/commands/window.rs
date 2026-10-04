@@ -5,10 +5,7 @@ use crate::smtc::windows_smtc::{self, PlaybackState};
 
 const LYRIC_URL: &str = "index.html#lyric";
 
-fn main_window(app: &AppHandle) -> Result<WebviewWindow, String> {
-    app.get_webview_window("main")
-        .ok_or_else(|| "main window not found".to_string())
-}
+
 
 #[tauri::command(rename = "minimize-window")]
 pub fn minimize_window(window: WebviewWindow) -> Result<(), String> {
@@ -61,68 +58,6 @@ pub fn resize_window(window: WebviewWindow, width: f64, height: f64) -> Result<(
         .map_err(|e| e.to_string())
 }
 
-const MINI_SIZE: (u32, u32) = (420, 120);
-const MINI_MIN: (f64, f64) = (280.0, 72.0);
-const MINI_MAX: (f64, f64) = (900.0, 260.0);
-
-#[tauri::command(rename = "set-mini-constraints")]
-pub fn set_mini_constraints(window: WebviewWindow, entering: bool) -> Result<(), String> {
-    if entering {
-        let scale = window.scale_factor().unwrap_or(1.0);
-        window
-            .set_min_size(Some(tauri::LogicalSize::new(MINI_MIN.0, MINI_MIN.1)))
-            .map_err(|e| e.to_string())?;
-        window
-            .set_max_size(Some(tauri::LogicalSize::new(MINI_MAX.0, MINI_MAX.1)))
-            .map_err(|e| e.to_string())?;
-        window
-            .set_size(tauri::PhysicalSize::new(
-                (MINI_SIZE.0 as f64 * scale) as u32,
-                (MINI_SIZE.1 as f64 * scale) as u32,
-            ))
-            .map_err(|e| e.to_string())?;
-        window.set_always_on_top(true).map_err(|e| e.to_string())?;
-    } else {
-        window
-            .set_min_size(Some(tauri::LogicalSize::new(800.0_f64, 600.0_f64)))
-            .map_err(|e| e.to_string())?;
-        window
-            .set_max_size(None::<tauri::LogicalSize<f64>>)
-            .map_err(|e| e.to_string())?;
-        window
-            .set_always_on_top(false)
-            .map_err(|e| e.to_string())?;
-    }
-    Ok(())
-}
-
-#[tauri::command(rename = "mini-window")]
-pub fn mini_window(app: AppHandle) -> Result<(), String> {
-    let window = main_window(&app)?;
-    let scale = window.scale_factor().unwrap_or(1.0);
-    window
-        .set_min_size(Some(tauri::LogicalSize::new(MINI_MIN.0, MINI_MIN.1)))
-        .map_err(|e| e.to_string())?;
-    window
-        .set_max_size(Some(tauri::LogicalSize::new(MINI_MAX.0, MINI_MAX.1)))
-        .map_err(|e| e.to_string())?;
-    window
-        .set_size(tauri::PhysicalSize::new(
-            (MINI_SIZE.0 as f64 * scale) as u32,
-            (MINI_SIZE.1 as f64 * scale) as u32,
-        ))
-        .map_err(|e| e.to_string())
-}
-
-
-#[tauri::command(rename = "mini-tray")]
-pub fn mini_tray(app: AppHandle) -> Result<(), String> {
-    let window = main_window(&app)?;
-    window
-        .set_size(PhysicalSize::new(MINI_SIZE.0, MINI_SIZE.1))
-        .map_err(|e| e.to_string())?;
-    window.set_always_on_top(true).map_err(|e| e.to_string())
-}
 
 #[tauri::command(rename = "get-platform")]
 pub fn get_platform(_app: AppHandle) -> &'static str {
@@ -178,14 +113,14 @@ pub struct SongUpdate {
     pub cover_url: String,
     #[serde(default)]
     pub duration: f64,
-    #[serde(default)]
-    pub is_playing: bool,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub is_playing: Option<bool>,
 }
 
 #[tauri::command(rename = "update-current-song")]
 pub fn update_current_song(app: AppHandle, data: SongUpdate) -> Result<(), String> {
     windows_smtc::set_now_playing(data.title.clone(), data.artist.clone());
-    if data.is_playing {
+    if let Some(true) = data.is_playing {
         windows_smtc::set_playback_state(PlaybackState::Playing);
     }
 
@@ -197,6 +132,9 @@ pub fn update_current_song(app: AppHandle, data: SongUpdate) -> Result<(), Strin
 
     if let Some(lyric) = app.get_webview_window("lyric") {
         let _ = lyric.emit("update-current-song", &data);
+    }
+    if let Some(island) = app.get_webview_window("dynamic-island") {
+        let _ = island.emit("update-current-song", &data);
     }
     Ok(())
 }
@@ -210,6 +148,9 @@ pub fn update_play_state(app: AppHandle, is_playing: bool) -> Result<(), String>
     });
     if let Some(lyric) = app.get_webview_window("lyric") {
         let _ = lyric.emit("update-play-state", is_playing);
+    }
+    if let Some(island) = app.get_webview_window("dynamic-island") {
+        let _ = island.emit("update-play-state", is_playing);
     }
     Ok(())
 }

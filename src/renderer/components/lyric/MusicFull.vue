@@ -37,20 +37,6 @@
           <lyric-settings ref="lyricSettingsRef" />
         </n-popover>
 
-        <div v-if="isDesktop()" class="control-btn" title="Mini Window" @click="miniWindow">
-          <svg
-            width="13"
-            height="13"
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-          >
-            <rect x="2" y="3" width="12" height="10" rx="1.5" />
-            <rect x="7" y="7" width="6" height="5" rx="1" fill="currentColor" stroke="none" />
-          </svg>
-        </div>
-
         <div class="control-btn" title="Toggle Fullscreen" @click="toggleFullScreen">
           <i
             :class="isFullScreen ? 'ri-fullscreen-exit-line' : 'ri-fullscreen-line'"
@@ -182,7 +168,6 @@
               </n-ellipsis>
             </div>
             <simple-play-bar
-              v-if="!config.hideMiniPlayBar"
               class="mt-4"
               :pure-mode-enabled="config.pureModeEnabled"
               :isDark="textColors.theme === 'dark'"
@@ -777,14 +762,6 @@ const closeMusicFull = () => {
   playerStore.setMusicFull(false);
 };
 
-const miniWindow = () => {
-  if (!isDesktop()) return;
-  closeMusicFull();
-  settingsStore.setMiniMode(true);
-  router.push('/mini');
-  window.api.setMiniConstraints(true);
-};
-
 const minimizeWindow = () => {
   if (!isDesktop()) return;
   window.api.minimize();
@@ -798,14 +775,9 @@ const maximizeWindow = () => {
 const handleCloseApp = () => {
   if (!isDesktop()) return;
   const { closeAction } = settingsStore.setData;
-  if (closeAction === 'minimize') {
-    window.api.miniTray();
-  } else if (closeAction === 'close') {
+  if (closeAction === 'minimize' || closeAction === 'close') {
     window.api.close();
   } else {
-    // If modal is required, we can just close the app for now or trigger the modal.
-    // In MusicFull we might just minimize to tray as a safe default if no action is set,
-    // or call window.api.close() which handles it.
     window.api.close();
   }
 };

@@ -214,7 +214,6 @@ const message = inject(SETTINGS_MESSAGE_KEY)!;
 
 const closeActionOptions = computed(() => [
   { label: 'Ask Every Time', value: 'ask' },
-  { label: 'Minimize to Tray', value: 'minimize' },
   { label: 'Exit Directly', value: 'close' }
 ]);
 

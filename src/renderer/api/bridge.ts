@@ -137,10 +137,6 @@ export const bridge = {
   dragStart: (data: unknown) => rawInvoke<void>('drag-start', { data }),
   resizeWindow: (width: number, height: number) =>
     rawInvoke<void>('resize-window', { width, height }),
-  setMiniConstraints: (entering: boolean) =>
-    rawInvoke<void>('set-mini-constraints', { entering }),
-  miniTray: () => rawInvoke<void>('mini-tray'),
-  miniWindow: () => rawInvoke<void>('mini-window'),
 
   openLyric: () => rawInvoke<void>('open-lyric'),
   sendLyric: (data: unknown) => rawInvoke<void>('send-lyric', { data }),
@@ -151,7 +147,17 @@ export const bridge = {
     void listenChannel<void>('lyric-window-ready', () => callback());
   },
 
-  sendSong: (data: unknown) => rawInvoke<void>('update-current-song', { data }),
+  sendSong: (data: any) => {
+    const mappedData = {
+      title: data?.name || data?.title || '',
+      artist: data?.ar?.[0]?.name || data?.artists?.[0]?.name || data?.artist || '',
+      album: data?.al?.name || data?.album || '',
+      cover_url: data?.al?.picUrl || data?.picUrl || data?.coverImgUrl || data?.cover || '',
+      duration: data?.dt || data?.duration || 0,
+      is_playing: true
+    };
+    return rawInvoke<void>('update-current-song', { data: mappedData });
+  },
   updatePlayState: (isPlaying: boolean) => rawInvoke<void>('update-play-state', { isPlaying }),
   setContentZoom: (zoom: number) => rawInvoke<void>('set-content-zoom', { zoom }),
   getContentZoom: () => rawInvoke<number>('get-content-zoom'),

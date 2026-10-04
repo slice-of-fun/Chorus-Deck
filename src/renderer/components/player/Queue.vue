@@ -253,8 +253,7 @@ const themeVars = useThemeVars();
 const internalVisible = ref(false);
 const closing = ref(false);
 const activeTab = ref<'queue' | 'lyrics'>('queue');
-const isMiniMode = computed(() => settingsStore.isMiniMode);
-const isShellLayout = computed(() => !isCompact.value && !isMiniMode.value);
+const isShellLayout = computed(() => !isCompact.value);
 const repeatMode = computed(() => playerStore.repeatMode);
 const shuffleEnabled = computed(() => playerStore.shuffleEnabled);
 const accentColor = computed(
@@ -453,7 +452,7 @@ const handleClearQueue = () => {
   @apply fixed inset-0;
   pointer-events: auto;
   cursor: default;
-  display: v-bind('isShellLayout || isMiniMode ? "none" : "block"');
+  display: v-bind('isShellLayout ? "none" : "block"');
 }
 
 .queue-panel {
@@ -461,18 +460,16 @@ const handleClearQueue = () => {
 
   position: v-bind('isShellLayout ? "relative" : "fixed"');
   z-index: v-bind('isShellLayout ? "var(--shell-z-queue)" : "9999999"');
-  right: v-bind('isMiniMode || isShellLayout ? "auto" : "0"');
-  top: v-bind('isMiniMode ? "76px" : isShellLayout ? "auto" : "0"');
-  width: v-bind('isMiniMode ? "100%" : isShellLayout ? "clamp(260px, 28vw, 360px)" : "360px"');
-  height: v-bind('isMiniMode ? "340px" : isShellLayout ? "100%" : "100vh"');
-  left: v-bind('isMiniMode ? "0" : "auto"');
+  right: v-bind('isShellLayout ? "auto" : "0"');
+  top: v-bind('isShellLayout ? "auto" : "0"');
+  width: v-bind('isShellLayout ? "clamp(260px, 28vw, 360px)" : "360px"');
+  height: v-bind('isShellLayout ? "100%" : "100vh"');
+  left: 'auto';
   flex-shrink: 0;
 
   // Own four edges + subtle outer corners when acting as a shell surface.
-  border-radius: v-bind('isMiniMode ? "20px" : isShellLayout ? "var(--shell-radius)" : "0"');
-  border-left: v-bind(
-    'isMiniMode ? "none" : isShellLayout ? "none" : "1px solid rgba(255,255,255,0.08)"'
-  );
+  border-radius: v-bind('isShellLayout ? "var(--shell-radius)" : "0"');
+  border-left: v-bind('isShellLayout ? "none" : "1px solid rgba(255,255,255,0.08)"');
 
   animation-duration: 0.3s !important;
   backdrop-filter: blur(20px);

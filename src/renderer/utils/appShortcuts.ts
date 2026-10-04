@@ -83,9 +83,6 @@ export async function handleShortcutAction(action: ShortcutAction) {
   const settingsStore = useSettingsStore();
 
   const showToast = (message: string, iconName: string) => {
-    if (settingsStore.isMiniMode) {
-      return;
-    }
     showShortcutToast(message, iconName);
   };
 

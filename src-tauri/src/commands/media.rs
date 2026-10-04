@@ -12,6 +12,9 @@ pub fn send_lyric(app: AppHandle, data: serde_json::Value) -> Result<(), String>
     if let Some(lyric) = app.get_webview_window("lyric") {
         let _ = lyric.emit(LYRIC_CHANNEL, &data);
     }
+    if let Some(island) = app.get_webview_window("dynamic-island") {
+        let _ = island.emit(LYRIC_CHANNEL, &data);
+    }
     Ok(())
 }
 
