@@ -9,7 +9,7 @@
 
 <script setup lang="ts">
 import { storeToRefs } from 'pinia';
-import { computed, ref, onMounted, onUnmounted, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
 import { usePlayerStore } from '@/store/modules/player';
 import { t } from '@/utils/i18n';

@@ -607,7 +607,6 @@ const handlePause = (taskId: string) => downloadStore.pauseTask(taskId);
 const handleResume = (taskId: string) => downloadStore.resumeTask(taskId);
 const handleCancel = (taskId: string) => downloadStore.cancelTask(taskId);
 
-
 const formatSize = (bytes: number) => {
   if (!bytes) return '0 B';
   const k = 1024;

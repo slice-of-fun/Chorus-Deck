@@ -335,9 +335,11 @@ const selectCacheDirectory = async () => {
 
   switchingCacheDirectory.value = true;
   try {
-    const result = await window.api.invoke('switch-disk-cache-directory', { path: selectedPath }) as any;
+    const result = (await window.api.invoke('switch-disk-cache-directory', {
+      path: selectedPath
+    })) as any;
     message.success('Cache directory switched');
-    
+
     setData.value = {
       ...setData.value,
       diskCacheDir: selectedPath

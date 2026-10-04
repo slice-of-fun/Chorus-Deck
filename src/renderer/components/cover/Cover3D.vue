@@ -64,10 +64,12 @@ watch(
 );
 
 const hasBlackBars = computed(() => {
-  return currentSrc.value?.includes('sddefault') || 
-         currentSrc.value?.includes('mqdefault') || 
-         currentSrc.value?.includes('hqdefault') || 
-         currentSrc.value?.includes('default.jpg');
+  return (
+    currentSrc.value?.includes('sddefault') ||
+    currentSrc.value?.includes('mqdefault') ||
+    currentSrc.value?.includes('hqdefault') ||
+    currentSrc.value?.includes('default.jpg')
+  );
 });
 
 const doFallback = () => {
@@ -86,7 +88,6 @@ const onImageLoad = (e: Event) => {
     doFallback();
   }
 };
-
 
 const coverTransformStyle = computed(() => {
   if (!isHovering.value || props.disabled) {

@@ -1,15 +1,18 @@
 <template>
   <div class="artist-page h-full w-full overflow-hidden">
     <!-- Loading overlay -->
-    <div v-if="loading" class="absolute inset-0 z-50 bg-white dark:bg-[#0a0a0a] overflow-hidden p-4">
+    <div
+      v-if="loading"
+      class="absolute inset-0 z-50 bg-white dark:bg-[#0a0a0a] overflow-hidden p-4"
+    >
       <div class="flex flex-col items-center pt-24">
         <n-skeleton height="112px" width="112px" style="border-radius: 16px" class="mb-4" />
         <n-skeleton text width="15%" class="mb-2" />
         <n-skeleton text width="40%" height="32px" class="mb-3" />
         <n-skeleton text width="35%" class="mb-5" />
         <div class="flex gap-3 mb-10">
-           <n-skeleton height="40px" width="100px" style="border-radius: 20px" />
-           <n-skeleton height="40px" width="100px" style="border-radius: 20px" />
+          <n-skeleton height="40px" width="100px" style="border-radius: 20px" />
+          <n-skeleton height="40px" width="100px" style="border-radius: 20px" />
         </div>
       </div>
       <div class="flex flex-col gap-4 w-full max-w-4xl mx-auto px-2">
@@ -24,7 +27,6 @@
     </div>
     <div v-show="!loading" class="h-full w-full">
       <n-scrollbar class="h-full">
-
         <div
           class="artist-banner relative w-full overflow-hidden"
           style="height: 220px"
@@ -40,7 +42,9 @@
         </div>
 
         <div class="flex justify-center -mt-14 relative z-20 mb-3">
-          <div class="w-28 h-28 rounded-2xl overflow-hidden bg-neutral-200 dark:bg-neutral-800 shadow-xl ring-4 ring-white/20 dark:ring-black/30">
+          <div
+            class="w-28 h-28 rounded-2xl overflow-hidden bg-neutral-200 dark:bg-neutral-800 shadow-xl ring-4 ring-white/20 dark:ring-black/30"
+          >
             <img
               v-if="artist?.avatar || artist?.thumbnail"
               :src="getImgUrl(artist?.avatar || artist?.thumbnail, '300y300')"
@@ -54,7 +58,9 @@
         </div>
 
         <div class="flex flex-col items-center px-6 relative z-10 pb-4">
-          <p class="text-xs font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-widest mb-1">
+          <p
+            class="text-xs font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-widest mb-1"
+          >
             Artist
           </p>
           <h1 class="text-3xl font-bold text-center leading-tight mb-4">
@@ -114,9 +120,11 @@
         </div>
 
         <div class="px-4 pb-8">
-
           <template v-if="songs.length > 0">
-            <div class="section-header flex items-center justify-between px-2 mb-1 mt-2 group cursor-pointer" @click="handleMore('songs')">
+            <div
+              class="section-header flex items-center justify-between px-2 mb-1 mt-2 group cursor-pointer"
+              @click="handleMore('songs')"
+            >
               <span class="text-sm font-semibold group-hover:underline">Songs</span>
               <button class="text-neutral-400 group-hover:text-primary transition-colors">
                 <i class="ri-arrow-right-s-line text-xl" />
@@ -132,7 +140,10 @@
           </template>
 
           <template v-if="albumItems.length > 0">
-            <div class="section-header flex items-center justify-between px-2 mb-3 mt-6 group cursor-pointer" @click="handleMore('albums')">
+            <div
+              class="section-header flex items-center justify-between px-2 mb-3 mt-6 group cursor-pointer"
+              @click="handleMore('albums')"
+            >
               <span class="text-sm font-semibold group-hover:underline">Albums</span>
               <button class="text-neutral-400 group-hover:text-primary transition-colors">
                 <i class="ri-arrow-right-s-line text-xl" />
@@ -145,7 +156,9 @@
                 class="flex-shrink-0 w-36 cursor-pointer group"
                 @click="openPlaylistItem(album.id, album.name, 'album')"
               >
-                <div class="w-36 h-36 rounded-2xl overflow-hidden mb-2 bg-neutral-200 dark:bg-neutral-800 shadow-sm group-hover:shadow-md transition-shadow">
+                <div
+                  class="w-36 h-36 rounded-2xl overflow-hidden mb-2 bg-neutral-200 dark:bg-neutral-800 shadow-sm group-hover:shadow-md transition-shadow"
+                >
                   <img
                     v-if="album.coverImgUrl"
                     :src="getImgUrl(album.coverImgUrl, '300y300')"
@@ -157,13 +170,21 @@
                   </div>
                 </div>
                 <p class="text-xs font-medium truncate leading-tight">{{ album.name }}</p>
-                <p v-if="album.subtitle" class="text-[10px] text-neutral-500 truncate leading-tight mt-0.5">{{ album.subtitle }}</p>
+                <p
+                  v-if="album.subtitle"
+                  class="text-[10px] text-neutral-500 truncate leading-tight mt-0.5"
+                >
+                  {{ album.subtitle }}
+                </p>
               </div>
             </div>
           </template>
 
           <template v-if="playlistItems.length > 0">
-            <div class="section-header flex items-center justify-between px-2 mb-3 mt-6 group cursor-pointer" @click="handleMore('playlists')">
+            <div
+              class="section-header flex items-center justify-between px-2 mb-3 mt-6 group cursor-pointer"
+              @click="handleMore('playlists')"
+            >
               <span class="text-sm font-semibold group-hover:underline">Playlists</span>
               <button class="text-neutral-400 group-hover:text-primary transition-colors">
                 <i class="ri-arrow-right-s-line text-xl" />
@@ -176,7 +197,9 @@
                 class="flex-shrink-0 w-36 cursor-pointer group"
                 @click="openPlaylistItem(playlist.id, playlist.name, 'playlist')"
               >
-                <div class="w-36 h-36 rounded-2xl overflow-hidden mb-2 bg-neutral-200 dark:bg-neutral-800 shadow-sm group-hover:shadow-md transition-shadow">
+                <div
+                  class="w-36 h-36 rounded-2xl overflow-hidden mb-2 bg-neutral-200 dark:bg-neutral-800 shadow-sm group-hover:shadow-md transition-shadow"
+                >
                   <img
                     v-if="playlist.coverImgUrl"
                     :src="getImgUrl(playlist.coverImgUrl, '300y300')"
@@ -188,13 +211,21 @@
                   </div>
                 </div>
                 <p class="text-xs font-medium truncate leading-tight">{{ playlist.name }}</p>
-                <p v-if="playlist.subtitle" class="text-[10px] text-neutral-500 truncate leading-tight mt-0.5">{{ playlist.subtitle }}</p>
+                <p
+                  v-if="playlist.subtitle"
+                  class="text-[10px] text-neutral-500 truncate leading-tight mt-0.5"
+                >
+                  {{ playlist.subtitle }}
+                </p>
               </div>
             </div>
           </template>
 
           <template v-if="similarArtistItems.length > 0">
-            <div class="section-header flex items-center justify-between px-2 mb-3 mt-6 group cursor-pointer" @click="handleMore('similar_artists')">
+            <div
+              class="section-header flex items-center justify-between px-2 mb-3 mt-6 group cursor-pointer"
+              @click="handleMore('similar_artists')"
+            >
               <span class="text-sm font-semibold group-hover:underline">Similar Artists</span>
               <button class="text-neutral-400 group-hover:text-primary transition-colors">
                 <i class="ri-arrow-right-s-line text-xl" />
@@ -207,7 +238,9 @@
                 class="flex-shrink-0 w-36 cursor-pointer group"
                 @click="openArtist(similar.id)"
               >
-                <div class="w-36 h-36 rounded-full overflow-hidden mb-2 bg-neutral-200 dark:bg-neutral-800 shadow-sm group-hover:shadow-md transition-shadow ring-2 ring-white/10 dark:ring-black/20">
+                <div
+                  class="w-36 h-36 rounded-full overflow-hidden mb-2 bg-neutral-200 dark:bg-neutral-800 shadow-sm group-hover:shadow-md transition-shadow ring-2 ring-white/10 dark:ring-black/20"
+                >
                   <img
                     v-if="similar.coverImgUrl"
                     :src="getImgUrl(similar.coverImgUrl, '300y300')"
@@ -218,13 +251,21 @@
                     <i class="ri-user-3-line text-3xl text-neutral-400" />
                   </div>
                 </div>
-                <p class="text-xs font-medium truncate leading-tight text-center">{{ similar.name }}</p>
+                <p class="text-xs font-medium truncate leading-tight text-center">
+                  {{ similar.name }}
+                </p>
               </div>
             </div>
           </template>
 
           <div
-            v-if="!loading && songs.length === 0 && albumItems.length === 0 && playlistItems.length === 0 && similarArtistItems.length === 0"
+            v-if="
+              !loading &&
+              songs.length === 0 &&
+              albumItems.length === 0 &&
+              playlistItems.length === 0 &&
+              similarArtistItems.length === 0
+            "
             class="py-20 text-center text-sm text-neutral-400"
           >
             <i class="ri-music-2-line text-4xl block mb-3 opacity-30" />
@@ -233,13 +274,13 @@
         </div>
 
         <canvas ref="colorCanvas" class="hidden" width="8" height="8"></canvas>
-
       </n-scrollbar>
     </div>
   </div>
 </template>
 
 <script lang="ts" setup>
+import { argbFromRgb } from '@material/material-color-utilities';
 import { useMessage } from 'naive-ui';
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -251,7 +292,6 @@ import { playTrack } from '@/services/playbackController';
 import { usePlayerStore } from '@/store/modules/player';
 import type { SongResult } from '@/types/music';
 import { getImgUrl } from '@/utils';
-import { argbFromRgb } from '@material/material-color-utilities';
 
 defineOptions({ name: 'ArtistDetail' });
 
@@ -302,7 +342,9 @@ const extractColors = async (url: string) => {
 
         const colors = regions.map(({ x, y }) => {
           const idx = (y * 8 + x) * 4;
-          let r = data[idx], g = data[idx + 1], b = data[idx + 2];
+          let r = data[idx],
+            g = data[idx + 1],
+            b = data[idx + 2];
           const avg = (r + g + b) / 3;
           const satBoost = 1.4;
           r = Math.min(255, Math.round(avg + (r - avg) * satBoost));
@@ -314,14 +356,13 @@ const extractColors = async (url: string) => {
           return { r, g, b };
         });
 
-        extractedColors.value = colors.map(c => `rgb(${c.r},${c.g},${c.b})`);
+        extractedColors.value = colors.map((c) => `rgb(${c.r},${c.g},${c.b})`);
 
         if (window._applyThemeFromColor && colors.length > 0) {
           const c = colors[0];
           window._applyThemeFromColor(argbFromRgb(c.r, c.g, c.b));
         }
-      } catch {
-      }
+      } catch {}
       resolve();
     };
     img.onerror = () => resolve();
@@ -387,7 +428,7 @@ const albumItems = computed(() =>
     id: album.id,
     name: album.title,
     subtitle: album.subtitle,
-    coverImgUrl: album.thumbnail,
+    coverImgUrl: album.thumbnail
   }))
 );
 
@@ -396,7 +437,7 @@ const playlistItems = computed(() =>
     id: playlist.id,
     name: playlist.title,
     subtitle: playlist.subtitle,
-    coverImgUrl: playlist.thumbnail,
+    coverImgUrl: playlist.thumbnail
   }))
 );
 
@@ -404,7 +445,7 @@ const similarArtistItems = computed(() =>
   similarArtists.value.map((artist) => ({
     id: artist.id,
     name: artist.title,
-    coverImgUrl: artist.thumbnail,
+    coverImgUrl: artist.thumbnail
   }))
 );
 
@@ -473,7 +514,9 @@ onUnmounted(() => {
 .hide-scrollbar {
   scrollbar-width: none;
   -ms-overflow-style: none;
-  &::-webkit-scrollbar { display: none; }
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 .section-header {

@@ -193,8 +193,6 @@ onMounted(() => {
   overflow: auto;
 }
 
-
-
 .main-page.no-scroll > * {
   overflow: hidden;
 }

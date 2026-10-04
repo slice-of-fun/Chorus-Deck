@@ -1,16 +1,19 @@
 <template>
   <div class="playlist-page flex flex-col h-full overflow-hidden relative">
     <!-- Loading overlay -->
-    <div v-if="loading" class="absolute inset-0 z-50 bg-white dark:bg-[#0a0a0a] overflow-hidden p-4">
+    <div
+      v-if="loading"
+      class="absolute inset-0 z-50 bg-white dark:bg-[#0a0a0a] overflow-hidden p-4"
+    >
       <div class="flex flex-col items-center pt-24">
         <n-skeleton height="112px" width="112px" style="border-radius: 16px" class="mb-4" />
         <n-skeleton text width="15%" class="mb-2" />
         <n-skeleton text width="40%" height="32px" class="mb-3" />
         <n-skeleton text width="25%" class="mb-8" />
         <div class="flex gap-3 mb-10">
-           <n-skeleton height="40px" width="100px" style="border-radius: 20px" />
-           <n-skeleton height="40px" width="100px" style="border-radius: 20px" />
-           <n-skeleton height="40px" width="60px" style="border-radius: 20px" />
+          <n-skeleton height="40px" width="100px" style="border-radius: 20px" />
+          <n-skeleton height="40px" width="100px" style="border-radius: 20px" />
+          <n-skeleton height="40px" width="60px" style="border-radius: 20px" />
         </div>
       </div>
       <div class="flex flex-col gap-4 w-full max-w-4xl mx-auto px-2">
@@ -25,7 +28,6 @@
     </div>
 
     <n-scrollbar class="h-full">
-
       <!-- Color Gradient Banner -->
       <div
         class="playlist-banner relative w-full overflow-hidden"
@@ -42,7 +44,9 @@
       </div>
 
       <div class="flex justify-center -mt-14 relative z-20 mb-3">
-        <div class="w-28 h-28 rounded-2xl overflow-hidden bg-neutral-200 dark:bg-neutral-800 shadow-xl ring-4 ring-white/20 dark:ring-black/30">
+        <div
+          class="w-28 h-28 rounded-2xl overflow-hidden bg-neutral-200 dark:bg-neutral-800 shadow-xl ring-4 ring-white/20 dark:ring-black/30"
+        >
           <img
             v-if="currentSrc"
             :src="currentSrc"
@@ -55,43 +59,59 @@
         </div>
       </div>
 
-        <div class="flex flex-col items-center px-6 relative z-10 pb-4">
-          <p class="text-xs font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-widest mb-1">
-            Album <template v-if="detail?.year">• {{ detail.year }}</template>
-          </p>
-  
-          <h1 class="text-3xl font-bold text-center leading-tight mb-3">
-            {{ detail?.title || 'Album' }}
-          </h1>
-  
-          <div v-if="detail?.authors?.length || detail?.author" class="flex flex-wrap justify-center items-center gap-2 mb-3">
-            <template v-if="detail?.authors?.length">
-              <button
-                v-for="(author, index) in detail.authors"
-                :key="author.id || index"
-                class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-neutral-200/50 dark:bg-neutral-800/50 hover:bg-neutral-300/60 dark:hover:bg-neutral-700/60 transition-all text-sm font-medium relative z-30 cursor-pointer"
-                @click.stop.prevent="navigateToArtist(author)"
-              >
-                <img v-if="author.avatar" :src="author.avatar" class="w-6 h-6 rounded-full object-cover shadow-sm" />
-                {{ author.name }}
-              </button>
-            </template>
-            <template v-else-if="detail?.author">
-              <button
-                class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-neutral-200/50 dark:bg-neutral-800/50 hover:bg-neutral-300/60 dark:hover:bg-neutral-700/60 transition-all text-sm font-medium relative z-30 cursor-pointer"
-                @click.stop.prevent="navigateToArtist"
-              >
-                <img v-if="detail.authorAvatar" :src="detail.authorAvatar" class="w-6 h-6 rounded-full object-cover shadow-sm" />
-                {{ detail.author }}
-              </button>
-            </template>
+      <div class="flex flex-col items-center px-6 relative z-10 pb-4">
+        <p
+          class="text-xs font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-widest mb-1"
+        >
+          Album <template v-if="detail?.year">• {{ detail.year }}</template>
+        </p>
 
-            <span class="text-xs text-neutral-500 dark:text-neutral-400" v-if="detail?.songCount || totalDuration">
-              <template v-if="detail?.songCount">{{ detail.songCount }} tracks</template>
-              <template v-if="detail?.songCount && totalDuration"> • </template>
-              <template v-if="totalDuration">{{ totalDuration }}</template>
-            </span>
-          </div>
+        <h1 class="text-3xl font-bold text-center leading-tight mb-3">
+          {{ detail?.title || 'Album' }}
+        </h1>
+
+        <div
+          v-if="detail?.authors?.length || detail?.author"
+          class="flex flex-wrap justify-center items-center gap-2 mb-3"
+        >
+          <template v-if="detail?.authors?.length">
+            <button
+              v-for="(author, index) in detail.authors"
+              :key="author.id || index"
+              class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-neutral-200/50 dark:bg-neutral-800/50 hover:bg-neutral-300/60 dark:hover:bg-neutral-700/60 transition-all text-sm font-medium relative z-30 cursor-pointer"
+              @click.stop.prevent="navigateToArtist(author)"
+            >
+              <img
+                v-if="author.avatar"
+                :src="author.avatar"
+                class="w-6 h-6 rounded-full object-cover shadow-sm"
+              />
+              {{ author.name }}
+            </button>
+          </template>
+          <template v-else-if="detail?.author">
+            <button
+              class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-neutral-200/50 dark:bg-neutral-800/50 hover:bg-neutral-300/60 dark:hover:bg-neutral-700/60 transition-all text-sm font-medium relative z-30 cursor-pointer"
+              @click.stop.prevent="navigateToArtist"
+            >
+              <img
+                v-if="detail.authorAvatar"
+                :src="detail.authorAvatar"
+                class="w-6 h-6 rounded-full object-cover shadow-sm"
+              />
+              {{ detail.author }}
+            </button>
+          </template>
+
+          <span
+            class="text-xs text-neutral-500 dark:text-neutral-400"
+            v-if="detail?.songCount || totalDuration"
+          >
+            <template v-if="detail?.songCount">{{ detail.songCount }} tracks</template>
+            <template v-if="detail?.songCount && totalDuration"> • </template>
+            <template v-if="totalDuration">{{ totalDuration }}</template>
+          </span>
+        </div>
 
         <!-- Description (expandable) -->
         <div v-if="description" class="mb-5 w-full max-w-lg">
@@ -157,7 +177,10 @@
         />
 
         <template v-if="relatedAlbumItems.length > 0">
-          <div class="section-header flex items-center justify-between px-2 mb-3 mt-6 group cursor-pointer" @click="handleMore('similar_albums')">
+          <div
+            class="section-header flex items-center justify-between px-2 mb-3 mt-6 group cursor-pointer"
+            @click="handleMore('similar_albums')"
+          >
             <span class="text-sm font-semibold group-hover:underline">Similar Albums</span>
             <button class="text-neutral-400 group-hover:text-primary transition-colors">
               <i class="ri-arrow-right-s-line text-xl" />
@@ -170,7 +193,9 @@
               class="flex-shrink-0 w-36 cursor-pointer group"
               @click="openPlaylistItem(album.id, album.name, 'album')"
             >
-              <div class="w-36 h-36 rounded-2xl overflow-hidden mb-2 bg-neutral-200 dark:bg-neutral-800 shadow-sm group-hover:shadow-md transition-shadow">
+              <div
+                class="w-36 h-36 rounded-2xl overflow-hidden mb-2 bg-neutral-200 dark:bg-neutral-800 shadow-sm group-hover:shadow-md transition-shadow"
+              >
                 <img
                   v-if="album.coverImgUrl"
                   :src="getImgUrl(album.coverImgUrl, '300y300')"
@@ -182,13 +207,21 @@
                 </div>
               </div>
               <p class="text-xs font-medium truncate leading-tight">{{ album.name }}</p>
-              <p v-if="album.subtitle" class="text-[10px] text-neutral-500 truncate leading-tight mt-0.5">{{ album.subtitle }}</p>
+              <p
+                v-if="album.subtitle"
+                class="text-[10px] text-neutral-500 truncate leading-tight mt-0.5"
+              >
+                {{ album.subtitle }}
+              </p>
             </div>
           </div>
         </template>
 
         <template v-if="relatedPlaylistItems.length > 0">
-          <div class="section-header flex items-center justify-between px-2 mb-3 mt-6 group cursor-pointer" @click="handleMore('similar_playlists')">
+          <div
+            class="section-header flex items-center justify-between px-2 mb-3 mt-6 group cursor-pointer"
+            @click="handleMore('similar_playlists')"
+          >
             <span class="text-sm font-semibold group-hover:underline">Similar Playlists</span>
             <button class="text-neutral-400 group-hover:text-primary transition-colors">
               <i class="ri-arrow-right-s-line text-xl" />
@@ -201,7 +234,9 @@
               class="flex-shrink-0 w-36 cursor-pointer group"
               @click="openPlaylistItem(playlist.id, playlist.name, 'playlist')"
             >
-              <div class="w-36 h-36 rounded-2xl overflow-hidden mb-2 bg-neutral-200 dark:bg-neutral-800 shadow-sm group-hover:shadow-md transition-shadow">
+              <div
+                class="w-36 h-36 rounded-2xl overflow-hidden mb-2 bg-neutral-200 dark:bg-neutral-800 shadow-sm group-hover:shadow-md transition-shadow"
+              >
                 <img
                   v-if="playlist.coverImgUrl"
                   :src="getImgUrl(playlist.coverImgUrl, '300y300')"
@@ -213,13 +248,21 @@
                 </div>
               </div>
               <p class="text-xs font-medium truncate leading-tight">{{ playlist.name }}</p>
-              <p v-if="playlist.subtitle" class="text-[10px] text-neutral-500 truncate leading-tight mt-0.5">{{ playlist.subtitle }}</p>
+              <p
+                v-if="playlist.subtitle"
+                class="text-[10px] text-neutral-500 truncate leading-tight mt-0.5"
+              >
+                {{ playlist.subtitle }}
+              </p>
             </div>
           </div>
         </template>
 
         <template v-if="relatedArtistItems.length > 0">
-          <div class="section-header flex items-center justify-between px-2 mb-3 mt-6 group cursor-pointer" @click="handleMore('similar_artists')">
+          <div
+            class="section-header flex items-center justify-between px-2 mb-3 mt-6 group cursor-pointer"
+            @click="handleMore('similar_artists')"
+          >
             <span class="text-sm font-semibold group-hover:underline">Similar Artists</span>
             <button class="text-neutral-400 group-hover:text-primary transition-colors">
               <i class="ri-arrow-right-s-line text-xl" />
@@ -232,7 +275,9 @@
               class="flex-shrink-0 w-36 cursor-pointer group"
               @click="openArtist(similar.id)"
             >
-              <div class="w-36 h-36 rounded-full overflow-hidden mb-2 bg-neutral-200 dark:bg-neutral-800 shadow-sm group-hover:shadow-md transition-shadow ring-2 ring-white/10 dark:ring-black/20">
+              <div
+                class="w-36 h-36 rounded-full overflow-hidden mb-2 bg-neutral-200 dark:bg-neutral-800 shadow-sm group-hover:shadow-md transition-shadow ring-2 ring-white/10 dark:ring-black/20"
+              >
                 <img
                   v-if="similar.coverImgUrl"
                   :src="getImgUrl(similar.coverImgUrl, '300y300')"
@@ -243,7 +288,9 @@
                   <i class="ri-user-3-line text-3xl text-neutral-400" />
                 </div>
               </div>
-              <p class="text-xs font-medium truncate leading-tight text-center">{{ similar.name }}</p>
+              <p class="text-xs font-medium truncate leading-tight text-center">
+                {{ similar.name }}
+              </p>
             </div>
           </div>
         </template>
@@ -257,12 +304,19 @@
 </template>
 
 <script lang="ts" setup>
+import { argbFromRgb } from '@material/material-color-utilities';
 import { useMessage } from 'naive-ui';
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
-
-import { getYTMPlaylistDetail, getYTMArtist, searchYTM, type YTMPlaylist,type YTMPlaylistDetail, type YTMSong } from '@/api/ytmusic';
+import {
+  getYTMArtist,
+  getYTMPlaylistDetail,
+  searchYTM,
+  type YTMPlaylist,
+  type YTMPlaylistDetail,
+  type YTMSong
+} from '@/api/ytmusic';
 import { navigateToMusicList } from '@/components/common/MusicListNavigator';
 import SongItem from '@/components/common/SongItem.vue';
 import { useDownload } from '@/hooks/useDownload';
@@ -270,10 +324,8 @@ import { playTrack } from '@/services/playbackController';
 import { usePlayerStore } from '@/store/modules/player';
 import type { SongResult } from '@/types/music';
 import { getImgUrl } from '@/utils';
-import { argbFromRgb } from '@material/material-color-utilities';
 
 defineOptions({ name: 'AlbumDetail' });
-
 
 const toSongResult = (song: YTMSong): SongResult => ({
   id: song.id,
@@ -302,7 +354,7 @@ const relatedAlbumItems = computed(() =>
     id: album.id,
     name: album.title,
     subtitle: album.subtitle,
-    coverImgUrl: album.thumbnail,
+    coverImgUrl: album.thumbnail
   }))
 );
 
@@ -311,7 +363,7 @@ const relatedPlaylistItems = computed(() =>
     id: playlist.id,
     name: playlist.title,
     subtitle: playlist.subtitle,
-    coverImgUrl: playlist.thumbnail,
+    coverImgUrl: playlist.thumbnail
   }))
 );
 
@@ -319,7 +371,7 @@ const relatedArtistItems = computed(() =>
   relatedArtists.value.map((artist) => ({
     id: artist.id,
     name: artist.title,
-    coverImgUrl: artist.thumbnail,
+    coverImgUrl: artist.thumbnail
   }))
 );
 
@@ -378,7 +430,9 @@ const extractColors = async (url: string) => {
 
         const colors = regions.map(({ x, y }) => {
           const idx = (y * 8 + x) * 4;
-          let r = data[idx], g = data[idx + 1], b = data[idx + 2];
+          let r = data[idx],
+            g = data[idx + 1],
+            b = data[idx + 2];
           const avg = (r + g + b) / 3;
           const satBoost = 1.4;
           r = Math.min(255, Math.round(avg + (r - avg) * satBoost));
@@ -390,8 +444,8 @@ const extractColors = async (url: string) => {
           return { r, g, b };
         });
 
-        extractedColors.value = colors.map(c => `rgb(${c.r},${c.g},${c.b})`);
-        
+        extractedColors.value = colors.map((c) => `rgb(${c.r},${c.g},${c.b})`);
+
         if (window._applyThemeFromColor && colors.length > 0) {
           const c = colors[0];
           window._applyThemeFromColor(argbFromRgb(c.r, c.g, c.b));
@@ -457,17 +511,21 @@ const loadPlaylist = async () => {
         if (!author.avatar && author.name) {
           try {
             const searchResult = await searchYTM(author.name, 'artists');
-            const artistItem = author.id 
-               ? searchResult.artists?.find(a => a.id === author.id) || searchResult.artists?.[0]
-               : searchResult.artists?.[0];
-            
+            const artistItem = author.id
+              ? searchResult.artists?.find((a) => a.id === author.id) || searchResult.artists?.[0]
+              : searchResult.artists?.[0];
+
             if (artistItem?.thumbnail) {
-               author.avatar = artistItem.thumbnail;
+              author.avatar = artistItem.thumbnail;
             } else if (author.id) {
-               const artistDetail = await getYTMArtist(author.id);
-               if (artistDetail?.thumbnail && (artistDetail.thumbnail.includes('-p-') || artistDetail.thumbnail.includes('yt3.ggpht.com'))) {
-                  author.avatar = artistDetail.thumbnail;
-               }
+              const artistDetail = await getYTMArtist(author.id);
+              if (
+                artistDetail?.thumbnail &&
+                (artistDetail.thumbnail.includes('-p-') ||
+                  artistDetail.thumbnail.includes('yt3.ggpht.com'))
+              ) {
+                author.avatar = artistDetail.thumbnail;
+              }
             }
           } catch (e) {
             console.error('Failed to fetch avatar for author', author.name, e);
@@ -501,7 +559,8 @@ const batchDownload = async () => {
 
 const navigateToArtist = (author?: any) => {
   const name = author?.name || (detail.value as any)?.author;
-  const authorId = author?.id || (detail.value as any)?.authorId || (detail.value as any)?.channelId;
+  const authorId =
+    author?.id || (detail.value as any)?.authorId || (detail.value as any)?.channelId;
   if (authorId) {
     router.push({ name: 'artistDetail', params: { id: authorId } });
   } else if (name) {
@@ -553,7 +612,9 @@ onUnmounted(() => {
 .hide-scrollbar {
   scrollbar-width: none;
   -ms-overflow-style: none;
-  &::-webkit-scrollbar { display: none; }
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 .section-header {

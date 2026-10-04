@@ -266,21 +266,26 @@ onMounted(async () => {
 
   window._restoreTheme = () => {
     if (playerStore.playMusic && playerStore.playMusic.id) {
-       // logic will re-trigger via watch when needed, or we just rely on song playing
-       const picUrl = playerStore.playMusic.al?.picUrl || playerStore.playMusic.picUrl || playerStore.playMusic.coverImgUrl;
-       if (picUrl) {
-         loadImageSafe(getImgUrl(picUrl, '500y500')).then(img => {
+      // logic will re-trigger via watch when needed, or we just rely on song playing
+      const picUrl =
+        playerStore.playMusic.al?.picUrl ||
+        playerStore.playMusic.picUrl ||
+        playerStore.playMusic.coverImgUrl;
+      if (picUrl) {
+        loadImageSafe(getImgUrl(picUrl, '500y500'))
+          .then((img) => {
             if (img) {
-               themeFromImage(img).then(m3Theme => {
-                 applyThemeFromColor(m3Theme.source);
-               });
+              themeFromImage(img).then((m3Theme) => {
+                applyThemeFromColor(m3Theme.source);
+              });
             } else {
-               applySystemAccentColor();
+              applySystemAccentColor();
             }
-         }).catch(() => applySystemAccentColor());
-       } else {
-         applySystemAccentColor();
-       }
+          })
+          .catch(() => applySystemAccentColor());
+      } else {
+        applySystemAccentColor();
+      }
     } else {
       applySystemAccentColor();
     }

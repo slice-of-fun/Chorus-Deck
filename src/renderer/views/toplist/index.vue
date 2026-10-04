@@ -182,7 +182,6 @@ import type { SongResult } from '@/types/music';
 
 defineOptions({ name: 'Charts' });
 
-
 const sections = ref<YTMSection[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);

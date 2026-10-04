@@ -2,7 +2,7 @@
   <div class="search-page h-full w-full flex flex-col">
     <div
       class="search-header flex-shrink-0 w-full bg-[var(--shell-surface)] z-10"
-      style="padding: var(--content-padding-y) var(--content-padding-x) 0 var(--content-padding-x);"
+      style="padding: var(--content-padding-y) var(--content-padding-x) 0 var(--content-padding-x)"
     >
       <div class="search-bar-wrapper relative mb-4">
         <div class="relative">
@@ -54,7 +54,9 @@
         <!-- ── Search results ─────────────────────────────────────── -->
         <div v-if="searchDone">
           <!-- Result tabs -->
-          <div class="flex items-center gap-1 mb-6 overflow-x-auto pb-1 no-scrollbar px-[var(--content-padding-x)]">
+          <div
+            class="flex items-center gap-1 mb-6 overflow-x-auto pb-1 no-scrollbar px-[var(--content-padding-x)]"
+          >
             <button
               v-for="tab in SEARCH_TABS"
               :key="tab.key"
@@ -101,7 +103,9 @@
             </div>
 
             <section v-if="results.topResult" class="mb-8">
-              <h2 class="text-xl font-bold text-neutral-900 dark:text-white mb-3 px-1">Top Result</h2>
+              <h2 class="text-xl font-bold text-neutral-900 dark:text-white mb-3 px-1">
+                Top Result
+              </h2>
               <div
                 class="group flex items-center gap-4 bg-neutral-100/80 dark:bg-neutral-900/50 p-4 rounded-3xl cursor-pointer hover:bg-neutral-200/80 dark:hover:bg-neutral-800/50 transition-all"
                 @click="onTopResultClick"
@@ -109,14 +113,20 @@
                 <div
                   :class="[
                     'relative w-24 h-24 flex-shrink-0 overflow-hidden bg-neutral-200 dark:bg-neutral-800',
-                    'artists' in results.topResult ? 'rounded-lg' : ((results.topResult as any).type === 'artist' ? 'rounded-full' : 'rounded-lg')
+                    'artists' in results.topResult
+                      ? 'rounded-lg'
+                      : (results.topResult as any).type === 'artist'
+                        ? 'rounded-full'
+                        : 'rounded-lg'
                   ]"
                 >
-                  <i class="ri-image-line absolute inset-0 flex items-center justify-center text-neutral-400 text-2xl"></i>
+                  <i
+                    class="ri-image-line absolute inset-0 flex items-center justify-center text-neutral-400 text-2xl"
+                  ></i>
                   <img
                     :src="results.topResult.picUrl"
                     :alt="results.topResult.name"
-                    @error="\$event.target.style.opacity=0"
+                    @error="$event.target.style.opacity=0"
                     class="relative z-10 w-full h-full object-cover"
                     loading="lazy"
                   />
@@ -133,10 +143,17 @@
                   </p>
                   <p class="text-sm text-neutral-500 dark:text-neutral-400 line-clamp-1">
                     <span v-if="'artists' in results.topResult">
-                      Song • {{ (results.topResult as any).artists?.map((a: any) => a.name).join(', ') }}
+                      Song •
+                      {{ (results.topResult as any).artists?.map((a: any) => a.name).join(', ') }}
                     </span>
                     <span v-else>
-                      {{ (results.topResult as any).type?.charAt(0).toUpperCase() + (results.topResult as any).type?.slice(1) }} <template v-if="(results.topResult as any).desc">• {{ (results.topResult as any).desc }}</template>
+                      {{
+                        (results.topResult as any).type?.charAt(0).toUpperCase() +
+                        (results.topResult as any).type?.slice(1)
+                      }}
+                      <template v-if="(results.topResult as any).desc"
+                        >• {{ (results.topResult as any).desc }}</template
+                      >
                     </span>
                   </p>
                 </div>
@@ -158,12 +175,14 @@
                   <div
                     class="relative w-11 h-11 flex-shrink-0 rounded-lg overflow-hidden bg-neutral-200 dark:bg-neutral-800"
                   >
-                    <i class="ri-image-line absolute inset-0 flex items-center justify-center text-neutral-400 text-2xl"></i>
-                  <img
+                    <i
+                      class="ri-image-line absolute inset-0 flex items-center justify-center text-neutral-400 text-2xl"
+                    ></i>
+                    <img
                       :src="song.picUrl"
                       :alt="song.name"
                       @error="\$event.target.style.opacity=0"
-                    class="relative z-10 w-full h-full object-cover"
+                      class="relative z-10 w-full h-full object-cover"
                       loading="lazy"
                     />
                     <div
@@ -208,12 +227,14 @@
                   <div
                     class="relative w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden bg-neutral-200 dark:bg-neutral-800"
                   >
-                    <i class="ri-image-line absolute inset-0 flex items-center justify-center text-neutral-400 text-2xl"></i>
-                  <img
+                    <i
+                      class="ri-image-line absolute inset-0 flex items-center justify-center text-neutral-400 text-2xl"
+                    ></i>
+                    <img
                       :src="ar.picUrl"
                       :alt="ar.name"
                       @error="\$event.target.style.opacity=0"
-                    class="relative z-10 w-full h-full object-cover"
+                      class="relative z-10 w-full h-full object-cover"
                       loading="lazy"
                     />
                   </div>
@@ -243,12 +264,14 @@
                   <div
                     class="relative w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden bg-neutral-200 dark:bg-neutral-800"
                   >
-                    <i class="ri-image-line absolute inset-0 flex items-center justify-center text-neutral-400 text-2xl"></i>
-                  <img
+                    <i
+                      class="ri-image-line absolute inset-0 flex items-center justify-center text-neutral-400 text-2xl"
+                    ></i>
+                    <img
                       :src="al.picUrl"
                       :alt="al.name"
                       @error="\$event.target.style.opacity=0"
-                    class="relative z-10 w-full h-full object-cover"
+                      class="relative z-10 w-full h-full object-cover"
                       loading="lazy"
                     />
                   </div>
@@ -258,7 +281,6 @@
                     >
                       {{ al.name }}
                     </p>
-
                   </div>
                 </div>
               </div>
@@ -281,12 +303,14 @@
                   <div
                     class="relative w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden bg-neutral-200 dark:bg-neutral-800"
                   >
-                    <i class="ri-image-line absolute inset-0 flex items-center justify-center text-neutral-400 text-2xl"></i>
-                  <img
+                    <i
+                      class="ri-image-line absolute inset-0 flex items-center justify-center text-neutral-400 text-2xl"
+                    ></i>
+                    <img
                       :src="pl.picUrl"
                       :alt="pl.name"
                       @error="\$event.target.style.opacity=0"
-                    class="relative z-10 w-full h-full object-cover"
+                      class="relative z-10 w-full h-full object-cover"
                       loading="lazy"
                     />
                   </div>
@@ -296,7 +320,6 @@
                     >
                       {{ pl.name }}
                     </p>
-
                   </div>
                 </div>
               </div>
@@ -323,7 +346,9 @@
                 <div
                   class="relative w-11 h-11 flex-shrink-0 rounded-lg overflow-hidden bg-neutral-200 dark:bg-neutral-800"
                 >
-                  <i class="ri-image-line absolute inset-0 flex items-center justify-center text-neutral-400 text-2xl"></i>
+                  <i
+                    class="ri-image-line absolute inset-0 flex items-center justify-center text-neutral-400 text-2xl"
+                  ></i>
                   <img
                     :src="song.picUrl"
                     :alt="song.name"
@@ -373,12 +398,14 @@
                 :key="pl.id"
                 class="search-result-row group flex items-center gap-4 px-3 py-2 hover:bg-black/5 dark:hover:bg-white/10 transition-all cursor-pointer rounded-2xl"
                 :style="{ animationDelay: idx * 0.02 + 's' }"
-                  @click="goToPlaylist(pl.id)"
+                @click="goToPlaylist(pl.id)"
               >
                 <div
                   class="relative w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden bg-neutral-200 dark:bg-neutral-800"
                 >
-                  <i class="ri-image-line absolute inset-0 flex items-center justify-center text-neutral-400 text-2xl"></i>
+                  <i
+                    class="ri-image-line absolute inset-0 flex items-center justify-center text-neutral-400 text-2xl"
+                  ></i>
                   <img
                     :src="pl.picUrl"
                     :alt="pl.name"
@@ -419,12 +446,14 @@
                 :key="al.id"
                 class="search-result-row group flex items-center gap-4 px-3 py-2 hover:bg-black/5 dark:hover:bg-white/10 transition-all cursor-pointer rounded-2xl"
                 :style="{ animationDelay: idx * 0.02 + 's' }"
-                  @click="goToPlaylist(al.id)"
+                @click="goToPlaylist(al.id)"
               >
                 <div
                   class="relative w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden bg-neutral-200 dark:bg-neutral-800"
                 >
-                  <i class="ri-image-line absolute inset-0 flex items-center justify-center text-neutral-400 text-2xl"></i>
+                  <i
+                    class="ri-image-line absolute inset-0 flex items-center justify-center text-neutral-400 text-2xl"
+                  ></i>
                   <img
                     :src="al.picUrl"
                     :alt="al.name"
@@ -465,12 +494,14 @@
                 :key="ar.id"
                 class="search-result-row group flex items-center gap-4 px-3 py-2 hover:bg-black/5 dark:hover:bg-white/10 transition-all cursor-pointer rounded-2xl"
                 :style="{ animationDelay: idx * 0.02 + 's' }"
-                  @click="goToArtist(ar.id)"
+                @click="goToArtist(ar.id)"
               >
                 <div
                   class="relative w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden bg-neutral-200 dark:bg-neutral-800"
                 >
-                  <i class="ri-image-line absolute inset-0 flex items-center justify-center text-neutral-400 text-2xl"></i>
+                  <i
+                    class="ri-image-line absolute inset-0 flex items-center justify-center text-neutral-400 text-2xl"
+                  ></i>
                   <img
                     :src="ar.picUrl"
                     :alt="ar.name"
@@ -510,7 +541,9 @@
                 <div
                   class="relative w-20 h-11 flex-shrink-0 rounded-lg overflow-hidden bg-neutral-200 dark:bg-neutral-800"
                 >
-                  <i class="ri-image-line absolute inset-0 flex items-center justify-center text-neutral-400 text-2xl"></i>
+                  <i
+                    class="ri-image-line absolute inset-0 flex items-center justify-center text-neutral-400 text-2xl"
+                  ></i>
                   <img
                     :src="video.picUrl"
                     :alt="video.name"
@@ -619,7 +652,7 @@ import { useRouter } from 'vue-router';
 
 import type { SearchFilter, SearchResults } from '@/api/provider';
 import { getProvider } from '@/api/providers';
-import { getYTMMoods, type YTMMoodCategory, type YTMMood } from '@/api/ytmusic';
+import { getYTMMoods, type YTMMood, type YTMMoodCategory } from '@/api/ytmusic';
 import logoImg from '@/assets/logo.png';
 import { useQueueStore } from '@/store/modules/queue';
 import type { SongResult } from '@/types/music';
@@ -683,8 +716,6 @@ function getTabCount(key: string): number {
   if (key === 'videos') return results.value.videos?.length || 0;
   return 0;
 }
-
-
 
 function onImgError(event: Event, title: string) {
   (event.target as HTMLImageElement).src = getPlaceholder(title);
@@ -852,8 +883,18 @@ function getStringHashCode(str: string): number {
 }
 
 const moodColors = [
-  '#E91E63', '#9C27B0', '#673AB7', '#3F51B5', '#2196F3', '#00BCD4',
-  '#009688', '#4CAF50', '#FF9800', '#FF5722', '#795548', '#607D8B'
+  '#E91E63',
+  '#9C27B0',
+  '#673AB7',
+  '#3F51B5',
+  '#2196F3',
+  '#00BCD4',
+  '#009688',
+  '#4CAF50',
+  '#FF9800',
+  '#FF5722',
+  '#795548',
+  '#607D8B'
 ];
 
 function getMoodColor(title: string): string {

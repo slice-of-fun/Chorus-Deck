@@ -83,9 +83,7 @@
                   {{ artist.name || 'Unknown Artist' }}{{ i < artistList.length - 1 ? ' · ' : '' }}
                 </span>
               </template>
-              <template v-else>
-                Unknown Artist
-              </template>
+              <template v-else> Unknown Artist </template>
             </div>
           </div>
         </div>
@@ -108,7 +106,9 @@
             @click="toggleRepeat"
           >
             <i :class="repeatMode === 2 ? 'ri-repeat-one-line' : 'ri-repeat-2-line'"></i>
-            <span>{{ repeatMode === 2 ? 'Repeat One' : repeatMode === 1 ? 'Repeat All' : 'Repeat Off' }}</span>
+            <span>{{
+              repeatMode === 2 ? 'Repeat One' : repeatMode === 1 ? 'Repeat All' : 'Repeat Off'
+            }}</span>
           </button>
         </div>
 
@@ -182,12 +182,11 @@
                 <div class="item-artist">
                   <template v-if="(item.ar || item.artists || []).length > 0">
                     <span v-for="(ar, i) in item.ar || item.artists || []" :key="i">
-                      {{ ar.name || 'Unknown Artist' }}{{ i < (item.ar || item.artists || []).length - 1 ? ' · ' : '' }}
+                      {{ ar.name || 'Unknown Artist'
+                      }}{{ i < (item.ar || item.artists || []).length - 1 ? ' · ' : '' }}
                     </span>
                   </template>
-                  <template v-else>
-                    Unknown Artist
-                  </template>
+                  <template v-else> Unknown Artist </template>
                 </div>
               </div>
 
@@ -258,7 +257,10 @@ const isMiniMode = computed(() => settingsStore.isMiniMode);
 const isShellLayout = computed(() => !isCompact.value && !isMiniMode.value);
 const repeatMode = computed(() => playerStore.repeatMode);
 const shuffleEnabled = computed(() => playerStore.shuffleEnabled);
-const accentColor = computed(() => playMusic.value?.primaryColor || themeVars.value.primaryColor || 'var(--primary-color, #6366f1)');
+const accentColor = computed(
+  () =>
+    playMusic.value?.primaryColor || themeVars.value.primaryColor || 'var(--primary-color, #6366f1)'
+);
 
 const panelStyle = computed(() => ({
   '--accent': accentColor.value

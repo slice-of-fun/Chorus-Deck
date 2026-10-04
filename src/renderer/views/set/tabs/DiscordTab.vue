@@ -353,105 +353,104 @@
       </list-dialog-preference>
       <list-dialog-preference
         title="Large Image"
-      description="The main image displayed"
-      v-model:value="setData.discordLargeImageType"
-      :options="imageTypeOptions"
-    >
-      <template #icon
-        ><svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-          <circle cx="8.5" cy="8.5" r="1.5"></circle>
-          <polyline points="21 15 16 10 5 21"></polyline></svg
-      ></template>
-    </list-dialog-preference>
-    <setting-item
-      v-if="setData.discordLargeImageType === 'custom'"
-      title="Large Image Custom URL"
-      description="URL for the large image"
-    >
-      <template #icon
-        ><svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg
-      ></template>
+        description="The main image displayed"
+        v-model:value="setData.discordLargeImageType"
+        :options="imageTypeOptions"
+      >
+        <template #icon
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+            <polyline points="21 15 16 10 5 21"></polyline></svg
+        ></template>
+      </list-dialog-preference>
+      <setting-item
+        v-if="setData.discordLargeImageType === 'custom'"
+        title="Large Image Custom URL"
+        description="URL for the large image"
+      >
+        <template #icon
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg
+        ></template>
 
-      <template #action>
-        <s-input
-          v-model="setData.discordLargeImageCustomUrl"
-          type="text"
-          width="w-[200px]"
-          placeholder="https://..."
-        />
-      </template>
-    </setting-item>
+        <template #action>
+          <s-input
+            v-model="setData.discordLargeImageCustomUrl"
+            type="text"
+            width="w-[200px]"
+            placeholder="https://..."
+          />
+        </template>
+      </setting-item>
 
-    <list-dialog-preference
-      title="Small Image"
-      description="The secondary small image"
-      v-model:value="setData.discordSmallImageType"
-      :options="smallImageTypeOptions"
-    >
-      <template #icon
-        ><svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-          <circle cx="8.5" cy="8.5" r="1.5"></circle>
-          <polyline points="21 15 16 10 5 21"></polyline></svg
-      ></template>
-    </list-dialog-preference>
+      <list-dialog-preference
+        title="Small Image"
+        description="The secondary small image"
+        v-model:value="setData.discordSmallImageType"
+        :options="smallImageTypeOptions"
+      >
+        <template #icon
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+            <polyline points="21 15 16 10 5 21"></polyline></svg
+        ></template>
+      </list-dialog-preference>
 
-    <setting-item
-      v-if="setData.discordSmallImageType === 'custom'"
-      title="Small Image Custom URL"
-      description="URL for the small image"
-    >
-      <template #icon
-        ><svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg
-      ></template>
+      <setting-item
+        v-if="setData.discordSmallImageType === 'custom'"
+        title="Small Image Custom URL"
+        description="URL for the small image"
+      >
+        <template #icon
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg
+        ></template>
 
-      <template #action>
-        <s-input
-          v-model="setData.discordSmallImageCustomUrl"
-          type="text"
-          width="w-[200px]"
-          placeholder="https://..."
-        />
-      </template>
-    </setting-item>
-
+        <template #action>
+          <s-input
+            v-model="setData.discordSmallImageCustomUrl"
+            type="text"
+            width="w-[200px]"
+            placeholder="https://..."
+          />
+        </template>
+      </setting-item>
     </setting-section>
 
     <!-- Preview -->
@@ -535,7 +534,10 @@
                 <div
                   class="h-[6px] w-full bg-black/10 dark:bg-white/10 rounded-full overflow-hidden"
                 >
-                  <div class="h-full bg-primary transition-all duration-1000 ease-linear" :style="{ width: `${previewProgress}%` }"></div>
+                  <div
+                    class="h-full bg-primary transition-all duration-1000 ease-linear"
+                    :style="{ width: `${previewProgress}%` }"
+                  ></div>
                 </div>
                 <div
                   class="flex items-center justify-between text-[11px] font-medium text-black/50 dark:text-white/50 mt-1"
@@ -576,8 +578,9 @@
 import { NAvatar, NButton, NSelect, NSwitch } from 'naive-ui';
 import { computed, inject } from 'vue';
 
-import { SETTINGS_DATA_KEY, SETTINGS_MESSAGE_KEY } from '../keys';
 import type { DiscordGatewayStatus } from '@/api/bridge';
+
+import { SETTINGS_DATA_KEY, SETTINGS_MESSAGE_KEY } from '../keys';
 import ListDialogPreference from '../ListDialogPreference.vue';
 import SettingItem from '../SettingItem.vue';
 import SettingSection from '../SettingSection.vue';
@@ -586,7 +589,7 @@ import SInput from '../SInput.vue';
 const setData = inject(SETTINGS_DATA_KEY)!;
 const message = inject(SETTINGS_MESSAGE_KEY)!;
 
-import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { onMounted, onUnmounted, ref, watch } from 'vue';
 
 import { useSettingsStore } from '@/store/modules/settings';
 import { ensureDiscordToken } from '@/utils/discordToken';
@@ -644,7 +647,6 @@ const previewProgress = computed(() => {
 const largeImageError = ref(false);
 const smallImageError = ref(false);
 
-
 let previewInterval: any = null;
 
 onMounted(() => {
@@ -657,9 +659,9 @@ onMounted(() => {
       const { audioService } = await import('@/services/audioService');
       const currentDur = audioService.getDuration();
       const songDur = playerCore.currentSong?.dt ? playerCore.currentSong.dt / 1000 : 0;
-      
+
       previewCurrentTime.value = time;
-      previewDuration.value = currentDur > 0 ? currentDur : (songDur > 0 ? songDur : 120);
+      previewDuration.value = currentDur > 0 ? currentDur : songDur > 0 ? songDur : 120;
     } catch (e) {
       // ignore
     }
@@ -687,7 +689,7 @@ watch(
     setData.value.discordActivityButton2Enabled,
     setData.value.discordActivityButton2Label,
     setData.value.discordActivityButton2UrlSource,
-    setData.value.discordActivityButton2CustomUrl,
+    setData.value.discordActivityButton2CustomUrl
   ],
   () => {
     if (setData.value.discordRPCEnabled && setData.value.discordToken) {
@@ -696,7 +698,7 @@ watch(
         refreshDiscord(true);
       }, 500);
     } else if (!setData.value.discordRPCEnabled && setData.value.discordToken) {
-       window.api.clearDiscordPresence();
+      window.api.clearDiscordPresence();
     }
   },
   { deep: true }
@@ -720,9 +722,7 @@ const loginDiscordWebView = async () => {
       expiresIn?: number;
     } | null>('discord-webview-login');
     if (userInfo && userInfo.token) {
-      const expiresAt = userInfo.expiresIn
-        ? Date.now() + userInfo.expiresIn * 1000
-        : 0;
+      const expiresAt = userInfo.expiresIn ? Date.now() + userInfo.expiresIn * 1000 : 0;
       // Persist immediately via the settings store (no debounce race)
       settingsStore.setSetData({
         discordToken: userInfo.token,
@@ -959,45 +959,41 @@ const previewLargeText = computed(() => {
 });
 
 const largeImagePreview = computed(() => {
-  if (largeImageError.value) return 'https://raw.githubusercontent.com/slice-of-fun/Chorus-Deck/main/resources/logo.png';
-  
+  if (largeImageError.value)
+    return 'https://raw.githubusercontent.com/slice-of-fun/Chorus-Deck/main/resources/logo.png';
+
   const type = setData.value.discordLargeImageType;
   const song = playerCore.currentSong as any;
-  if (!song || !song.name) return 'https://raw.githubusercontent.com/slice-of-fun/Chorus-Deck/main/resources/logo.png';
+  if (!song || !song.name)
+    return 'https://raw.githubusercontent.com/slice-of-fun/Chorus-Deck/main/resources/logo.png';
 
   const albumArt = song?.al?.picUrl || song?.picUrl || '';
   const artistPic = song?.ar?.[0]?.picUrl || song?.artists?.[0]?.picUrl || albumArt;
 
   if (type === 'thumbnail' && albumArt) return albumArt;
   if (type === 'artist' && artistPic) return artistPic;
-  if (type === 'appicon')
-    return '';
-  if (type === 'custom')
-    return (
-      setData.value.discordLargeImageCustomUrl || ''
-    );
+  if (type === 'appicon') return '';
+  if (type === 'custom') return setData.value.discordLargeImageCustomUrl || '';
   return albumArt || '';
 });
 
 const smallImagePreview = computed(() => {
   const type = setData.value.discordSmallImageType;
   if (type === 'dontshow') return null;
-  if (smallImageError.value) return 'https://raw.githubusercontent.com/slice-of-fun/Chorus-Deck/main/resources/logo.png';
+  if (smallImageError.value)
+    return 'https://raw.githubusercontent.com/slice-of-fun/Chorus-Deck/main/resources/logo.png';
 
   const song = playerCore.currentSong as any;
-  if (!song || !song.name) return 'https://raw.githubusercontent.com/slice-of-fun/Chorus-Deck/main/resources/logo.png';
+  if (!song || !song.name)
+    return 'https://raw.githubusercontent.com/slice-of-fun/Chorus-Deck/main/resources/logo.png';
 
   const albumArt = song?.al?.picUrl || song?.picUrl || '';
   const artistPic = song?.ar?.[0]?.picUrl || song?.artists?.[0]?.picUrl || albumArt;
 
   if (type === 'thumbnail' && albumArt) return albumArt;
   if (type === 'artist' && artistPic) return artistPic;
-  if (type === 'appicon')
-    return '';
-  if (type === 'custom')
-    return (
-      setData.value.discordSmallImageCustomUrl || ''
-    );
+  if (type === 'appicon') return '';
+  if (type === 'custom') return setData.value.discordSmallImageCustomUrl || '';
   return albumArt || '';
 });
 

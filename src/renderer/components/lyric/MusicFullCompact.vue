@@ -487,10 +487,12 @@ watch(
 );
 
 const hasBlackBars = computed(() => {
-  return currentSrc.value?.includes('sddefault') || 
-         currentSrc.value?.includes('mqdefault') || 
-         currentSrc.value?.includes('hqdefault') || 
-         currentSrc.value?.includes('default.jpg');
+  return (
+    currentSrc.value?.includes('sddefault') ||
+    currentSrc.value?.includes('mqdefault') ||
+    currentSrc.value?.includes('hqdefault') ||
+    currentSrc.value?.includes('default.jpg')
+  );
 });
 
 const onImageLoad = (e: Event) => {
@@ -503,7 +505,6 @@ const onImageLoad = (e: Event) => {
     }
   }
 };
-
 
 const sleepTimerRefresh = ref(0);
 let sleepTimerInterval: ReturnType<typeof setInterval> | null = null;

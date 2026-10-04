@@ -20,9 +20,7 @@
     <div
       class="bg-[#f0f3f8] dark:bg-[#1a1b1e] rounded-[28px] max-w-[340px] w-[90vw] overflow-hidden flex flex-col mx-auto shadow-2xl"
     >
-      <div
-        class="px-6 pt-6 pb-4 text-[24px] text-black dark:text-[#E3E2E6] font-normal leading-8"
-      >
+      <div class="px-6 pt-6 pb-4 text-[24px] text-black dark:text-[#E3E2E6] font-normal leading-8">
         {{ title }}
       </div>
       <div class="flex flex-col py-1 overflow-y-auto max-h-[60vh]">
@@ -30,7 +28,11 @@
           v-for="option in options"
           :key="option.value"
           class="flex items-center space-x-4 mx-4 px-4 py-3.5 cursor-pointer transition-colors rounded-2xl mb-1"
-          :class="value === option.value ? 'bg-primary/10 text-primary' : 'hover:bg-black/5 dark:hover:bg-white/10'"
+          :class="
+            value === option.value
+              ? 'bg-primary/10 text-primary'
+              : 'hover:bg-black/5 dark:hover:bg-white/10'
+          "
           @click="selectOption(option.value)"
         >
           <n-radio
@@ -38,9 +40,15 @@
             :value="option.value"
             @change="selectOption(option.value)"
           />
-          <span class="text-[16px] font-normal" :class="value === option.value ? 'text-primary font-medium' : 'text-[#1C1B1F] dark:text-[#E3E2E6]'">{{
-            option.label
-          }}</span>
+          <span
+            class="text-[16px] font-normal"
+            :class="
+              value === option.value
+                ? 'text-primary font-medium'
+                : 'text-[#1C1B1F] dark:text-[#E3E2E6]'
+            "
+            >{{ option.label }}</span
+          >
         </div>
       </div>
       <div class="flex justify-end px-6 pb-6">

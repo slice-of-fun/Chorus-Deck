@@ -3,7 +3,9 @@
     <n-scrollbar class="h-full" ref="scrollRef">
       <div class="home-content w-full pb-32 pt-6">
         <!-- ── Header ──────────────────────────────────────────────── -->
-        <div class="home-header flex items-center justify-between mb-8 pt-2 px-[var(--content-padding-x)]">
+        <div
+          class="home-header flex items-center justify-between mb-8 pt-2 px-[var(--content-padding-x)]"
+        >
           <div>
             <h1 class="text-3xl font-bold tracking-tight text-neutral-900 dark:text-white">
               Good {{ greeting }},
@@ -25,7 +27,10 @@
           </button>
         </div>
 
-        <div v-if="loading && sections.length === 0" class="space-y-12 px-[var(--content-padding-x)]">
+        <div
+          v-if="loading && sections.length === 0"
+          class="space-y-12 px-[var(--content-padding-x)]"
+        >
           <div v-for="s in 3" :key="s" class="space-y-5">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-3">
@@ -44,7 +49,10 @@
           </div>
         </div>
 
-        <div v-else-if="error" class="flex flex-col items-center justify-center py-24 text-center px-[var(--content-padding-x)]">
+        <div
+          v-else-if="error"
+          class="flex flex-col items-center justify-center py-24 text-center px-[var(--content-padding-x)]"
+        >
           <i class="ri-wifi-off-line text-5xl text-neutral-300 dark:text-neutral-700 mb-4" />
           <p class="text-neutral-500 dark:text-neutral-400 mb-4">{{ error }}</p>
           <button
@@ -77,7 +85,10 @@
               class="home-section-scroll overflow-x-auto pb-2"
               :ref="(el) => (sectionRefs[si] = el as HTMLElement | null)"
             >
-              <div class="flex gap-5 px-[var(--content-padding-x)]" :style="{ width: 'max-content' }">
+              <div
+                class="flex gap-5 px-[var(--content-padding-x)]"
+                :style="{ width: 'max-content' }"
+              >
                 <div
                   v-for="(item, idx) in section.items.slice(0, 10)"
                   :key="item.id || idx"
@@ -199,8 +210,6 @@ function isVideoThumb(url?: string): boolean {
 function getPlaceholder(title: string): string {
   return logoImg;
 }
-
-
 
 function handleItemClick(item: YTMSong | YTMPlaylist) {
   if (isYTMSong(item)) {
