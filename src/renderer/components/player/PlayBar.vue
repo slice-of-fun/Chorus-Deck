@@ -485,7 +485,7 @@ const openQueue = () => {
 }
 
 .play-bar-img {
-  @apply w-14 h-14 rounded-2xl;
+  @apply w-14 h-14 rounded-md object-cover;
 }
 
 .icon-btn {
@@ -530,10 +530,10 @@ const openQueue = () => {
 }
 
 .play-bar-img-wrapper {
-  @apply relative cursor-pointer w-14 h-14;
+  @apply relative cursor-pointer w-14 h-14 shrink-0;
 
   .hover-arrow {
-    @apply absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-300 rounded-2xl;
+    @apply absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-300 rounded-md;
     background: rgba(0, 0, 0, 0.5);
 
     .hover-content {
@@ -572,7 +572,7 @@ const openQueue = () => {
 }
 
 .loading-overlay {
-  @apply absolute inset-0 flex items-center justify-center rounded-2xl;
+  @apply absolute inset-0 flex items-center justify-center rounded-md;
   background-color: rgba(0, 0, 0, 0.5);
   z-index: 2;
 }
