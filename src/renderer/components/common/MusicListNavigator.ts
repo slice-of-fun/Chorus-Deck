@@ -24,7 +24,7 @@ export function navigateToMusicList(
 
   if (id) {
     router.push({
-      name: 'playlistDetail',
+      name: type === 'album' ? 'albumDetail' : 'playlistDetail',
       params: { id },
       query: { type }
     });

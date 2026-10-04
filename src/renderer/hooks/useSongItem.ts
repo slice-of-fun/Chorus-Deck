@@ -36,6 +36,10 @@ export function useSongItem(props: { item: SongResult; canRemove?: boolean }) {
     return (props.item.ar || props.item.artists)?.slice(0, 4) || [];
   });
 
+  const albumName = computed(() => {
+    return props.item.album || props.item.al?.name;
+  });
+
   const handleImageLoad = async (imageElement: HTMLImageElement) => {
     if (!imageElement) return;
 
@@ -131,6 +135,7 @@ export function useSongItem(props: { item: SongResult; canRemove?: boolean }) {
     isFavorite,
     isDislike,
     artists,
+    albumName,
     showDropdown,
     dropdownX,
     dropdownY,

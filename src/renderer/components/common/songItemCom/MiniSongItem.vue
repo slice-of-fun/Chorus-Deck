@@ -25,7 +25,9 @@
         class="song-item-img"
         preview-disabled
         :img-props="{
-          crossorigin: 'anonymous'
+          crossorigin: 'anonymous',
+          referrerpolicy: 'no-referrer',
+          style: 'object-fit: cover;'
         }"
         @load="onImageLoad"
       />
@@ -52,6 +54,9 @@
                 >{{ artist.name }}</span
               >
               <span v-if="index < artists.length - 1"> / </span>
+            </template>
+            <template v-if="albumName">
+              <span> • {{ albumName }}</span>
             </template>
           </n-ellipsis>
         </div>
@@ -120,6 +125,7 @@ const isPlaying = computed(() => baseItem.value?.isPlaying || false);
 const playLoading = computed(() => baseItem.value?.playLoading || false);
 const isFavorite = computed(() => baseItem.value?.isFavorite || false);
 const artists = computed(() => baseItem.value?.artists || []);
+const albumName = computed(() => baseItem.value?.albumName || '');
 
 const onToggleSelect = () => {
   baseItem.value?.toggleSelect();

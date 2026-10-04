@@ -18,6 +18,8 @@
 declare global {
   interface Window {
     _applyColors?: (isDark: boolean) => void;
+    _applyThemeFromColor?: (argb: number) => void;
+    _restoreTheme?: () => void;
     _themeWatcherInitialized?: boolean;
   }
 }
@@ -239,6 +241,7 @@ onMounted(async () => {
     applyColors(theme.value === 'dark');
 
     window._applyColors = applyColors;
+    window._applyThemeFromColor = applyThemeFromColor;
   };
 
   if (!window._themeWatcherInitialized) {
@@ -258,6 +261,28 @@ onMounted(async () => {
       console.error('Failed to apply brand color', e);
       const brandColor = '#22c55e';
       applyThemeFromColor(argbFromHex(brandColor));
+    }
+  };
+
+  window._restoreTheme = () => {
+    if (playerStore.playMusic && playerStore.playMusic.id) {
+       // logic will re-trigger via watch when needed, or we just rely on song playing
+       const picUrl = playerStore.playMusic.al?.picUrl || playerStore.playMusic.picUrl || playerStore.playMusic.coverImgUrl;
+       if (picUrl) {
+         loadImageSafe(getImgUrl(picUrl, '500y500')).then(img => {
+            if (img) {
+               themeFromImage(img).then(m3Theme => {
+                 applyThemeFromColor(m3Theme.source);
+               });
+            } else {
+               applySystemAccentColor();
+            }
+         }).catch(() => applySystemAccentColor());
+       } else {
+         applySystemAccentColor();
+       }
+    } else {
+      applySystemAccentColor();
     }
   };
 

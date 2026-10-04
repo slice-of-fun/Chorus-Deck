@@ -103,6 +103,7 @@
 
 <script setup lang="ts">
 import { marked } from 'marked';
+import { useMessage } from 'naive-ui';
 import { computed, onMounted, onUnmounted } from 'vue';
 
 import { useSettingsStore } from '@/store/modules/settings';

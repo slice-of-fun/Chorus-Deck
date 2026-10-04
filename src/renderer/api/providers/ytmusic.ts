@@ -46,7 +46,22 @@ export const ytmProvider: SearchProvider = {
       source: 'ytmusic'
     });
 
+    let topResult: SongResult | PlaylistResult | undefined = undefined;
+    if (data.topResult) {
+      const isSong = 'artists' in data.topResult;
+      if (isSong) {
+        topResult = toSongResult(data.topResult as YTMSong);
+      } else {
+        const p = data.topResult as any;
+        let type: 'playlist' | 'album' | 'artist' = 'playlist';
+        if (p.resultType === 'Artist') type = 'artist';
+        else if (p.resultType === 'Album' || p.resultType === 'Single' || p.resultType === 'EP') type = 'album';
+        topResult = mapPlaylist(p, type);
+      }
+    }
+
     return {
+      topResult,
       songs: (data.songs || []).map(toSongResult),
       playlists: (data.playlists || []).map((p) => mapPlaylist(p, 'playlist')),
       albums: (data.albums || []).map((p) => mapPlaylist(p, 'album')),

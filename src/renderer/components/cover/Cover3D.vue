@@ -15,7 +15,6 @@
         :object-fit="objectFit"
         :img-props="{ referrerpolicy: 'no-referrer' }"
         @load="onImageLoad"
-        @error="onImageError"
       />
       <div class="cover-shine" :style="shineStyle"></div>
     </div>
@@ -65,16 +64,17 @@ watch(
 );
 
 const hasBlackBars = computed(() => {
-  return currentSrc.value?.includes('sddefault') || currentSrc.value?.includes('hqdefault');
+  return currentSrc.value?.includes('sddefault') || 
+         currentSrc.value?.includes('mqdefault') || 
+         currentSrc.value?.includes('hqdefault') || 
+         currentSrc.value?.includes('default.jpg');
 });
 
 const doFallback = () => {
   if (currentSrc.value?.includes('maxresdefault.jpg')) {
     currentSrc.value = currentSrc.value.replace('maxresdefault.jpg', 'sddefault.jpg');
   } else if (currentSrc.value?.includes('sddefault.jpg')) {
-    currentSrc.value = currentSrc.value.replace('sddefault.jpg', 'hqdefault.jpg');
-  } else if (currentSrc.value?.includes('hqdefault.jpg')) {
-    currentSrc.value = currentSrc.value.replace('hqdefault.jpg', 'mqdefault.jpg');
+    currentSrc.value = currentSrc.value.replace('sddefault.jpg', 'mqdefault.jpg');
   } else if (currentSrc.value?.includes('mqdefault.jpg')) {
     currentSrc.value = currentSrc.value.replace('mqdefault.jpg', 'default.jpg');
   }
@@ -87,9 +87,6 @@ const onImageLoad = (e: Event) => {
   }
 };
 
-const onImageError = () => {
-  doFallback();
-};
 
 const coverTransformStyle = computed(() => {
   if (!isHovering.value || props.disabled) {

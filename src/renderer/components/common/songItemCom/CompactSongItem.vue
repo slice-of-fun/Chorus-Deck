@@ -55,7 +55,7 @@
           </div>
         </div>
         <div class="song-item-content-compact-album">
-          <n-ellipsis line-clamp="1">{{ item.al?.name || '-' }}</n-ellipsis>
+          <n-ellipsis line-clamp="1">{{ item.album || item.al?.name || '-' }}</n-ellipsis>
         </div>
         <div class="song-item-content-compact-duration">
           {{ formatDuration(getDuration(item)) }}

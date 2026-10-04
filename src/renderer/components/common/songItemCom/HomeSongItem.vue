@@ -12,11 +12,13 @@
         :src="getImgUrl(item.picUrl, '200y200')"
         class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
         preview-disabled
+        object-fit="cover"
         :img-props="{
           crossorigin: 'anonymous',
           referrerpolicy: 'no-referrer',
           loading: 'lazy',
-          alt: item.name
+          alt: item.name,
+          style: 'object-fit: cover;'
         }"
       />
       <div
@@ -46,6 +48,9 @@
             {{ artist.name }}
           </span>
           <span v-if="index < artists.length - 1"> / </span>
+        </template>
+        <template v-if="albumName">
+          <span> • {{ albumName }}</span>
         </template>
       </n-ellipsis>
     </div>
@@ -113,6 +118,7 @@ const {
   isFavorite,
   isDislike,
   artists,
+  albumName,
   showDropdown,
   dropdownX,
   dropdownY,

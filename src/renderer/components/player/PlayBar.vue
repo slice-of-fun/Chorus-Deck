@@ -21,11 +21,18 @@
   >
     <div class="play-bar-left">
       <div class="play-bar-img-wrapper" @click.stop="setMusicFull">
-        <n-image
+        <img
+          v-if="playMusic?.picUrl"
           :src="getImgUrl(playMusic?.picUrl, '100y100')"
           class="play-bar-img"
-          lazy
-          preview-disabled
+          referrerpolicy="no-referrer"
+          style="object-fit: cover;"
+        />
+        <img
+          v-else
+          :src="logoImg"
+          class="play-bar-img"
+          style="object-fit: cover;"
         />
         <div v-if="playMusic?.playLoading" class="loading-overlay">
           <i class="ri-loader-4-line loading-icon"></i>
@@ -222,6 +229,7 @@ import { audioService } from '@/services/audioService';
 import { usePlayerStore } from '@/store/modules/player';
 import { useSettingsStore } from '@/store/modules/settings';
 import { getImgUrl, isCompact, isDesktop, secondToMinute, setAnimationClass } from '@/utils';
+
 
 const playerStore = usePlayerStore();
 const settingsStore = useSettingsStore();

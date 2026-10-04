@@ -63,6 +63,12 @@
               :fallback-src="logoImg"
               class="art-img"
               preview-disabled
+              object-fit="cover"
+              :img-props="{
+                crossorigin: 'anonymous',
+                referrerpolicy: 'no-referrer',
+                style: 'object-fit: cover;'
+              }"
             />
             <div class="now-playing-indicator" :style="{ backgroundColor: accentColor }">
               <i :class="isPlaying ? 'ri-equalizer-line' : 'ri-pause-line'" class="eq-icon"></i>
@@ -148,6 +154,12 @@
                   :fallback-src="logoImg"
                   class="item-img"
                   preview-disabled
+                  object-fit="cover"
+                  :img-props="{
+                    crossorigin: 'anonymous',
+                    referrerpolicy: 'no-referrer',
+                    style: 'object-fit: cover;'
+                  }"
                 />
                 <div
                   v-if="item.id === playerStore.playMusic?.id"
@@ -224,7 +236,6 @@
 import { NDropdown, useDialog, useMessage, useThemeVars } from 'naive-ui';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 
-import logoImg from '@/assets/logo.png';
 import SongItem from '@/components/common/SongItem.vue';
 import { artistList, playMusic } from '@/hooks/MusicHook';
 import { usePlaybackControl } from '@/hooks/usePlaybackControl';

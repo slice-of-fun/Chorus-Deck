@@ -26,6 +26,30 @@ const otherRouter: RouteRecordRaw[] = [
     props: (route) => ({ key: route.params.id })
   },
   {
+    path: '/album/:id',
+    name: 'albumDetail',
+    meta: {
+      title: 'Album',
+      keepAlive: true,
+      showInMenu: false,
+      back: true
+    },
+    component: () => import('@/views/playlist/AlbumDetail.vue'),
+    props: (route) => ({ key: route.params.id })
+  },
+  {
+    path: '/mood/:id',
+    name: 'moodDetail',
+    meta: {
+      title: 'Mood',
+      keepAlive: true,
+      showInMenu: false,
+      back: true
+    },
+    component: () => import('@/views/moods/index.vue'),
+    props: (route) => ({ id: route.params.id, params: route.query.params, title: route.query.title })
+  },
+  {
     path: '/artist/:id',
     name: 'artistDetail',
     meta: {

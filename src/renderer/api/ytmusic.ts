@@ -14,6 +14,11 @@ export interface YTMPlaylist {
   thumbnail: string;
 }
 
+export interface YTMBrowseEndpoint {
+  browseId: string;
+  params?: string;
+}
+
 export interface YTMSection {
   title: string;
   items: (YTMSong | YTMPlaylist)[];
@@ -27,6 +32,19 @@ export interface YTMPlaylistDetail {
   thumbnail: string;
   songCount: number;
   songs: YTMSong[];
+  songsEndpoint?: YTMBrowseEndpoint;
+  related: YTMPlaylist[];
+  relatedEndpoint?: YTMBrowseEndpoint;
+  relatedAlbums?: YTMPlaylist[];
+  relatedAlbumsEndpoint?: YTMBrowseEndpoint;
+  relatedPlaylists?: YTMPlaylist[];
+  relatedPlaylistsEndpoint?: YTMBrowseEndpoint;
+  relatedArtists?: YTMPlaylist[];
+  relatedArtistsEndpoint?: YTMBrowseEndpoint;
+  relatedArtistsEndpoint?: YTMBrowseEndpoint;
+  year?: string;
+  authorAvatar?: string;
+  authors?: { name: string; id: string; avatar?: string }[];
 }
 
 export interface YTMArtistDetail {
@@ -34,10 +52,17 @@ export interface YTMArtistDetail {
   title: string;
   description?: string;
   thumbnail: string;
+  avatar?: string;
   subscriberCount?: string;
+  viewCount?: string;
   songs: YTMSong[];
+  songsEndpoint?: YTMBrowseEndpoint;
   albums: YTMPlaylist[];
+  albumsEndpoint?: YTMBrowseEndpoint;
   playlists: YTMPlaylist[];
+  playlistsEndpoint?: YTMBrowseEndpoint;
+  similarArtists: YTMPlaylist[];
+  similarArtistsEndpoint?: YTMBrowseEndpoint;
 }
 
 export interface YTMHomePage {
@@ -66,7 +91,8 @@ export interface YTMSearchSuggestion {
 export interface YTMMood {
   id: string;
   title: string;
-  thumbnail: string;
+  params: string;
+  thumbnail?: string;
 }
 
 export interface YTMStream {
@@ -172,15 +198,22 @@ function parseThumbnail(thumbnails: any[]): string {
 
 function squareThumbnail(url: string, size: number = 226): string {
   if (!url) return '';
-  if (url.includes('lh3.googleusercontent.com') || url.includes('yt3.ggpht.com')) {
-    if (url.includes('=w')) {
-      return url.replace(/=w\d+-h\d+/, `=w${size}-h${size}`);
+  if (url.includes('googleusercontent.com') || url.includes('yt3.ggpht.com')) {
+    let newUrl = url;
+    if (newUrl.match(/[=-]w\d+-h\d+/)) {
+      newUrl = newUrl.replace(/([=-])w\d+-h\d+/, `$1w${size}-h${size}`);
+    } else if (newUrl.match(/[=-]s\d+/)) {
+      newUrl = newUrl.replace(/([=-])s\d+/, `$1s${size}`);
+    } else {
+      const base = newUrl.split('=')[0];
+      newUrl = `${base}=w${size}-h${size}-l90-rj`;
     }
-    const base = url.split('=')[0];
-    return `${base}=w${size}-h${size}-p-l90-rj`;
+    newUrl = newUrl.replace(/-p([^a-zA-Z0-9]|$)/, '$1');
+    return newUrl;
   }
   if (url.includes('i.ytimg.com')) {
-    return url.split('?')[0];
+    const cleanUrl = url.split('?')[0];
+    return cleanUrl.replace('hqdefault.jpg', 'mqdefault.jpg');
   }
 
   return url;
@@ -237,9 +270,20 @@ function parseSongItem(renderer: any): YTMSong | null {
         ?.playNavigationEndpoint?.watchEndpoint?.videoId;
 
     const thumbnails =
+      renderer.thumbnailRenderer?.musicCroppedThumbnailRenderer?.thumbnail?.thumbnails ||
+      renderer.thumbnail?.musicCroppedThumbnailRenderer?.thumbnail?.thumbnails ||
       renderer.thumbnailRenderer?.musicThumbnailRenderer?.thumbnail?.thumbnails ||
       renderer.thumbnail?.musicThumbnailRenderer?.thumbnail?.thumbnails ||
-      renderer.thumbnail?.croppedSquareThumbnailRenderer?.thumbnail?.thumbnails;
+      renderer.thumbnail?.croppedSquareThumbnailRenderer?.thumbnail?.thumbnails ||
+      renderer.thumbnailRenderer?.croppedSquareThumbnailRenderer?.thumbnail?.thumbnails ||
+      renderer.thumbnail?.thumbnails ||
+      renderer.thumbnail?.artistArtRef?.[0]?.thumbnails ||
+      renderer.fixedColumns?.[0]?.musicResponsiveListItemFixedColumnRenderer?.thumbnail
+        ?.musicThumbnailRenderer?.thumbnail?.thumbnails ||
+      renderer.flexColumns?.[0]?.musicResponsiveListItemFlexColumnRenderer?.thumbnail
+        ?.musicThumbnailRenderer?.thumbnail?.thumbnails ||
+      renderer.flexColumns?.[1]?.musicResponsiveListItemFlexColumnRenderer?.thumbnail
+        ?.musicThumbnailRenderer?.thumbnail?.thumbnails;
 
     if (!videoId || !title) return null;
 
@@ -264,10 +308,14 @@ function parsePlaylistItem(renderer: any): YTMPlaylist | null {
 
     const browseId =
       renderer.navigationEndpoint?.browseEndpoint?.browseId ||
+      renderer.title?.runs?.[0]?.navigationEndpoint?.browseEndpoint?.browseId ||
+      renderer.flexColumns?.[0]?.musicResponsiveListItemFlexColumnRenderer?.text?.runs?.[0]?.navigationEndpoint?.browseEndpoint?.browseId ||
       renderer.overlay?.musicItemThumbnailOverlayRenderer?.content?.musicPlayButtonRenderer
         ?.playNavigationEndpoint?.watchPlaylistEndpoint?.playlistId;
 
     const thumbnails =
+      renderer.thumbnailRenderer?.musicCroppedThumbnailRenderer?.thumbnail?.thumbnails ||
+      renderer.thumbnail?.musicCroppedThumbnailRenderer?.thumbnail?.thumbnails ||
       renderer.thumbnailRenderer?.musicThumbnailRenderer?.thumbnail?.thumbnails ||
       renderer.thumbnail?.musicThumbnailRenderer?.thumbnail?.thumbnails ||
       renderer.thumbnail?.croppedSquareThumbnailRenderer?.thumbnail?.thumbnails ||
@@ -333,6 +381,7 @@ function normalizeBrowseId(id: string, kind: keyof typeof BROWSE_ID_PREFIXES): s
   if (!id) return '';
   if (id.startsWith('VL')) return id;
   if (id.startsWith('OLAK5uy_')) return id;
+  if (id.startsWith('MPREb_') || id.startsWith('MPREb')) return id;
   if (id.startsWith('UC')) return id;
   return `${BROWSE_ID_PREFIXES[kind]}${id}`;
 }
@@ -350,6 +399,7 @@ function collectShelves(data: any): any[] {
 
     if (node.musicShelfRenderer) shelves.push(node.musicShelfRenderer);
     if (node.musicCarouselShelfRenderer) shelves.push(node.musicCarouselShelfRenderer);
+    if (node.musicPlaylistShelfRenderer) shelves.push(node.musicPlaylistShelfRenderer);
 
     for (const key of Object.keys(node)) {
       if (key === 'continuations' || key === 'continuationItems' || key === 'continuation')
@@ -363,11 +413,22 @@ function collectShelves(data: any): any[] {
   return shelves;
 }
 
-function collectSongsFromShelves(shelves: any[]): YTMSong[] {
+function getShelfEndpoint(shelf: any): YTMBrowseEndpoint | undefined {
+  const header = shelf?.header?.musicCarouselShelfBasicHeaderRenderer || shelf?.header?.musicShelfRenderer;
+  const ep = header?.moreContentButton?.buttonRenderer?.navigationEndpoint?.browseEndpoint || shelf?.bottomEndpoint?.browseEndpoint;
+  if (ep?.browseId) {
+    return { browseId: ep.browseId, params: ep.params };
+  }
+  return undefined;
+}
+
+function collectSongsFromShelves(shelves: any[]): { songs: YTMSong[], endpoint?: YTMBrowseEndpoint } {
   const songs: YTMSong[] = [];
   const seen = new Set<string>();
+  let endpoint: YTMBrowseEndpoint | undefined;
 
   for (const shelf of shelves) {
+    let shelfHasSongs = false;
     for (const c of shelf.contents || []) {
       const renderer = c.musicResponsiveListItemRenderer || c.musicTwoRowItemRenderer;
       if (!renderer) continue;
@@ -375,11 +436,15 @@ function collectSongsFromShelves(shelves: any[]): YTMSong[] {
       if (song && !seen.has(song.id)) {
         seen.add(song.id);
         songs.push(song);
+        shelfHasSongs = true;
       }
+    }
+    if (shelfHasSongs && !endpoint) {
+      endpoint = getShelfEndpoint(shelf);
     }
   }
 
-  return songs;
+  return { songs, endpoint };
 }
 
 function collectRadioSongs(data: any): YTMSong[] {
@@ -425,11 +490,17 @@ function collectRadioSongs(data: any): YTMSong[] {
 }
 
 function parseHeader(data: any) {
+  const tabs = data?.contents?.singleColumnBrowseResultsRenderer?.tabs ||
+               data?.contents?.twoColumnBrowseResultsRenderer?.tabs;
+  const sectionHeader = tabs?.[0]?.tabRenderer?.content?.sectionListRenderer?.contents?.[0]?.musicResponsiveHeaderRenderer;
+
   const header =
     data?.header?.musicDetailHeaderRenderer ||
     data?.header?.musicVisualHeaderRenderer ||
     data?.header?.musicImmersiveHeaderRenderer ||
-    data?.header?.musicEditablePlaylistDetailHeaderRenderer;
+    data?.header?.musicEditablePlaylistDetailHeaderRenderer ||
+    data?.header?.musicResponsiveHeaderRenderer ||
+    sectionHeader;
 
   const title =
     parseRuns(header?.title?.runs) ||
@@ -441,8 +512,12 @@ function parseHeader(data: any) {
     parseThumbnail(
       header?.thumbnail?.musicThumbnailRenderer?.thumbnail?.thumbnails ||
         header?.thumbnail?.croppedSquareThumbnailRenderer?.thumbnail?.thumbnails ||
+        header?.thumbnail?.musicCroppedThumbnailRenderer?.thumbnail?.thumbnails ||
         header?.thumbnailRenderer?.croppedSquareThumbnailRenderer?.thumbnail?.thumbnails ||
+        header?.thumbnailRenderer?.musicThumbnailRenderer?.thumbnail?.thumbnails ||
         header?.backgroundImage?.sources ||
+        data?.background?.musicThumbnailRenderer?.thumbnail?.thumbnails ||
+        data?.microformat?.microformatDataRenderer?.thumbnail?.thumbnails ||
         []
     ) || '';
 
@@ -454,19 +529,47 @@ function parseHeader(data: any) {
 
   let author: string | undefined;
   let subscriberCount: string | undefined;
+  let year: string | undefined;
+  let authorAvatar: string | undefined;
+  const authors: { name: string; id: string }[] = [];
+
+  for (const run of header?.subtitle?.runs || []) {
+    if (/^\d{4}$/.test(run.text.trim())) {
+      year = run.text.trim();
+    }
+    const pageType = run.navigationEndpoint?.browseEndpoint?.browseEndpointContextSupportedConfigs?.browseEndpointContextMusicConfig?.pageType;
+    if (pageType === 'MUSIC_PAGE_TYPE_ARTIST' || pageType === 'MUSIC_PAGE_TYPE_USER_CHANNEL') {
+      const id = run.navigationEndpoint?.browseEndpoint?.browseId;
+      if (id) authors.push({ name: run.text, id });
+      author = run.text;
+    }
+  }
+  
+  const avatarThumbs = header?.straplineThumbnail?.musicThumbnailRenderer?.thumbnail?.thumbnails || header?.foregroundThumbnail?.musicThumbnailRenderer?.thumbnail?.thumbnails;
+  if (avatarThumbs) authorAvatar = parseThumbnail(avatarThumbs);
+
 
   for (const run of header?.straplineTextTwo?.runs || []) {
     const pageType =
       run.navigationEndpoint?.browseEndpoint?.browseEndpointContextSupportedConfigs
         ?.browseEndpointContextMusicConfig?.pageType;
     if (pageType === 'MUSIC_PAGE_TYPE_ARTIST' || pageType === 'MUSIC_PAGE_TYPE_USER_CHANNEL') {
-      author = run.text;
+      const id = run.navigationEndpoint?.browseEndpoint?.browseId;
+      if (id && !authors.some(a => a.id === id)) authors.push({ name: run.text, id });
+      if (!author) author = run.text;
     } else if (/\d/.test(run.text) && /(subscriber|subscribers)/i.test(run.text)) {
       subscriberCount = run.text;
     }
   }
 
   if (!author) {
+    for (const run of header?.straplineTextOne?.runs || []) {
+      const pageType = run.navigationEndpoint?.browseEndpoint?.browseEndpointContextSupportedConfigs?.browseEndpointContextMusicConfig?.pageType;
+      if (pageType === 'MUSIC_PAGE_TYPE_ARTIST' || pageType === 'MUSIC_PAGE_TYPE_USER_CHANNEL') {
+        const id = run.navigationEndpoint?.browseEndpoint?.browseId;
+        if (id && !authors.some(a => a.id === id)) authors.push({ name: run.text, id });
+      }
+    }
     author = parseRuns(header?.straplineTextOne?.runs) || undefined;
   }
 
@@ -474,7 +577,7 @@ function parseHeader(data: any) {
     header?.secondSubtitle?.runs?.[0]?.text || header?.straplineTextOne?.runs?.[0]?.text || '';
   const songCount = Number((songCountRaw.match(/[\d,]+/)?.[0] || '0').replace(/,/g, ''));
 
-  return { title, thumbnail, description, author, subscriberCount, songCount };
+  return { title, thumbnail, description, author, subscriberCount, songCount, year, authorAvatar, authors };
 }
 
 export async function getYTMHome(cookie?: string): Promise<YTMHomePage> {
@@ -592,11 +695,15 @@ export async function searchYTM(
       const isAlbumCard =
         subtitle?.includes('Album') || subtitle?.includes('Single') || subtitle?.includes('EP');
 
+      const isPlaylistCard = subtitle?.includes('Playlist');
+      if (subtitle?.toLowerCase().includes('podcast') || subtitle?.toLowerCase().includes('episode')) continue;
+
       let resultType = 'Top Result';
       if (isSongCard) resultType = 'Song';
       else if (isVideoCard) resultType = 'Video';
       else if (isArtistCard) resultType = 'Artist';
       else if (isAlbumCard) resultType = 'Album';
+      else if (isPlaylistCard) resultType = 'Playlist';
 
       if (subtitle) {
         const parts = subtitle.split(' • ');
@@ -618,14 +725,25 @@ export async function searchYTM(
           .join(' • ');
       }
 
-      if (title && (isSongCard || isArtistCard || isVideoCard)) {
-        topResult = {
-          id: browseId,
-          title,
-          subtitle,
-          thumbnail: squareThumbnail(parseThumbnail(thumbnails || [])),
-          resultType
-        } as any;
+      if (title && (isSongCard || isArtistCard || isVideoCard || isAlbumCard || isPlaylistCard)) {
+        if (isSongCard || isVideoCard) {
+          const artists = subtitle.split(' • ').map((name: string) => ({ name: name.trim() })).filter((a: any) => a.name);
+          topResult = {
+            id: browseId,
+            title,
+            artists,
+            thumbnail: squareThumbnail(parseThumbnail(thumbnails || [])),
+            resultType
+          } as any;
+        } else {
+          topResult = {
+            id: browseId,
+            title,
+            subtitle,
+            thumbnail: squareThumbnail(parseThumbnail(thumbnails || [])),
+            resultType
+          } as any;
+        }
       }
     }
 
@@ -690,7 +808,7 @@ export async function searchYTM(
       }
 
       const playlist = parsePlaylistItem(renderer);
-      if (playlist) {
+      if (playlist && !playlist.subtitle?.toLowerCase().includes('podcast') && !playlist.subtitle?.toLowerCase().includes('episode')) {
         if (
           filter === 'albums' ||
           playlist.subtitle?.includes('Album') ||
@@ -709,31 +827,7 @@ export async function searchYTM(
     }
   }
 
-  if (!topResult) {
-    if (songs.length > 0) {
-      const firstSong = songs[0];
-      topResult = {
-        id: firstSong.id,
-        title: firstSong.title,
-        subtitle: firstSong.artists.map((a: any) => a.name).join(', '),
-        thumbnail: firstSong.thumbnail,
-        artists: firstSong.artists,
-        album: firstSong.album,
-        resultType: 'Song'
-      } as any;
-    } else if (videos.length > 0) {
-      const firstVideo = videos[0];
-      topResult = {
-        id: firstVideo.id,
-        title: firstVideo.title,
-        subtitle: firstVideo.artists.map((a: any) => a.name).join(', '),
-        thumbnail: firstVideo.thumbnail,
-        artists: firstVideo.artists,
-        album: firstVideo.album,
-        resultType: 'Video'
-      } as any;
-    }
-  }
+
 
   return {
     topResult,
@@ -769,10 +863,15 @@ export async function getYTMSuggestions(
   }
 }
 
-export async function getYTMMoods(cookie?: string): Promise<YTMMood[]> {
+export interface YTMMoodCategory {
+  title: string;
+  items: YTMMood[];
+}
+
+export async function getYTMMoods(cookie?: string): Promise<YTMMoodCategory[]> {
   const data = await ytmPost('browse', { browseId: 'FEmusic_moods_and_genres' }, cookie);
 
-  const moods: YTMMood[] = [];
+  const categories: YTMMoodCategory[] = [];
   const contents =
     data.contents?.singleColumnBrowseResultsRenderer?.tabs?.[0]?.tabRenderer?.content
       ?.sectionListRenderer?.contents || [];
@@ -781,17 +880,31 @@ export async function getYTMMoods(cookie?: string): Promise<YTMMood[]> {
     const shelf = content.gridRenderer || content.musicCarouselShelfRenderer;
     if (!shelf) continue;
 
+    let title = '';
+    if (content.gridRenderer?.header?.gridHeaderRenderer?.title?.runs?.[0]?.text) {
+      title = content.gridRenderer.header.gridHeaderRenderer.title.runs[0].text;
+    } else if (content.musicCarouselShelfRenderer?.header?.musicCarouselShelfBasicHeaderRenderer?.title?.runs?.[0]?.text) {
+      title = content.musicCarouselShelfRenderer.header.musicCarouselShelfBasicHeaderRenderer.title.runs[0].text;
+    } else {
+      title = 'More';
+    }
+
+    const items: YTMMood[] = [];
     (shelf.items || shelf.contents || []).forEach((c: any) => {
       const r = c.musicNavigationButtonRenderer;
       if (!r) return;
       const id = r.clickCommand?.browseEndpoint?.browseId || '';
-      const title = parseRuns(r.buttonText?.runs) || r.buttonText?.simpleText || '';
-      const thumbnail = '';
-      if (title) moods.push({ id, title, thumbnail });
+      const params = r.clickCommand?.browseEndpoint?.params || '';
+      const buttonTitle = parseRuns(r.buttonText?.runs) || r.buttonText?.simpleText || '';
+      if (buttonTitle) items.push({ id, title: buttonTitle, params });
     });
+
+    if (items.length > 0) {
+      categories.push({ title, items });
+    }
   }
 
-  return moods;
+  return categories;
 }
 
 export interface YTStreamClient {
@@ -1096,7 +1209,7 @@ export async function getYTMStream(videoId: string, cookie?: string): Promise<YT
       author: data?.videoDetails?.author,
       thumbnail:
         data?.videoDetails?.thumbnail?.thumbnails?.slice(-1)[0]?.url ??
-        `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+        `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`,
       durationSeconds: data?.videoDetails?.lengthSeconds
         ? Number(data.videoDetails.lengthSeconds)
         : undefined,
@@ -1181,16 +1294,82 @@ export async function getYTMPlaylist(
   const data = await ytmPost('browse', { browseId }, cookie);
   const header = parseHeader(data);
   const shelves = collectShelves(data);
-  const songs = collectSongsFromShelves(shelves);
+  const { songs, endpoint: songsEndpoint } = collectSongsFromShelves(shelves);
+
+  const playlistThumbnail = header.thumbnail;
+  songs.forEach(song => {
+    if (!song.thumbnail || song.thumbnail.includes('hqdefault.jpg') || song.thumbnail.includes('mqdefault.jpg')) {
+      if (playlistThumbnail) song.thumbnail = playlistThumbnail;
+    }
+  });
+
+  const related: YTMPlaylist[] = [];
+  const relatedAlbums: YTMPlaylist[] = [];
+  const relatedPlaylists: YTMPlaylist[] = [];
+  const relatedArtists: YTMPlaylist[] = [];
+
+  let relatedEndpoint: YTMBrowseEndpoint | undefined;
+  let relatedAlbumsEndpoint: YTMBrowseEndpoint | undefined;
+  let relatedPlaylistsEndpoint: YTMBrowseEndpoint | undefined;
+  let relatedArtistsEndpoint: YTMBrowseEndpoint | undefined;
+  
+  for (const shelf of shelves) {
+    let hasAlbum = false, hasArtist = false, hasPlaylist = false;
+    for (const c of shelf.contents || []) {
+      const renderer = c.musicTwoRowItemRenderer;
+      if (!renderer) continue;
+      const item = parsePlaylistItem(renderer);
+      if (!item?.id) continue;
+      
+      const pageType =
+        renderer.navigationEndpoint?.browseEndpoint?.browseEndpointContextSupportedConfigs
+          ?.browseEndpointContextMusicConfig?.pageType;
+          
+      if (pageType === 'MUSIC_PAGE_TYPE_ALBUM') {
+        relatedAlbums.push(item);
+        hasAlbum = true;
+      }
+      else if (pageType === 'MUSIC_PAGE_TYPE_ARTIST' || pageType === 'MUSIC_PAGE_TYPE_USER_CHANNEL') {
+        relatedArtists.push(item);
+        hasArtist = true;
+      }
+      else {
+        relatedPlaylists.push(item);
+        hasPlaylist = true;
+      }
+      
+      related.push(item);
+    }
+    
+    const ep = getShelfEndpoint(shelf);
+    if (ep) {
+      if (!relatedEndpoint) relatedEndpoint = ep;
+      if (hasAlbum && !relatedAlbumsEndpoint) relatedAlbumsEndpoint = ep;
+      if (hasArtist && !relatedArtistsEndpoint) relatedArtistsEndpoint = ep;
+      if (hasPlaylist && !relatedPlaylistsEndpoint) relatedPlaylistsEndpoint = ep;
+    }
+  }
 
   return {
     id: playlistId,
     title: header.title || 'Playlist',
     description: header.description,
     author: header.author,
-    thumbnail: header.thumbnail || `https://i.ytimg.com/vi/${playlistId}/hqdefault.jpg`,
+    year: header.year,
+    authorAvatar: header.authorAvatar,
+    thumbnail: playlistThumbnail,
     songCount: header.songCount || songs.length,
-    songs
+    songs,
+    songsEndpoint,
+    related,
+    relatedEndpoint,
+    relatedAlbums,
+    relatedAlbumsEndpoint,
+    relatedPlaylists,
+    relatedPlaylistsEndpoint,
+    relatedArtists,
+    relatedArtistsEndpoint,
+    authors: header.authors
   };
 }
 
@@ -1201,12 +1380,22 @@ export async function getYTMArtist(artistId: string, cookie?: string): Promise<Y
   const data = await ytmPost('browse', { browseId }, cookie);
   const header = parseHeader(data);
   const shelves = collectShelves(data);
-  const songs = collectSongsFromShelves(shelves);
+  const { songs, endpoint: songsEndpoint } = collectSongsFromShelves(shelves);
+
+  songs.forEach(song => {
+    if (!song.thumbnail && header.thumbnail) song.thumbnail = header.thumbnail;
+  });
 
   const albums: YTMPlaylist[] = [];
   const playlists: YTMPlaylist[] = [];
+  const similarArtists: YTMPlaylist[] = [];
+
+  let albumsEndpoint: YTMBrowseEndpoint | undefined;
+  let playlistsEndpoint: YTMBrowseEndpoint | undefined;
+  let similarArtistsEndpoint: YTMBrowseEndpoint | undefined;
 
   for (const shelf of shelves) {
+    let hasAlbum = false, hasArtist = false, hasPlaylist = false;
     for (const c of shelf.contents || []) {
       const renderer = c.musicTwoRowItemRenderer;
       if (!renderer) continue;
@@ -1217,8 +1406,25 @@ export async function getYTMArtist(artistId: string, cookie?: string): Promise<Y
         renderer.navigationEndpoint?.browseEndpoint?.browseEndpointContextSupportedConfigs
           ?.browseEndpointContextMusicConfig?.pageType;
 
-      if (pageType === 'MUSIC_PAGE_TYPE_ALBUM') albums.push(item);
-      else playlists.push(item);
+      if (pageType === 'MUSIC_PAGE_TYPE_ALBUM') {
+        albums.push(item);
+        hasAlbum = true;
+      }
+      else if (pageType === 'MUSIC_PAGE_TYPE_ARTIST' || pageType === 'MUSIC_PAGE_TYPE_USER_CHANNEL') {
+        similarArtists.push(item);
+        hasArtist = true;
+      }
+      else {
+        playlists.push(item);
+        hasPlaylist = true;
+      }
+    }
+    
+    const ep = getShelfEndpoint(shelf);
+    if (ep) {
+      if (hasAlbum && !albumsEndpoint) albumsEndpoint = ep;
+      if (hasArtist && !similarArtistsEndpoint) similarArtistsEndpoint = ep;
+      if (hasPlaylist && !playlistsEndpoint) playlistsEndpoint = ep;
     }
   }
 
@@ -1227,10 +1433,16 @@ export async function getYTMArtist(artistId: string, cookie?: string): Promise<Y
     title: header.title || 'Artist',
     description: header.description,
     thumbnail: header.thumbnail,
+    avatar: header.authorAvatar,
     subscriberCount: header.subscriberCount,
     songs,
+    songsEndpoint,
     albums,
-    playlists
+    albumsEndpoint,
+    playlists,
+    playlistsEndpoint,
+    similarArtists,
+    similarArtistsEndpoint
   };
 }
 
@@ -1248,7 +1460,7 @@ export async function getYTMRadio(videoId: string): Promise<YTMSong[]> {
     try {
       const data = await ytmPost('next', body);
       const songs = [
-        ...collectSongsFromShelves(collectShelves(data)),
+        ...collectSongsFromShelves(collectShelves(data)).songs,
         ...collectRadioSongs(data)
       ].filter((song, index, all) => {
         return song.id !== videoId && all.findIndex((candidate) => candidate.id === song.id) === index;
@@ -1264,4 +1476,106 @@ export async function getYTMRadio(videoId: string): Promise<YTMSong[]> {
 
 export function isYTMSong(item: YTMSong | YTMPlaylist): item is YTMSong {
   return 'artists' in item;
+}
+
+export async function getYTMMoodDetail(browseId: string, params: string, cookie?: string): Promise<YTMHomePage> {
+  const data = await ytmPost('browse', { browseId, params }, cookie);
+  
+  const sections: YTMSection[] = [];
+  const contents =
+    data.contents?.singleColumnBrowseResultsRenderer?.tabs?.[0]?.tabRenderer?.content
+      ?.sectionListRenderer?.contents || [];
+
+  for (const content of contents) {
+    const shelf =
+      content.musicImmersiveCarouselShelfRenderer ||
+      content.musicCarouselShelfRenderer ||
+      content.musicShelfRenderer ||
+      content.musicImmersiveHeaderRenderer;
+
+    if (!shelf) continue;
+
+    const title =
+      parseRuns(shelf.header?.musicCarouselShelfBasicHeaderRenderer?.title?.runs) ||
+      parseRuns(shelf.header?.musicImmersiveCarouselShelfBasicHeaderRenderer?.title?.runs) ||
+      parseRuns(shelf.title?.runs) ||
+      '';
+
+    const items: (YTMSong | YTMPlaylist)[] = [];
+
+    (shelf.contents || []).forEach((c: any) => {
+      const renderer = c.musicTwoRowItemRenderer || c.musicResponsiveListItemRenderer;
+      if (!renderer) return;
+
+      const song = parseSongItem(renderer);
+      if (song) {
+        items.push(song);
+        return;
+      }
+
+      const playlist = parsePlaylistItem(renderer);
+      if (playlist) items.push(playlist);
+    });
+
+    if (items.length > 0) {
+      sections.push({ title: title || 'Recommended', items });
+    }
+  }
+
+  return { sections };
+}
+
+function collectAllItems(data: any): (YTMSong | YTMPlaylist)[] {
+  const items: (YTMSong | YTMPlaylist)[] = [];
+  const seen = new Set<string>();
+
+  const walk = (node: any, depth = 0) => {
+    if (!node || typeof node !== 'object' || depth > 14) return;
+
+    if (Array.isArray(node)) {
+      node.forEach((n) => walk(n, depth + 1));
+      return;
+    }
+
+    const renderer = node.musicResponsiveListItemRenderer || node.musicTwoRowItemRenderer;
+    if (renderer) {
+      const song = parseSongItem(renderer);
+      if (song && !seen.has(song.id)) {
+        seen.add(song.id);
+        items.push(song);
+      } else {
+        const playlist = parsePlaylistItem(renderer);
+        if (playlist && !seen.has(playlist.id)) {
+          seen.add(playlist.id);
+          items.push(playlist);
+        }
+      }
+      return; 
+    }
+
+    for (const key of Object.keys(node)) {
+      if (key === 'continuations' || key === 'continuationItems' || key === 'continuation')
+        continue;
+      const value = node[key];
+      if (value && typeof value === 'object') walk(value, depth + 1);
+    }
+  };
+
+  walk(data);
+  return items;
+}
+
+export interface YTMListResponse {
+  title?: string;
+  items: (YTMSong | YTMPlaylist)[];
+}
+
+export async function getYTMList(browseId: string, params?: string, cookie?: string): Promise<YTMListResponse> {
+  const data = await ytmPost('browse', { browseId, params }, cookie);
+  const header = parseHeader(data);
+  const items = collectAllItems(data);
+  return {
+    title: header.title,
+    items
+  };
 }

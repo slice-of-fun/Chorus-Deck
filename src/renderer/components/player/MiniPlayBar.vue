@@ -24,6 +24,8 @@
               :fallback-src="logoImg"
               class="cover-img"
               preview-disabled
+              object-fit="cover"
+              :img-props="{ referrerpolicy: 'no-referrer' }"
             />
           </div>
         </div>
@@ -84,7 +86,6 @@
 import { computed, ref, useTemplateRef } from 'vue';
 import { useRouter } from 'vue-router';
 
-import logoImg from '@/assets/logo.png';
 import SongItem from '@/components/common/SongItem.vue';
 import AnimatedPlayPause from '@/components/player/AnimatedPlayPause.vue';
 import { allTime, artistList, nowTime, playMusic } from '@/hooks/MusicHook';

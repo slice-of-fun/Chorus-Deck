@@ -3,7 +3,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
 import MusicFull from '@/components/lyric/MusicFull.vue';
 import MusicFullCompact from '@/components/lyric/MusicFullCompact.vue';

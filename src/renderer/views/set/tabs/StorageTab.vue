@@ -16,7 +16,7 @@
       title="Cache Directory"
       :description="
         setData.diskCacheDir ||
-        diskCacheStats.directory ||
+        diskCacheStats.path ||
         'Custom directory for music and lyric cache files'
       "
     >
@@ -64,7 +64,7 @@
       :description="
         t('settings.system.cacheStatusDesc', {
           used: formatBytes(diskCacheStats.totalSizeBytes),
-          limit: `${setData.diskCacheMaxSizeMB || diskCacheStats.maxSizeMB || 0} MB`
+          limit: `${setData.diskCacheMaxSizeMB || (diskCacheStats.maxSize ? diskCacheStats.maxSize / 1024 / 1024 : 0)} MB`
         })
       "
     >
@@ -335,7 +335,7 @@ const selectCacheDirectory = async () => {
 
   switchingCacheDirectory.value = true;
   try {
-    await window.api.invoke('switch-disk-cache-directory', { path: selectedPath });
+    const result = await window.api.invoke('switch-disk-cache-directory', { path: selectedPath }) as any;
     message.success('Cache directory switched');
     
     setData.value = {

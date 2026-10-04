@@ -70,7 +70,8 @@ const {
   handleArtistClick,
   handleMouseEnter,
   handleMouseLeave,
-  downloadMusic
+  downloadMusic,
+  albumName
 } = useSongItem(props);
 
 const imageLoad = async (event: Event) => {
@@ -101,6 +102,7 @@ defineExpose({
   isFavorite,
   isDislike,
   artists,
+  albumName,
   isHovering
 });
 </script>

@@ -479,7 +479,6 @@
                   class="w-full h-full object-cover"
                   :src="largeImagePreview"
                   alt="Large Image"
-                  @error="onLargeImageError"
                 />
                 <img
                   v-else
@@ -504,7 +503,6 @@
                     class="w-full h-full object-cover"
                     :src="smallImagePreview"
                     alt="Small Image"
-                    @error="onSmallImageError"
                   />
                   <img
                     v-else
@@ -646,12 +644,6 @@ const previewProgress = computed(() => {
 const largeImageError = ref(false);
 const smallImageError = ref(false);
 
-const onLargeImageError = (e: any) => {
-  largeImageError.value = true;
-};
-const onSmallImageError = (e: any) => {
-  smallImageError.value = true;
-};
 
 let previewInterval: any = null;
 

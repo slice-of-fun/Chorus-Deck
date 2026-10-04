@@ -120,7 +120,7 @@
                     :alt="item.title"
                     class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                     loading="lazy"
-                    @error="onImgError($event, item.title)"
+                    referrerpolicy="no-referrer"
                   />
                   <!-- Play overlay -->
                   <div
@@ -177,11 +177,11 @@ import {
   type YTMSection,
   type YTMSong
 } from '@/api/ytmusic';
-import logoImg from '@/assets/logo.png';
 import { useQueueStore } from '@/store/modules/queue';
 import type { SongResult } from '@/types/music';
 
 defineOptions({ name: 'Charts' });
+
 
 const sections = ref<YTMSection[]>([]);
 const loading = ref(false);
@@ -197,10 +197,6 @@ function getSubtitle(item: YTMSong | YTMPlaylist): string {
 
 function getPlaceholder(title: string): string {
   return logoImg;
-}
-
-function onImgError(event: Event, title: string) {
-  (event.target as HTMLImageElement).src = getPlaceholder(title);
 }
 
 function playSong(item: YTMSong | YTMPlaylist) {

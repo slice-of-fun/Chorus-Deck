@@ -8,6 +8,12 @@
       class="w-[60px] h-[60px] flex-shrink-0 rounded-xl bg-light-300 dark:bg-dark-300"
       lazy
       preview-disabled
+      object-fit="cover"
+      :img-props="{
+        crossorigin: 'anonymous',
+        referrerpolicy: 'no-referrer',
+        style: 'object-fit: cover;'
+      }"
     />
     <div class="flex-1 min-w-0">
       <div class="text-base text-gray-900 dark:text-white mb-1">

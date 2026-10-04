@@ -57,11 +57,11 @@
 
         <div class="flex flex-col items-center px-6 relative z-10 pb-4">
           <p class="text-xs font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-widest mb-1">
-            {{ isAlbum ? 'Album' : 'Playlist' }} <template v-if="detail?.year">• {{ detail.year }}</template>
+            Album <template v-if="detail?.year">• {{ detail.year }}</template>
           </p>
   
           <h1 class="text-3xl font-bold text-center leading-tight mb-3">
-            {{ detail?.title || (isAlbum ? 'Album' : 'Playlist') }}
+            {{ detail?.title || 'Album' }}
           </h1>
   
           <div v-if="detail?.authors?.length || detail?.author" class="flex flex-wrap justify-center items-center gap-2 mb-3">
@@ -112,6 +112,8 @@
             </button>
           </div>
         </div>
+
+        <!-- Action buttons -->
         <div class="flex items-center justify-center gap-3">
           <button
             class="flex items-center gap-2 px-6 h-10 rounded-2xl font-semibold text-sm bg-primary text-white shadow transition-all hover:scale-[1.03] disabled:opacity-40"
@@ -139,6 +141,7 @@
         </div>
       </div>
 
+      <!-- Song list -->
       <div class="px-4 pb-8">
         <div v-if="!loading && songs.length === 0" class="py-16 text-center">
           <i class="ri-music-2-line text-4xl block mb-3 opacity-30 text-neutral-400" />
@@ -269,7 +272,7 @@ import type { SongResult } from '@/types/music';
 import { getImgUrl } from '@/utils';
 import { argbFromRgb } from '@material/material-color-utilities';
 
-defineOptions({ name: 'PlaylistDetail' });
+defineOptions({ name: 'AlbumDetail' });
 
 
 const toSongResult = (song: YTMSong): SongResult => ({
@@ -340,17 +343,11 @@ const handleMore = (section: string) => {
 const description = ref('');
 const currentSrc = ref('');
 const descExpanded = ref(false);
-
-// Color extraction
 const colorCanvas = ref<HTMLCanvasElement | null>(null);
 const extractedColors = ref<string[]>(['#1e293b', '#0f172a']);
 
-const isAlbum = computed(() => {
-  const type = route.query.type as string;
-  return type === 'album';
-});
+const isAlbum = computed(() => true);
 
-// Build banner gradient from extracted colors
 const bannerStyle = computed(() => {
   const [c1, c2, c3] = extractedColors.value;
   const gradient = c3
@@ -359,10 +356,6 @@ const bannerStyle = computed(() => {
   return { background: gradient };
 });
 
-/**
- * Extract dominant colors from thumbnail via hidden 8×8 canvas.
- * No image is shown in the UI — only the derived gradient.
- */
 const extractColors = async (url: string) => {
   return new Promise<void>((resolve) => {
     const img = new Image();
@@ -458,6 +451,7 @@ const loadPlaylist = async () => {
       await extractColors(thumbUrl);
     }
 
+    // Fetch missing avatars for authors asynchronously
     if (detail.value?.authors && detail.value.authors.length > 0) {
       detail.value.authors.forEach(async (author) => {
         if (!author.avatar && author.name) {

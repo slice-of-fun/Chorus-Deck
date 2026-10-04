@@ -10,6 +10,7 @@ export interface PlaylistResult {
 }
 
 export interface SearchResults {
+  topResult?: SongResult | PlaylistResult;
   songs: SongResult[];
   playlists: PlaylistResult[];
   albums: PlaylistResult[];

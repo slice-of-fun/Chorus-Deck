@@ -137,8 +137,6 @@ export const usePlayerCoreStore = defineStore(
         if (newSong && newSong.name) {
           const settingsStore = useSettingsStore();
           const s = settingsStore.setData;
-
-          // Only update if RPC is enabled (mirrors Chorus-Music's enableDiscordRPC check)
           if (!s.discordRPCEnabled || !s.discordToken) {
             window.api.clearDiscordPresence().catch(() => {});
             return;
@@ -147,12 +145,10 @@ export const usePlayerCoreStore = defineStore(
           const artist = newSong.ar?.map((a: any) => a.name).join(' / ') || (newSong as any).artists?.map((a: any) => a.name).join(' / ') || 'Unknown Artist';
           const album = newSong.al?.name || (typeof (newSong as any).album === 'string' ? (newSong as any).album : null) || (typeof (newSong as any).album === 'object' ? (newSong as any).album?.name : null) || 'Unknown Album';
           const albumArt = newSong.al?.picUrl || (newSong as any).picUrl || '';
-          const artistArt = newSong.ar?.[0]?.picUrl || newSong.ar?.[0]?.img1v1Url || (newSong as any).artists?.[0]?.picUrl || (newSong as any).artists?.[0]?.img1v1Url || '';
+          const artistArt = (newSong.ar?.[0] as any)?.picUrl || (newSong.ar?.[0] as any)?.img1v1Url || (newSong as any).artists?.[0]?.picUrl || (newSong as any).artists?.[0]?.img1v1Url || '';
           const songId = newSong.id?.toString() || '';
           const artistId = newSong.ar?.[0]?.id?.toString() || (newSong as any).artists?.[0]?.id?.toString() || '';
           const albumId = newSong.al?.id?.toString() || '';
-
-          // Build button URLs — mirrors Chorus-Music resolveUrl()
           const songUrl = songId
             ? `https://music.youtube.com/watch?v=${songId}`
             : '';

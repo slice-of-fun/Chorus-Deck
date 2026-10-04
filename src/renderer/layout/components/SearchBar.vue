@@ -160,7 +160,7 @@
 
 <script lang="ts" setup>
 import { useDebounceFn } from '@vueuse/core';
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import type { SearchFilter } from '@/api/provider';
@@ -207,7 +207,7 @@ const tabs = computed(() => {
     { key: 'album', label: 'Albums', path: '/album', icon: 'ri-album-fill' },
     {
       key: 'charts',
-      label: 'Toplist',
+      label: 'Charts',
       path: '/toplist',
       icon: 'ri-bar-chart-grouped-fill'
     },

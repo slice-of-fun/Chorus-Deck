@@ -117,7 +117,6 @@
                   <img
                     :src="getImgUrl(item.songInfo?.picUrl, '100y100')"
                     class="w-12 h-12 rounded-xl flex-shrink-0 object-cover"
-                    @error="handleCoverError"
                   />
                   <div class="flex-1 min-w-0">
                     <div class="flex items-center justify-between mb-2">
@@ -210,7 +209,6 @@
                       <img
                         :src="getImgUrl(item.picUrl, '100y100')"
                         class="w-full h-full object-cover"
-                        @error="handleCoverError"
                       />
                       <div
                         class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
@@ -546,7 +544,6 @@ import type { CompletedDownload } from '@shared/download';
 import { useMessage } from 'naive-ui';
 import { computed, onMounted, ref, watch } from 'vue';
 
-import logoImg from '@/assets/logo.png';
 import { useProgressiveRender } from '@/hooks/useProgressiveRender';
 import { useDownloadStore } from '@/store/modules/download';
 import { usePlayerStore } from '@/store/modules/player';
@@ -610,9 +607,6 @@ const handlePause = (taskId: string) => downloadStore.pauseTask(taskId);
 const handleResume = (taskId: string) => downloadStore.resumeTask(taskId);
 const handleCancel = (taskId: string) => downloadStore.cancelTask(taskId);
 
-const handleCoverError = (e: Event) => {
-  (e.target as HTMLImageElement).src = logoImg;
-};
 
 const formatSize = (bytes: number) => {
   if (!bytes) return '0 B';

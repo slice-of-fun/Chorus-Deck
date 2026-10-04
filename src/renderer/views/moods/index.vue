@@ -1,16 +1,15 @@
 <template>
-  <div class="ytm-home h-full w-full">
+  <div class="mood-detail h-full w-full">
     <n-scrollbar class="h-full" ref="scrollRef">
       <div class="home-content w-full pb-32 pt-6">
         <!-- ── Header ──────────────────────────────────────────────── -->
         <div class="home-header flex items-center justify-between mb-8 pt-2 px-[var(--content-padding-x)]">
           <div>
             <h1 class="text-3xl font-bold tracking-tight text-neutral-900 dark:text-white">
-              Good {{ greeting }},
-              <span class="text-primary">{{ userName }}</span>
+              {{ title || 'Mood' }}
             </h1>
             <p class="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
-              {{ headerSubtitle }}
+              Top tracks and playlists
             </p>
           </div>
           <button
@@ -49,7 +48,7 @@
           <p class="text-neutral-500 dark:text-neutral-400 mb-4">{{ error }}</p>
           <button
             class="px-6 py-2 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors"
-            @click="loadHome"
+            @click="loadData"
           >
             Try again
           </button>
@@ -79,7 +78,7 @@
             >
               <div class="flex gap-5 px-[var(--content-padding-x)]" :style="{ width: 'max-content' }">
                 <div
-                  v-for="(item, idx) in section.items.slice(0, 10)"
+                  v-for="(item, idx) in section.items"
                   :key="item.id || idx"
                   class="ytm-card group flex-shrink-0 w-44 cursor-pointer"
                   :style="{ animationDelay: `${idx * 0.04}s` }"
@@ -135,12 +134,12 @@
 </template>
 
 <script lang="ts" setup>
-import { useMessage } from 'naive-ui';
 import { NScrollbar } from 'naive-ui';
-import { computed, onMounted, type Ref, ref } from 'vue';
+import { onMounted, ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
 
 import {
-  getYTMHome,
+  getYTMMoodDetail,
   isYTMSong,
   type YTMPlaylist,
   type YTMSection,
@@ -149,41 +148,21 @@ import {
 import { useQueueStore } from '@/store/modules/queue';
 import type { SongResult } from '@/types/music';
 
-defineOptions({ name: 'Home' });
+defineOptions({ name: 'MoodDetail' });
+
+const props = defineProps<{
+  id: string;
+  params: string;
+  title?: string;
+}>();
 
 const sections = ref<YTMSection[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
 const sectionRefs = ref<Record<number, HTMLElement | null>>({});
 
-const message = useMessage();
 const playlistStore = useQueueStore();
-
-const greeting = computed(() => {
-  const h = new Date().getHours();
-  if (h < 12) return 'morning';
-  if (h < 17) return 'afternoon';
-  return 'evening';
-});
-
-const userName = computed(() => {
-  try {
-    const stored = localStorage.getItem('userInfo');
-    if (stored) return JSON.parse(stored)?.nickname || 'music lover';
-  } catch {
-    /* empty */
-  }
-  return 'music lover';
-});
-
-const headerSubtitle = computed(() => {
-  const subs = [
-    'Your personalized YouTube Music feed',
-    'Fresh picks from YouTube Music',
-    "What's trending on YouTube Music"
-  ];
-  return subs[new Date().getDay() % subs.length];
-});
+const router = useRouter();
 
 function getSubtitle(item: YTMSong | YTMPlaylist): string {
   if (isYTMSong(item)) {
@@ -205,6 +184,9 @@ function getPlaceholder(title: string): string {
 function handleItemClick(item: YTMSong | YTMPlaylist) {
   if (isYTMSong(item)) {
     playSong(item);
+  } else {
+    // Navigate to playlist/album
+    router.push({ name: 'playlistDetail', params: { id: item.id } });
   }
 }
 
@@ -227,17 +209,18 @@ function scrollSection(idx: number, dir: 1 | -1) {
   el.scrollBy({ left: dir * 800, behavior: 'smooth' });
 }
 
-async function loadHome() {
+async function loadData() {
+  if (!props.id || !props.params) return;
   loading.value = true;
   error.value = null;
   sections.value = [];
   try {
-    const page = await getYTMHome();
+    const page = await getYTMMoodDetail(props.id, props.params);
     const networkSections = page.sections.filter((s) => s.items.length > 0);
     sections.value = [...sections.value, ...networkSections];
   } catch (e: any) {
     if (sections.value.length === 0) {
-      error.value = e.message || 'Could not load YouTube Music home';
+      error.value = e.message || 'Could not load mood detail';
     }
   } finally {
     loading.value = false;
@@ -246,16 +229,23 @@ async function loadHome() {
 
 function refresh() {
   sections.value = [];
-  loadHome();
+  loadData();
 }
 
 onMounted(() => {
-  loadHome();
+  loadData();
 });
+
+watch(
+  () => [props.id, props.params],
+  () => {
+    loadData();
+  }
+);
 </script>
 
 <style lang="scss" scoped>
-.ytm-home {
+.mood-detail {
   position: relative;
 }
 

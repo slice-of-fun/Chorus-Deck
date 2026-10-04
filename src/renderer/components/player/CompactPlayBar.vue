@@ -21,6 +21,7 @@
       <div class="mini-song-info" @click="setMusicFull">
         <n-image
           :src="getImgUrl(playMusic?.picUrl, '100y100')"
+          :fallback-src="logoImg"
           class="mini-song-cover"
           lazy
           preview-disabled

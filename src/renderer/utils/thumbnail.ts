@@ -34,28 +34,24 @@ export const getImgUrl = (url: string | undefined, size: string = '') => {
   if (url.includes('googleusercontent.com') || url.includes('yt3.ggpht.com')) {
     const match = size.match(/^(\d+)y(\d+)$/);
     if (match) {
-      const dim = Math.min(parseInt(match[1]), 1600);
-      if (url.includes('=w')) {
-        return url.replace(/=w\d+-h\d+/, `=w${dim}-h${dim}`);
+      const dim = Math.min(parseInt(match[1]), 544);
+      let newUrl = url;
+      if (newUrl.match(/[=-]w\d+-h\d+/)) {
+        newUrl = newUrl.replace(/([=-])w\d+-h\d+/, `$1w${dim}-h${dim}`);
+      } else if (newUrl.match(/[=-]s\d+/)) {
+        newUrl = newUrl.replace(/([=-])s\d+/, `$1s${dim}`);
       } else {
-        const base = url.split('=')[0];
-        return `${base}=w${dim}-h${dim}-p-l90-rj`;
+        const base = newUrl.split('=')[0];
+        newUrl = `${base}=w${dim}-h${dim}-l90-rj`;
       }
+      return newUrl.replace(/-p([^a-zA-Z0-9]|$)/, '$1');
     }
   }
   if (url.includes('i.ytimg.com')) {
     const cleanUrl = url.split('?')[0];
-    const match = size.match(/^(\d+)y(\d+)$/);
-    if (match) {
-      const dim = parseInt(match[1]);
-      if (dim > 700) {
-        return cleanUrl.replace(/\/(sddefault|maxresdefault|mqdefault|hqdefault|default)\.(jpg|webp)/, '/maxresdefault.jpg');
-      }
-    }
-    return cleanUrl;
+    return cleanUrl.replace(/\/(sddefault|maxresdefault|hqdefault|default)\.(jpg|webp)/, '/mqdefault.jpg');
   }
 
-  // Handle NetEase images
   if (url.includes('music.126.net')) {
     const base = url.split('?')[0];
     return `${base}?param=${size}`;

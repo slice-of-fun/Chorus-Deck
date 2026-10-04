@@ -145,9 +145,9 @@
                   'full-blend': config.compactCoverStyle === 'full',
                   'has-black-bars': hasBlackBars
                 }"
+                object-fit="cover"
                 :img-props="{ referrerpolicy: 'no-referrer' }"
                 @load="onImageLoad"
-                @error="onImageError"
               />
             </div>
           </div>
@@ -222,9 +222,9 @@
                   'full-blend': config.compactCoverStyle === 'full',
                   'has-black-bars': hasBlackBars
                 }"
+                object-fit="cover"
                 :img-props="{ referrerpolicy: 'no-referrer' }"
                 @load="onImageLoad"
-                @error="onImageError"
               />
             </div>
           </div>
@@ -487,7 +487,10 @@ watch(
 );
 
 const hasBlackBars = computed(() => {
-  return currentSrc.value?.includes('sddefault') || currentSrc.value?.includes('hqdefault');
+  return currentSrc.value?.includes('sddefault') || 
+         currentSrc.value?.includes('mqdefault') || 
+         currentSrc.value?.includes('hqdefault') || 
+         currentSrc.value?.includes('default.jpg');
 });
 
 const onImageLoad = (e: Event) => {
@@ -496,18 +499,11 @@ const onImageLoad = (e: Event) => {
     if (currentSrc.value?.includes('maxresdefault.jpg')) {
       currentSrc.value = currentSrc.value.replace('maxresdefault.jpg', 'sddefault.jpg');
     } else if (currentSrc.value?.includes('sddefault.jpg')) {
-      currentSrc.value = currentSrc.value.replace('sddefault.jpg', 'hqdefault.jpg');
+      currentSrc.value = currentSrc.value.replace('sddefault.jpg', 'mqdefault.jpg');
     }
   }
 };
 
-const onImageError = () => {
-  if (currentSrc.value?.includes('maxresdefault.jpg')) {
-    currentSrc.value = currentSrc.value.replace('maxresdefault.jpg', 'sddefault.jpg');
-  } else if (currentSrc.value?.includes('sddefault.jpg')) {
-    currentSrc.value = currentSrc.value.replace('sddefault.jpg', 'hqdefault.jpg');
-  }
-};
 
 const sleepTimerRefresh = ref(0);
 let sleepTimerInterval: ReturnType<typeof setInterval> | null = null;

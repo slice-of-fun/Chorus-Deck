@@ -40,10 +40,11 @@
   </div>
 </template>
 <script lang="ts" setup>
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
-import icon from '@/assets/logo.png';
+import logoDark from '@/assets/logo.png';
+import logoLight from '@/assets/logo-light.png';
 import { useSettingsStore } from '@/store';
 import { isCompact } from '@/utils';
 import { t } from '@/utils/i18n';
@@ -70,6 +71,8 @@ const props = defineProps({
 const route = useRoute();
 const path = ref(route.path);
 const settingsStore = useSettingsStore();
+
+const icon = computed(() => (settingsStore.theme === 'light' ? logoLight : logoDark));
 
 watch(
   () => route.path,

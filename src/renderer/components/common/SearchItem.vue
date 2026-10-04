@@ -11,6 +11,12 @@
         :src="getImgUrl(item.picUrl, '400y400')"
         lazy
         preview-disabled
+        object-fit="cover"
+        :img-props="{
+          crossorigin: 'anonymous',
+          referrerpolicy: 'no-referrer',
+          style: 'object-fit: cover;'
+        }"
       />
 
       <div

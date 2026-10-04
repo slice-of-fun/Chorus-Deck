@@ -1,57 +1,60 @@
 <template>
-  <div class="search-page h-full w-full">
-    <n-scrollbar class="h-full">
-      <div class="search-content w-full pb-32 pt-6">
-        <!-- ── Search bar ─────────────────────────────────────────── -->
-        <div class="search-bar-wrapper relative mb-8">
-          <div class="relative">
-            <i
-              class="ri-search-line absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 dark:text-neutral-500 text-lg pointer-events-none"
-            />
-            <input
-              ref="searchInputRef"
-              v-model="query"
-              type="text"
-              placeholder="Search songs, artists, albums, playlists…"
-              class="w-full pl-12 pr-12 py-3.5 rounded-2xl bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-600 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary text-sm font-medium transition-all duration-200"
-              @keyup.enter="() => doSearch(true)"
-              @keyup.escape="clearQuery"
-              @input="onQueryInput"
-            />
-            <button
-              v-if="query"
-              class="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors"
-              @click="clearQuery"
-            >
-              <i class="ri-close-line text-lg" />
-            </button>
-          </div>
-
-          <!-- Suggestions dropdown -->
-          <div
-            v-if="suggestions.length > 0 && query && !searchDone"
-            class="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800 shadow-xl z-50 overflow-hidden"
+  <div class="search-page h-full w-full flex flex-col">
+    <div
+      class="search-header flex-shrink-0 w-full bg-[var(--shell-surface)] z-10"
+      style="padding: var(--content-padding-y) var(--content-padding-x) 0 var(--content-padding-x);"
+    >
+      <div class="search-bar-wrapper relative mb-4">
+        <div class="relative">
+          <i
+            class="ri-search-line absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 dark:text-neutral-500 text-lg pointer-events-none"
+          />
+          <input
+            ref="searchInputRef"
+            v-model="query"
+            type="text"
+            placeholder="Search songs, artists, albums, playlists…"
+            class="w-full pl-12 pr-12 py-3.5 rounded-2xl bg-neutral-100 dark:bg-neutral-800/80 border-transparent text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-500 focus:outline-none focus:ring-0 focus:border-transparent text-sm font-medium transition-all duration-200"
+            @keyup.enter="() => doSearch(true)"
+            @keyup.escape="clearQuery"
+            @input="onQueryInput"
+          />
+          <button
+            v-if="query"
+            class="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors"
+            @click="clearQuery"
           >
-            <button
-              v-for="(s, i) in suggestions"
-              :key="i"
-              class="w-full flex items-center gap-3 px-4 py-3 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors text-left"
-              @click="selectSuggestion(s)"
-            >
-              <i class="text-base text-neutral-400 ri-search-line" />
-              <span class="text-sm text-neutral-700 dark:text-neutral-300 flex-1">{{ s }}</span>
-              <i
-                class="ri-arrow-up-left-line text-neutral-300 dark:text-neutral-600 text-xs"
-                title="Fill search bar"
-              />
-            </button>
-          </div>
+            <i class="ri-close-line text-lg" />
+          </button>
         </div>
 
+        <div
+          v-if="suggestions.length > 0 && query && !searchDone"
+          class="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800 shadow-xl z-50 overflow-hidden"
+        >
+          <button
+            v-for="(s, i) in suggestions"
+            :key="i"
+            class="w-full flex items-center gap-3 px-4 py-3 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors text-left"
+            @click="selectSuggestion(s)"
+          >
+            <i class="text-base text-neutral-400 ri-search-line" />
+            <span class="text-sm text-neutral-700 dark:text-neutral-300 flex-1">{{ s }}</span>
+            <i
+              class="ri-arrow-up-left-line text-neutral-300 dark:text-neutral-600 text-xs"
+              title="Fill search bar"
+            />
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <n-scrollbar class="flex-1">
+      <div class="search-content w-full pb-32">
         <!-- ── Search results ─────────────────────────────────────── -->
         <div v-if="searchDone">
           <!-- Result tabs -->
-          <div class="flex items-center gap-1 mb-6 overflow-x-auto pb-1 no-scrollbar">
+          <div class="flex items-center gap-1 mb-6 overflow-x-auto pb-1 no-scrollbar px-[var(--content-padding-x)]">
             <button
               v-for="tab in SEARCH_TABS"
               :key="tab.key"
@@ -68,7 +71,7 @@
           </div>
 
           <!-- Loading results -->
-          <div v-if="searchLoading" class="space-y-1">
+          <div v-if="searchLoading" class="space-y-1 px-[var(--content-padding-x)]">
             <div v-for="i in 8" :key="i" class="flex items-center gap-4 px-3 py-2.5 rounded-xl">
               <div
                 :class="[
@@ -82,7 +85,7 @@
               </div>
             </div>
           </div>
-          <div v-else-if="activeTab === 'all'" class="space-y-8">
+          <div v-else-if="activeTab === 'all'" class="space-y-8 px-[var(--content-padding-x)]">
             <div
               v-if="
                 results.songs.length === 0 &&
@@ -97,6 +100,49 @@
               <p class="text-sm">No results found for "{{ lastQuery }}"</p>
             </div>
 
+            <section v-if="results.topResult" class="mb-8">
+              <h2 class="text-xl font-bold text-neutral-900 dark:text-white mb-3 px-1">Top Result</h2>
+              <div
+                class="group flex items-center gap-4 bg-neutral-100/80 dark:bg-neutral-900/50 p-4 rounded-3xl cursor-pointer hover:bg-neutral-200/80 dark:hover:bg-neutral-800/50 transition-all"
+                @click="onTopResultClick"
+              >
+                <div
+                  :class="[
+                    'relative w-24 h-24 flex-shrink-0 overflow-hidden bg-neutral-200 dark:bg-neutral-800',
+                    'artists' in results.topResult ? 'rounded-lg' : ((results.topResult as any).type === 'artist' ? 'rounded-full' : 'rounded-lg')
+                  ]"
+                >
+                  <i class="ri-image-line absolute inset-0 flex items-center justify-center text-neutral-400 text-2xl"></i>
+                  <img
+                    :src="results.topResult.picUrl"
+                    :alt="results.topResult.name"
+                    @error="\$event.target.style.opacity=0"
+                    class="relative z-10 w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                  <div
+                    v-if="'artists' in results.topResult"
+                    class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                  >
+                    <i class="ri-play-fill text-white text-3xl" />
+                  </div>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-2xl font-bold text-neutral-900 dark:text-white line-clamp-1 mb-1">
+                    {{ results.topResult.name }}
+                  </p>
+                  <p class="text-sm text-neutral-500 dark:text-neutral-400 line-clamp-1">
+                    <span v-if="'artists' in results.topResult">
+                      Song • {{ (results.topResult as any).artists?.map((a: any) => a.name).join(', ') }}
+                    </span>
+                    <span v-else>
+                      {{ (results.topResult as any).type?.charAt(0).toUpperCase() + (results.topResult as any).type?.slice(1) }} <template v-if="(results.topResult as any).desc">• {{ (results.topResult as any).desc }}</template>
+                    </span>
+                  </p>
+                </div>
+              </div>
+            </section>
+
             <section v-if="results.songs.length > 0" class="mb-8">
               <h2 class="text-xl font-bold text-neutral-900 dark:text-white mb-3 px-1">Songs</h2>
               <div
@@ -106,18 +152,19 @@
                   v-for="(song, idx) in results.songs"
                   :key="song.id"
                   class="search-result-row group flex items-center gap-4 px-3 py-2 hover:bg-black/5 dark:hover:bg-white/10 transition-all cursor-pointer rounded-2xl"
-                  :style="{ animationDelay: `${idx * 0.02}s` }"
+                  :style="{ animationDelay: idx * 0.02 + 's' }"
                   @click="playSong(song)"
                 >
                   <div
                     class="relative w-11 h-11 flex-shrink-0 rounded-lg overflow-hidden bg-neutral-200 dark:bg-neutral-800"
                   >
-                    <img
-                      :src="song.picUrl || getPlaceholder(song.name)"
+                    <i class="ri-image-line absolute inset-0 flex items-center justify-center text-neutral-400 text-2xl"></i>
+                  <img
+                      :src="song.picUrl"
                       :alt="song.name"
-                      class="w-full h-full object-cover"
+                      @error="\$event.target.style.opacity=0"
+                    class="relative z-10 w-full h-full object-cover"
                       loading="lazy"
-                      @error="onImgError($event, song.name)"
                     />
                     <div
                       class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
@@ -146,8 +193,6 @@
               </div>
             </section>
 
-            <!-- Videos are only shown in the dedicated Videos tab, not in All -->
-
             <section v-if="results.artists && results.artists.length > 0" class="mb-8">
               <h2 class="text-xl font-bold text-neutral-900 dark:text-white mb-3 px-1">Artists</h2>
               <div
@@ -157,17 +202,19 @@
                   v-for="(ar, idx) in results.artists"
                   :key="ar.id"
                   class="search-result-row group flex items-center gap-4 px-3 py-2 hover:bg-black/5 dark:hover:bg-white/10 transition-all cursor-pointer rounded-2xl"
-                  :style="{ animationDelay: `${idx * 0.02}s` }"
+                  :style="{ animationDelay: idx * 0.02 + 's' }"
+                  @click="goToArtist(ar.id)"
                 >
                   <div
-                    class="relative w-12 h-12 flex-shrink-0 rounded-full overflow-hidden bg-neutral-200 dark:bg-neutral-800"
+                    class="relative w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden bg-neutral-200 dark:bg-neutral-800"
                   >
-                    <img
-                      :src="ar.picUrl || getPlaceholder(ar.name)"
+                    <i class="ri-image-line absolute inset-0 flex items-center justify-center text-neutral-400 text-2xl"></i>
+                  <img
+                      :src="ar.picUrl"
                       :alt="ar.name"
-                      class="w-full h-full object-cover"
+                      @error="\$event.target.style.opacity=0"
+                    class="relative z-10 w-full h-full object-cover"
                       loading="lazy"
-                      @error="onImgError($event, ar.name)"
                     />
                   </div>
                   <div class="flex-1 min-w-0">
@@ -190,17 +237,19 @@
                   v-for="(al, idx) in results.albums"
                   :key="al.id"
                   class="search-result-row group flex items-center gap-4 px-3 py-2 hover:bg-black/5 dark:hover:bg-white/10 transition-all cursor-pointer rounded-2xl"
-                  :style="{ animationDelay: `${idx * 0.02}s` }"
+                  :style="{ animationDelay: idx * 0.02 + 's' }"
+                  @click="goToPlaylist(al.id)"
                 >
                   <div
                     class="relative w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden bg-neutral-200 dark:bg-neutral-800"
                   >
-                    <img
-                      :src="al.picUrl || getPlaceholder(al.name)"
+                    <i class="ri-image-line absolute inset-0 flex items-center justify-center text-neutral-400 text-2xl"></i>
+                  <img
+                      :src="al.picUrl"
                       :alt="al.name"
-                      class="w-full h-full object-cover"
+                      @error="\$event.target.style.opacity=0"
+                    class="relative z-10 w-full h-full object-cover"
                       loading="lazy"
-                      @error="onImgError($event, al.name)"
                     />
                   </div>
                   <div class="flex-1 min-w-0">
@@ -209,12 +258,7 @@
                     >
                       {{ al.name }}
                     </p>
-                    <p
-                      v-if="al.desc"
-                      class="text-xs text-neutral-500 dark:text-neutral-400 line-clamp-1 mt-0.5"
-                    >
-                      {{ al.desc }}
-                    </p>
+
                   </div>
                 </div>
               </div>
@@ -231,17 +275,19 @@
                   v-for="(pl, idx) in results.playlists"
                   :key="pl.id"
                   class="search-result-row group flex items-center gap-4 px-3 py-2 hover:bg-black/5 dark:hover:bg-white/10 transition-all cursor-pointer rounded-2xl"
-                  :style="{ animationDelay: `${idx * 0.02}s` }"
+                  :style="{ animationDelay: idx * 0.02 + 's' }"
+                  @click="goToPlaylist(pl.id)"
                 >
                   <div
                     class="relative w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden bg-neutral-200 dark:bg-neutral-800"
                   >
-                    <img
-                      :src="pl.picUrl || getPlaceholder(pl.name)"
+                    <i class="ri-image-line absolute inset-0 flex items-center justify-center text-neutral-400 text-2xl"></i>
+                  <img
+                      :src="pl.picUrl"
                       :alt="pl.name"
-                      class="w-full h-full object-cover"
+                      @error="\$event.target.style.opacity=0"
+                    class="relative z-10 w-full h-full object-cover"
                       loading="lazy"
-                      @error="onImgError($event, pl.name)"
                     />
                   </div>
                   <div class="flex-1 min-w-0">
@@ -250,12 +296,7 @@
                     >
                       {{ pl.name }}
                     </p>
-                    <p
-                      v-if="pl.desc"
-                      class="text-xs text-neutral-500 dark:text-neutral-400 line-clamp-2 mt-0.5"
-                    >
-                      {{ pl.desc }}
-                    </p>
+
                   </div>
                 </div>
               </div>
@@ -263,7 +304,7 @@
           </div>
 
           <!-- Songs -->
-          <div v-else-if="activeTab === 'songs'">
+          <div v-else-if="activeTab === 'songs'" class="px-[var(--content-padding-x)]">
             <div v-if="results.songs.length === 0" class="text-center py-12 text-neutral-400">
               <i class="ri-music-2-line text-4xl opacity-30 mb-2" />
               <p class="text-sm">No songs found for "{{ lastQuery }}"</p>
@@ -276,18 +317,19 @@
                 v-for="(song, idx) in results.songs"
                 :key="song.id"
                 class="search-result-row group flex items-center gap-4 px-3 py-2 hover:bg-black/5 dark:hover:bg-white/10 transition-all cursor-pointer rounded-2xl"
-                :style="{ animationDelay: `${idx * 0.02}s` }"
+                :style="{ animationDelay: idx * 0.02 + 's' }"
                 @click="playSong(song)"
               >
                 <div
                   class="relative w-11 h-11 flex-shrink-0 rounded-lg overflow-hidden bg-neutral-200 dark:bg-neutral-800"
                 >
+                  <i class="ri-image-line absolute inset-0 flex items-center justify-center text-neutral-400 text-2xl"></i>
                   <img
-                    :src="song.picUrl || getPlaceholder(song.name)"
+                    :src="song.picUrl"
                     :alt="song.name"
-                    class="w-full h-full object-cover"
+                    @error="\$event.target.style.opacity=0"
+                    class="relative z-10 w-full h-full object-cover"
                     loading="lazy"
-                    @error="onImgError($event, song.name)"
                   />
                   <div
                     class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
@@ -317,7 +359,7 @@
           </div>
 
           <!-- Playlists -->
-          <div v-else-if="activeTab === 'playlists'">
+          <div v-else-if="activeTab === 'playlists'" class="px-[var(--content-padding-x)]">
             <div v-if="results.playlists?.length === 0" class="text-center py-12 text-neutral-400">
               <i class="ri-play-list-2-line text-4xl opacity-30 mb-2" />
               <p class="text-sm">No playlists found for "{{ lastQuery }}"</p>
@@ -330,17 +372,19 @@
                 v-for="(pl, idx) in results.playlists"
                 :key="pl.id"
                 class="search-result-row group flex items-center gap-4 px-3 py-2 hover:bg-black/5 dark:hover:bg-white/10 transition-all cursor-pointer rounded-2xl"
-                :style="{ animationDelay: `${idx * 0.02}s` }"
+                :style="{ animationDelay: idx * 0.02 + 's' }"
+                  @click="goToPlaylist(pl.id)"
               >
                 <div
                   class="relative w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden bg-neutral-200 dark:bg-neutral-800"
                 >
+                  <i class="ri-image-line absolute inset-0 flex items-center justify-center text-neutral-400 text-2xl"></i>
                   <img
-                    :src="pl.picUrl || getPlaceholder(pl.name)"
+                    :src="pl.picUrl"
                     :alt="pl.name"
-                    class="w-full h-full object-cover"
+                    @error="\$event.target.style.opacity=0"
+                    class="relative z-10 w-full h-full object-cover"
                     loading="lazy"
-                    @error="onImgError($event, pl.name)"
                   />
                 </div>
                 <div class="flex-1 min-w-0">
@@ -361,7 +405,7 @@
           </div>
 
           <!-- Albums -->
-          <div v-else-if="activeTab === 'albums'">
+          <div v-else-if="activeTab === 'albums'" class="px-[var(--content-padding-x)]">
             <div v-if="results.albums?.length === 0" class="text-center py-12 text-neutral-400">
               <i class="ri-album-line text-4xl opacity-30 mb-2" />
               <p class="text-sm">No albums found for "{{ lastQuery }}"</p>
@@ -374,17 +418,19 @@
                 v-for="(al, idx) in results.albums"
                 :key="al.id"
                 class="search-result-row group flex items-center gap-4 px-3 py-2 hover:bg-black/5 dark:hover:bg-white/10 transition-all cursor-pointer rounded-2xl"
-                :style="{ animationDelay: `${idx * 0.02}s` }"
+                :style="{ animationDelay: idx * 0.02 + 's' }"
+                  @click="goToPlaylist(al.id)"
               >
                 <div
                   class="relative w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden bg-neutral-200 dark:bg-neutral-800"
                 >
+                  <i class="ri-image-line absolute inset-0 flex items-center justify-center text-neutral-400 text-2xl"></i>
                   <img
-                    :src="al.picUrl || getPlaceholder(al.name)"
+                    :src="al.picUrl"
                     :alt="al.name"
-                    class="w-full h-full object-cover"
+                    @error="\$event.target.style.opacity=0"
+                    class="relative z-10 w-full h-full object-cover"
                     loading="lazy"
-                    @error="onImgError($event, al.name)"
                   />
                 </div>
                 <div class="flex-1 min-w-0">
@@ -405,7 +451,7 @@
           </div>
 
           <!-- Artists -->
-          <div v-else-if="activeTab === 'artists'">
+          <div v-else-if="activeTab === 'artists'" class="px-[var(--content-padding-x)]">
             <div v-if="results.artists?.length === 0" class="text-center py-12 text-neutral-400">
               <i class="ri-mic-line text-4xl opacity-30 mb-2" />
               <p class="text-sm">No artists found for "{{ lastQuery }}"</p>
@@ -418,17 +464,19 @@
                 v-for="(ar, idx) in results.artists"
                 :key="ar.id"
                 class="search-result-row group flex items-center gap-4 px-3 py-2 hover:bg-black/5 dark:hover:bg-white/10 transition-all cursor-pointer rounded-2xl"
-                :style="{ animationDelay: `${idx * 0.02}s` }"
+                :style="{ animationDelay: idx * 0.02 + 's' }"
+                  @click="goToArtist(ar.id)"
               >
                 <div
-                  class="relative w-12 h-12 flex-shrink-0 rounded-full overflow-hidden bg-neutral-200 dark:bg-neutral-800"
+                  class="relative w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden bg-neutral-200 dark:bg-neutral-800"
                 >
+                  <i class="ri-image-line absolute inset-0 flex items-center justify-center text-neutral-400 text-2xl"></i>
                   <img
-                    :src="ar.picUrl || getPlaceholder(ar.name)"
+                    :src="ar.picUrl"
                     :alt="ar.name"
-                    class="w-full h-full object-cover"
+                    @error="\$event.target.style.opacity=0"
+                    class="relative z-10 w-full h-full object-cover"
                     loading="lazy"
-                    @error="onImgError($event, ar.name)"
                   />
                 </div>
                 <div class="flex-1 min-w-0">
@@ -443,7 +491,7 @@
           </div>
 
           <!-- Videos -->
-          <div v-else-if="activeTab === 'videos'">
+          <div v-else-if="activeTab === 'videos'" class="px-[var(--content-padding-x)]">
             <div v-if="results.videos?.length === 0" class="text-center py-12 text-neutral-400">
               <i class="ri-video-line text-4xl opacity-30 mb-2" />
               <p class="text-sm">No videos found for "{{ lastQuery }}"</p>
@@ -456,18 +504,19 @@
                 v-for="(video, idx) in results.videos"
                 :key="video.id"
                 class="search-result-row group flex items-center gap-4 px-3 py-2 hover:bg-black/5 dark:hover:bg-white/10 transition-all cursor-pointer rounded-2xl"
-                :style="{ animationDelay: `${idx * 0.02}s` }"
+                :style="{ animationDelay: idx * 0.02 + 's' }"
                 @click="playSong(video)"
               >
                 <div
                   class="relative w-20 h-11 flex-shrink-0 rounded-lg overflow-hidden bg-neutral-200 dark:bg-neutral-800"
                 >
+                  <i class="ri-image-line absolute inset-0 flex items-center justify-center text-neutral-400 text-2xl"></i>
                   <img
-                    :src="video.picUrl || getPlaceholder(video.name)"
+                    :src="video.picUrl"
                     :alt="video.name"
-                    class="w-full h-full object-cover"
+                    @error="\$event.target.style.opacity=0"
+                    class="relative z-10 w-full h-full object-cover"
                     loading="lazy"
-                    @error="onImgError($event, video.name)"
                   />
                   <div
                     class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
@@ -497,7 +546,7 @@
         </div>
 
         <!-- ── Idle: History + Moods ──────────────────────────────── -->
-        <div v-else class="space-y-12">
+        <div v-else class="space-y-12 px-[var(--content-padding-x)]">
           <!-- Search history -->
           <section v-if="searchHistory.length > 0">
             <div class="flex items-center justify-between mb-4">
@@ -527,35 +576,36 @@
           </section>
 
           <!-- Moods & Genres -->
-          <section>
-            <h2 class="text-lg font-bold text-neutral-900 dark:text-white mb-5">
-              Moods &amp; Genres
-            </h2>
-            <div v-if="moodsLoading" class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-              <div v-for="i in 12" :key="i" class="h-20 skeleton-shimmer rounded-2xl" />
-            </div>
-            <div v-else class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-              <button
-                v-for="(mood, i) in moods"
-                :key="mood.id"
-                class="mood-pill group relative h-20 rounded-2xl overflow-hidden text-white font-bold text-sm cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-lg"
-                :style="{ animationDelay: `${i * 0.03}s` }"
-                @click="searchByMood(mood.title)"
-              >
-                <img
-                  :src="mood.thumbnail || getPlaceholder(mood.title)"
-                  :alt="mood.title"
-                  class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity"
-                  loading="lazy"
-                  @error="onImgError($event, mood.title)"
-                />
-                <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                <span class="absolute bottom-0 left-0 right-0 p-3 text-left leading-tight">
-                  {{ mood.title }}
-                </span>
-              </button>
-            </div>
-          </section>
+          <template v-if="moodsLoading">
+            <section>
+              <h2 class="text-lg font-bold text-neutral-900 dark:text-white mb-5">
+                Moods &amp; Genres
+              </h2>
+              <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+                <div v-for="i in 12" :key="i" class="h-12 skeleton-shimmer rounded-lg" />
+              </div>
+            </section>
+          </template>
+          <template v-else>
+            <section v-for="(category, catIndex) in moods" :key="catIndex" class="mb-8">
+              <h2 class="text-lg font-bold text-neutral-900 dark:text-white mb-5">
+                {{ category.title }}
+              </h2>
+              <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+                <button
+                  v-for="(mood, i) in category.items"
+                  :key="mood.id"
+                  class="mood-pill group relative h-12 rounded-md overflow-hidden text-white cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-start px-3"
+                  :style="{ backgroundColor: getMoodColor(mood.title) }"
+                  @click="searchByMood(mood)"
+                >
+                  <span class="text-sm font-medium truncate w-full text-left">
+                    {{ mood.title }}
+                  </span>
+                </button>
+              </div>
+            </section>
+          </template>
         </div>
       </div>
     </n-scrollbar>
@@ -565,10 +615,11 @@
 <script lang="ts" setup>
 import { NScrollbar, NSelect } from 'naive-ui';
 import { onMounted, ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
 
 import type { SearchFilter, SearchResults } from '@/api/provider';
 import { getProvider } from '@/api/providers';
-import { getYTMMoods, type YTMMood } from '@/api/ytmusic';
+import { getYTMMoods, type YTMMoodCategory, type YTMMood } from '@/api/ytmusic';
 import logoImg from '@/assets/logo.png';
 import { useQueueStore } from '@/store/modules/queue';
 import type { SongResult } from '@/types/music';
@@ -589,20 +640,13 @@ const HISTORY_KEY = 'ytm_search_history';
 const MAX_HISTORY = 20;
 const SUGGESTION_DEBOUNCE = 350;
 
-// ─── State ────────────────────────────────────────────────────────────────────
-
 const query = ref('');
 const lastQuery = ref('');
 const suggestions = ref<string[]>([]);
 const searchDone = ref(false);
 const searchLoading = ref(false);
 const activeTab = ref<'all' | 'songs' | 'videos' | 'albums' | 'artists' | 'playlists'>('all');
-const results = ref<
-  SearchResults & {
-    topResult?: SongResult;
-    total?: number;
-  }
->({
+const results = ref<SearchResults & { total?: number }>({
   topResult: undefined,
   songs: [],
   playlists: [],
@@ -612,7 +656,7 @@ const results = ref<
   total: 0
 });
 
-const moods = ref<YTMMood[]>([]);
+const moods = ref<YTMMoodCategory[]>([]);
 const moodsLoading = ref(false);
 const searchHistory = ref<string[]>([]);
 
@@ -620,14 +664,15 @@ const searchInputRef = ref<HTMLInputElement | null>(null);
 const suggestDebounceTimer = ref<ReturnType<typeof setTimeout> | null>(null);
 
 const playlistStore = useQueueStore();
+const router = useRouter();
 
 const formatTime = (time?: number | string) => {
   if (!time) return '';
   if (typeof time === 'string') {
     if (time.includes(':')) return time;
-    return secondToMinute(Number(time));
+    return secondToMinute(Number(time) / 1000);
   }
-  return secondToMinute(time);
+  return secondToMinute(time / 1000);
 };
 
 function getTabCount(key: string): number {
@@ -639,9 +684,7 @@ function getTabCount(key: string): number {
   return 0;
 }
 
-function getPlaceholder(title: string): string {
-  return logoImg;
-}
+
 
 function onImgError(event: Event, title: string) {
   (event.target as HTMLImageElement).src = getPlaceholder(title);
@@ -740,9 +783,12 @@ async function doSearch(clearResults = true) {
   }
 }
 
-function searchByMood(title: string) {
-  query.value = title;
-  doSearch();
+function searchByMood(mood: YTMMood) {
+  router.push({
+    name: 'moodDetail',
+    params: { id: mood.id },
+    query: { params: mood.params, title: mood.title }
+  });
 }
 
 function playSong(song: SongResult) {
@@ -750,7 +796,24 @@ function playSong(song: SongResult) {
   window.dispatchEvent(new CustomEvent('ytm:play', { detail: song }));
 }
 
-// ─── History ─────────────────────────────────────────────────────────────────
+function goToArtist(id: string) {
+  router.push({ name: 'artistDetail', params: { id } });
+}
+
+function goToPlaylist(id: string) {
+  router.push({ name: 'playlistDetail', params: { id } });
+}
+
+function onTopResultClick() {
+  if (!results.value.topResult) return;
+  if ('artists' in results.value.topResult) {
+    playSong(results.value.topResult as SongResult);
+  } else if ((results.value.topResult as any).type === 'artist') {
+    goToArtist(results.value.topResult.id);
+  } else {
+    goToPlaylist(results.value.topResult.id);
+  }
+}
 
 function loadHistory() {
   try {
@@ -777,6 +840,26 @@ function clearHistory() {
 }
 
 // ─── Moods ────────────────────────────────────────────────────────────────────
+
+function getStringHashCode(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash |= 0;
+  }
+  return hash;
+}
+
+const moodColors = [
+  '#E91E63', '#9C27B0', '#673AB7', '#3F51B5', '#2196F3', '#00BCD4',
+  '#009688', '#4CAF50', '#FF9800', '#FF5722', '#795548', '#607D8B'
+];
+
+function getMoodColor(title: string): string {
+  const hash = Math.abs(getStringHashCode(title));
+  return moodColors[hash % moodColors.length];
+}
 
 async function loadMoods() {
   moodsLoading.value = true;
